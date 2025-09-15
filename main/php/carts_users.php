@@ -470,7 +470,7 @@ $total = $subtotal + $tax;
 <body>
     <!-- NAVBAR -->
     <div class="navbar">
-        <h2>Meta Accessories</h2>
+        <h2>Meta Shark</h2>
         <div class="nav-right">
         <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
             <?php

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <style>
+    .logo-text { font-family: Arial, sans-serif; font-weight: bold; }
+    .main-text { fill: #44D62C; }
+    .accent { fill: #FFFFFF; }
+  </style>
+  <rect x="10" y="10" width="40" height="40" rx="5" fill="#111111" stroke="#44D62C" stroke-width="2"/>
+  <text x="60" y="35" class="logo-text main-text" font-size="24">Sayson</text>
+  <text x="140" y="35" class="logo-text accent" font-size="24">Co</text>
+  <path d="M20 25 L30 20 L40 25 L30 40 Z" fill="#44D62C" />
+</svg>

@@ -81,8 +81,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seller Signup - MetaAccessories</title>
+    <title>Seller Signup - Meta Shark</title>
     <link rel="stylesheet" href="fonts/fonts.css">
+      <link rel="icon" type="image/png" href="uploads/logo1.png">
     <style>
         * {
             margin: 0;
@@ -320,7 +321,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="form-container">
         <div class="seller-badge">Join as Seller</div>
         <h1 class="form-title">Seller Signup</h1>
-        <p class="form-subtitle">Start selling on MetaAccessories today</p>
+        <p class="form-subtitle">Start selling on Meta Shark today</p>
         
         <?php if ($error): ?>
             <div class="message error"><?php echo $error; ?></div>

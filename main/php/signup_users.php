@@ -36,6 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up - MyShop</title>
+  <link rel="icon" type="image/png" href="uploads/logo1.png">
   <style>
 /* General Styles */
 body {
@@ -57,6 +58,15 @@ body {
   width: 350px;
   text-align: center;
   animation: fadeIn 0.5s ease-in-out;
+  position: relative;
+}
+
+/* Logo */
+.form-container img.logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin-bottom: 15px;
 }
 
 /* Heading */
@@ -126,6 +136,9 @@ body {
 <body>
 
   <div class="form-container">
+    <!-- Logo at the top -->
+    <img src="uploads/logo1.png" alt="MyShop Logo" class="logo">
+
     <h2>Create Account</h2>
     <form action="signupprocess_users.php" method="POST">
       <input type="text" name="fullname" placeholder="Full Name" required>
@@ -135,7 +148,7 @@ body {
       <input type="password" name="confirm_password" placeholder="Confirm Password" required>
       <button type="submit">Sign Up</button>
       <?php if (!empty($error)) echo "<p class='error'>$error</p>"; ?>
-    </form
+    </form>
     <p> Already have an account? <a href="login_users.php">Login</a></p>
   </div>
 </body>

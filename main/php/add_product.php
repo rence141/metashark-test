@@ -279,7 +279,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
     <!-- NAVBAR -->
     <div class="navbar">
-        <h2>Meta Accessories</h2>
+        <h2>Meta Shark</h2>
         <div class="nav-right">
             <a href="seller_profile.php">
                 <?php 

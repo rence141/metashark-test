@@ -98,8 +98,10 @@ if (isset($_SESSION['user_id'])) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MetaAccessories</title>
+  <title>Meta Shark</title>
   <link rel="stylesheet" href="fonts/fonts.css">
+    <link rel="icon" type="image/png" href="uploads/logo1.png">
+
   <style>
     /* Loading Screen Styles */
     .loading-screen {
@@ -124,39 +126,64 @@ if (isset($_SESSION['user_id'])) {
       visibility: visible;
     }
 
-    .worm-container {
+    .logo-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
       display: flex;
-      align-items: center;
       justify-content: center;
-      gap: 8px;
+      align-items: center;
     }
 
-    .worm-dot {
-      width: 16px;
-      height: 16px;
-      background-color: #44D62C;
-      border-radius: 50%;
-      opacity: 0.2;
+    .logo-outline {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: url('uploads/logo1.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.5;
+      animation: pulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.5;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.7;
+      }
     }
 
-    .worm-dot:nth-child(1) {
-      animation: worm 1.2s infinite 0s;
+    .logo-fill {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: url('uploads/logo1.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      clip-path: inset(100% 0 0 0);
+      animation: water-fill 2.5s ease-in-out infinite;
+      filter: brightness(1.2) saturate(1.2);
     }
 
-    .worm-dot:nth-child(2) {
-      animation: worm 1.2s infinite 0.2s;
-    }
-
-    .worm-dot:nth-child(3) {
-      animation: worm 1.2s infinite 0.4s;
-    }
-
-    .worm-dot:nth-child(4) {
-      animation: worm 1.2s infinite 0.6s;
-    }
-
-    .worm-dot:nth-child(5) {
-      animation: worm 1.2s infinite 0.8s;
+    @keyframes water-fill {
+      0% {
+        clip-path: inset(100% 0 0 0);
+        filter: hue-rotate(0deg);
+      }
+      50% {
+        clip-path: inset(0 0 0 0);
+        filter: hue-rotate(30deg);
+      }
+      100% {
+        clip-path: inset(100% 0 0 0);
+        filter: hue-rotate(0deg);
+      }
     }
 
     .loading-text {
@@ -165,17 +192,17 @@ if (isset($_SESSION['user_id'])) {
       margin-top: 20px;
       font-weight: bold;
       text-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
+      animation: text-wave 2.5s ease-in-out infinite;
     }
-
-    @keyframes worm {
+    
+    @keyframes text-wave {
       0%, 100% {
-        transform: scale(0.6);
-        opacity: 0.2;
+        opacity: 0.7;
+        transform: translateY(0);
       }
       50% {
-        transform: scale(1);
         opacity: 1;
-        box-shadow: 0 0 10px rgba(68, 214, 44, 0.8);
+        transform: translateY(-5px);
       }
     }
     /* Theme Variables */
@@ -313,6 +340,13 @@ if (isset($_SESSION['user_id'])) {
     .nav-left {
       display: flex;
       align-items: center;
+      gap: 15px;
+    }
+    
+    .logo {
+      height: 40px;
+      width: auto;
+      border-radius: 5px;
     }
 
     .navbar h2 {
@@ -696,6 +730,158 @@ if (isset($_SESSION['user_id'])) {
       background: linear-gradient(135deg, #ff4444, #cc3333);
       border-left: 4px solid #aa2222;
     }
+    
+    /* Product Popup Advertisement */
+    .product-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: var(--bg-tertiary);
+      border-radius: 15px;
+      box-shadow: 0 10px 30px var(--shadow);
+      width: 90%;
+      max-width: 500px;
+      z-index: 10001;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 2px solid var(--accent);
+    }
+    
+    .product-popup.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    
+    .popup-header {
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .popup-header h3 {
+      color: var(--bg-primary);
+      margin: 0;
+      font-size: 1.3rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .popup-close {
+      background: none;
+      border: none;
+      color: var(--bg-primary);
+      font-size: 24px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    
+    .popup-close:hover {
+      transform: scale(1.2);
+    }
+    
+    .popup-content {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .popup-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid var(--border);
+    }
+    
+    .popup-product-info {
+      width: 100%;
+      text-align: center;
+    }
+    
+    .popup-product-name {
+      font-size: 1.4rem;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+    
+    .popup-product-price {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--accent);
+      margin-bottom: 15px;
+    }
+    
+    .popup-product-description {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    
+    .popup-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      width: 100%;
+    }
+    
+    .popup-view-btn, .popup-add-btn {
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: none;
+    }
+    
+    .popup-view-btn {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    
+    .popup-view-btn:hover {
+      background: var(--bg-tertiary);
+      transform: translateY(-2px);
+    }
+    
+    .popup-add-btn {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+    
+    .popup-add-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px var(--shadow);
+    }
+    
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .popup-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
 
     .notification.info {
       background: linear-gradient(135deg, #44D62C, #36b020);
@@ -995,20 +1181,39 @@ if (isset($_SESSION['user_id'])) {
 <body>
 <!-- Loading Screen -->
 <div class="loading-screen<?php echo $just_logged_in ? ' active' : ''; ?>">
-  <div class="worm-container">
-    <div class="worm-dot"></div>
-    <div class="worm-dot"></div>
-    <div class="worm-dot"></div>
-    <div class="worm-dot"></div>
-    <div class="worm-dot"></div>
+  <div class="logo-container">
+    <div class="logo-outline"></div>
+    <div class="logo-fill"></div>
   </div>
   <div class="loading-text">Loading...</div>
+</div>
+
+<!-- Product Popup Advertisement -->
+<div class="popup-overlay" id="popupOverlay"></div>
+<div class="product-popup" id="productPopup">
+  <div class="popup-header">
+    <h3>Featured Product</h3>
+    <button class="popup-close" id="popupClose">&times;</button>
+  </div>
+  <div class="popup-content">
+    <img src="" alt="Product Image" class="popup-image" id="popupImage">
+    <div class="popup-product-info">
+      <h4 class="popup-product-name" id="popupName"></h4>
+      <div class="popup-product-price" id="popupPrice"></div>
+      <p class="popup-product-description" id="popupDescription">Check out this amazing product from our collection!</p>
+      <div class="popup-actions">
+        <button class="popup-view-btn" id="popupViewBtn">View Details</button>
+        <button class="popup-add-btn" id="popupAddBtn">Add to Cart</button>
+      </div>
+    </div>
+  </div>
 </div>
 
   <!-- NAVBAR -->
   <div class="navbar">
     <div class="nav-left">
-      <h2>Meta Accessories</h2>
+      <img src="uploads/logo1.png" alt="SaysonCo Logo" class="logo">
+      <h2>Meta Shark</h2>
       <?php include('theme_toggle.php'); ?>
     </div>
     <div class="nav-right">
@@ -1087,14 +1292,14 @@ if (isset($_SESSION['user_id'])) {
   </div>
 
 <!-- Video Banner -->
-<div class="banner video-banner" style="position: relative; height: 320px; overflow: hidden;">
+<div class="banner video-banner" style="position: relative; height: 250px; overflow: hidden;">
   <video 
     autoplay 
     muted 
     loop 
     playsinline 
     preload="auto"
-    style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; z-index: 0;">
+    style="position: absolute; top: 50%; left: 50%; width: 100%; height: auto; transform: translate(-50%, -50%); object-fit: contain; z-index: 0;">
     <source src="http://localhost/SaysonCo/mp4/videoplayback.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
@@ -1180,7 +1385,7 @@ if (isset($_SESSION['user_id'])) {
   <div class="shop-container">
     <h2 class="shop-title">Featured Products</h2>
 
-    <!-- Search & Filter -->
+    <!-- Search and filter  for the products -->
     <div class="filter-bar">
       <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Search products...">
@@ -1340,6 +1545,134 @@ if (isset($_SESSION['user_id'])) {
   <script>
     // Wait for DOM to be fully loaded
     document.addEventListener('DOMContentLoaded', function() {
+    // Product Popup Advertisement
+    const productPopup = document.getElementById('productPopup');
+    const popupOverlay = document.getElementById('popupOverlay');
+    const popupClose = document.getElementById('popupClose');
+    const popupImage = document.getElementById('popupImage');
+    const popupName = document.getElementById('popupName');
+    const popupPrice = document.getElementById('popupPrice');
+    const popupDescription = document.getElementById('popupDescription');
+    const popupViewBtn = document.getElementById('popupViewBtn');
+    const popupAddBtn = document.getElementById('popupAddBtn');
+    
+    // Function to get all products from the page
+    function getAllProducts() {
+      const products = [];
+      const productCards = document.querySelectorAll('.product-card');
+      
+      productCards.forEach(card => {
+        const product = {
+          name: card.querySelector('h3').textContent,
+          price: card.querySelector('.price').textContent,
+          image: card.querySelector('img').src,
+          category: card.dataset.category,
+          productId: card.querySelector('.add-to-cart-form') ? 
+                    card.querySelector('.add-to-cart-form').dataset.productId : null
+        };
+        products.push(product);
+      });
+      
+      return products;
+    }
+    
+    // Function to select a random product
+    function getRandomProduct() {
+      const products = getAllProducts();
+      if (products.length === 0) return null;
+      
+      const randomIndex = Math.floor(Math.random() * products.length);
+      return products[randomIndex];
+    }
+    
+    // Function to display popup with a product
+    function showProductPopup(product) {
+      if (!product) return;
+      
+      popupImage.src = product.image;
+      popupName.textContent = product.name;
+      popupPrice.textContent = product.price;
+      
+      // Set up the view details button
+      popupViewBtn.onclick = function() {
+        // Find the product card and simulate a click to view details
+        const productCards = document.querySelectorAll('.product-card');
+        productCards.forEach(card => {
+          if (card.querySelector('h3').textContent === product.name) {
+            card.scrollIntoView({ behavior: 'smooth' });
+            closePopup();
+          }
+        });
+      };
+      
+      // Set up the add to cart button
+      popupAddBtn.onclick = function() {
+        if (product.productId) {
+          // Find the add to cart form for this product and submit it
+          const form = document.querySelector(`.add-to-cart-form[data-product-id="${product.productId}"]`);
+          if (form) {
+            form.submit();
+            closePopup();
+          } else {
+            alert('Please login to add items to cart!');
+            closePopup();
+          }
+        } else {
+          alert('Please login to add items to cart!');
+          closePopup();
+        }
+      };
+      
+      // Show the popup
+      popupOverlay.classList.add('show');
+      productPopup.classList.add('show');
+    }
+    
+    // Function to close the popup
+    function closePopup() {
+      popupOverlay.classList.remove('show');
+      productPopup.classList.remove('show');
+    }
+    
+    // Close popup when clicking the close button
+    if (popupClose) {
+      popupClose.addEventListener('click', closePopup);
+    }
+    
+    // Close popup when clicking outside
+    if (popupOverlay) {
+      popupOverlay.addEventListener('click', closePopup);
+    }
+    
+    // Show popup on page load with a delay
+    function showRandomProductPopup() {
+      const randomProduct = getRandomProduct();
+      if (randomProduct) {
+        // Store in session storage that we've shown a popup
+        const lastPopupTime = sessionStorage.getItem('lastPopupTime');
+        const currentTime = new Date().getTime();
+        
+        // Only show popup if we haven't shown one in the last 30 minutes
+        if (!lastPopupTime || (currentTime - parseInt(lastPopupTime)) > 30 * 60 * 1000) {
+          setTimeout(() => {
+            showProductPopup(randomProduct);
+            sessionStorage.setItem('lastPopupTime', currentTime.toString());
+          }, 3000); // Show after 3 seconds
+        }
+      }
+    }
+    
+    // Check if user just logged in or page just loaded
+    <?php if (isset($just_logged_in) && $just_logged_in): ?>
+      // User just logged in, show popup after loading screen disappears
+      setTimeout(() => {
+        showRandomProductPopup();
+      }, 3500); // Wait for loading screen to disappear
+    <?php else: ?>
+      // Regular page load
+      showRandomProductPopup();
+    <?php endif; ?>
+    
     // Toggle Hamburger Menu
     const hamburger = document.querySelector(".hamburger");
     const menu = document.getElementById("menu");

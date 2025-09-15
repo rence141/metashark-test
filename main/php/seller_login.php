@@ -43,8 +43,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seller Login - MetaAccessories</title>
+    <title>Seller Login - Meta Shark</title>
     <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="icon" type="image/png" href="uploads/logo1.png">
     <style>
         * {
             margin: 0;

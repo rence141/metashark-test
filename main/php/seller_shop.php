@@ -54,6 +54,7 @@ if (isset($_SESSION['user_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($seller['seller_name'] ?: $seller['fullname']); ?> - Shop</title>
     <link rel="stylesheet" href="fonts/fonts.css">
+     <link rel="icon" type="image/png" href="uploads/logo1.png">
     <style>
         /* Reset */
         * {
@@ -462,7 +463,7 @@ if (isset($_SESSION['user_id'])) {
 <body>
     <!-- NAVBAR -->
     <div class="navbar">
-        <h2>Meta Accessories</h2>
+        <h2>Meta Shark</h2>
         <div class="nav-right">
             <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
                 <?php

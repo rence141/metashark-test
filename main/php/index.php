@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MetaAccessories</title>
+  <title>Meta Shark</title>
   <style>
     /* Reset */
     * {
@@ -27,6 +27,18 @@
       align-items: center;
       justify-content: space-between;
       position: relative;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      height: 40px;
+      width: auto;
+      border-radius: 5px;
     }
 
     .navbar h2 {
@@ -185,7 +197,11 @@
 
   <!-- NAVBAR -->
   <div class="navbar">
-    <h2>Meta Accessories</h2>
+    <div class="nav-left">
+      <img src="uploads/logo.png" alt="SaysonCo Logo" class="logo">
+      <h2>Meta Shark</h2>
+    </div>
+    <div class="nav-right">
         <?php if (isset($_SESSION['user_id'])): ?>
             <a href="profile.php">
                 <img src="uploads/<?php echo $_SESSION['profile_image']; ?>" 
@@ -195,7 +211,8 @@
             <a href="login.html">Login</a>
             <a href="signup.html">Sign Up</a>
         <?php endif; ?>
-    <button class="hamburger">☰</button>
+        <button class="hamburger">☰</button>
+    </div>
     <ul class="menu" id="menu">
       <li>Home</li>
       <li>Shop</li>

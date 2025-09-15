@@ -128,6 +128,7 @@ $stats = $stats_result->fetch_assoc();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($user["seller_name"] ?: $user["fullname"]); ?> - Seller Profile</title>
     <link rel="stylesheet" href="fonts/fonts.css">
+     <link rel="icon" type="image/png" href="uploads/logo1.png">
     <style>
         * {
             margin: 0;
@@ -434,7 +435,7 @@ $stats = $stats_result->fetch_assoc();
 <body>
     <!-- NAVBAR -->
     <div class="navbar">
-        <h2>Meta Accessories</h2>
+        <h2>Meta Shark</h2>
         <div class="nav-right">
             <a href="seller_profile.php">
                 <?php 

@@ -103,10 +103,12 @@ $user = $result->fetch_assoc();
 <head>
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars($user["fullname"]); ?> - Profile</title>
+    <link rel="stylesheet" href="fonts/fonts.css">
+      <link rel="icon" type="image/png" href="uploads/logo1.png">
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #74ebd5, #9face6);
+            background: linear-gradient(135deg, #0fe70cff, #000000ff);
             margin: 0;
             padding: 0;
         }

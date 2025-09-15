@@ -11,6 +11,7 @@ include('db.php');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Light Mode Test - Meta Accessories</title>
     <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="icon" type="image/png" href="uploads/logo1.png">
     <?php include('theme_toggle.php'); ?>
     <style>
         * {

@@ -12,10 +12,12 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - MyShop</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="icon" type="image/png" href="uploads/logo1.png">
   <style>
     body {
       font-family: Arial, sans-serif;
-      background:rgb(56, 55, 55);
+      background: rgb(56, 55, 55);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -50,7 +52,7 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     .form-container button {
       width: 100%;
       padding: 12px;
-      background:rgb(3, 1, 0);
+      background: rgb(3, 1, 0);
       border: none;
       color: white;
       font-size: 1rem;
@@ -59,7 +61,7 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     }
 
     .form-container button:hover {
-      background:rgb(0, 230, 4);
+      background: rgb(0, 230, 4);
     }
 
     .form-container p {
@@ -68,8 +70,18 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     }
 
     .form-container a {
-      color:rgb(0, 255, 13);
+      color: rgb(0, 255, 13);
       text-decoration: none;
+    }
+
+    /* Logo Styles */
+    .form-container .logo {
+      width: 80px;       /* Adjust size */
+      height: auto;
+      margin-bottom: 15px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     /* Loading Screen Styles */
@@ -110,25 +122,11 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
       opacity: 0.2;
     }
 
-    .worm-dot:nth-child(1) {
-      animation: worm 1.2s infinite 0s;
-    }
-
-    .worm-dot:nth-child(2) {
-      animation: worm 1.2s infinite 0.2s;
-    }
-
-    .worm-dot:nth-child(3) {
-      animation: worm 1.2s infinite 0.4s;
-    }
-
-    .worm-dot:nth-child(4) {
-      animation: worm 1.2s infinite 0.6s;
-    }
-
-    .worm-dot:nth-child(5) {
-      animation: worm 1.2s infinite 0.8s;
-    }
+    .worm-dot:nth-child(1) { animation: worm 1.2s infinite 0s; }
+    .worm-dot:nth-child(2) { animation: worm 1.2s infinite 0.2s; }
+    .worm-dot:nth-child(3) { animation: worm 1.2s infinite 0.4s; }
+    .worm-dot:nth-child(4) { animation: worm 1.2s infinite 0.6s; }
+    .worm-dot:nth-child(5) { animation: worm 1.2s infinite 0.8s; }
 
     .loading-text {
       color: #44D62C;
@@ -165,20 +163,25 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
 </div>
 
 <div class="form-container">
+  <!-- Logo -->
+  <img src="uploads/logo1.png" alt="MyShop Logo" class="logo">
   <h2>Login</h2>
 
-    <form action="loginprocess_users.php" method="POST" id="loginForm">
-      <input type="email" name="email" placeholder="Email" required>
-      <input type="password" name="password" placeholder="Password" required>
-      <button type="submit">Login</button>
-      <?php if (!empty($error)) echo "<p style='color:red;'>$error</p>"; ?>
-    </form>
-    <p>Don't have an account? <a href="signup_users.php">Sign Up</a></p>
-    <p style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-      <strong>Are you a seller?</strong><br>
-      <a href="seller_login.php" style="color: #44D62C; font-weight: bold; text-decoration: none; background: #f0f0f0; padding: 8px 15px; border-radius: 5px; display: inline-block; margin-top: 10px;">Seller Login</a>
-    </p>
+  <form action="loginprocess_users.php" method="POST" id="loginForm">
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+    <?php if (!empty($error)) echo "<p style='color:red;'>$error</p>"; ?>
+  </form>
+
+  <p>Don't have an account? <a href="signup_users.php">Sign Up</a></p>
+
+  <p style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+    <strong>Are you a seller?</strong><br>
+    <a href="seller_login.php" style="color: #44D62C; font-weight: bold; text-decoration: none; background: #f0f0f0; padding: 8px 15px; border-radius: 5px; display: inline-block; margin-top: 10px;">Seller Login</a>
+  </p>
 </div>
+
 <script>
   // Show loading screen when form is submitted
   document.getElementById('loginForm').addEventListener('submit', function() {
