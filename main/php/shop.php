@@ -944,33 +944,6 @@ if (isset($_SESSION['user_id'])) {
       margin: 0 auto;
       padding: 0 20px;
     }
-
-    /* Product images in grid and carousel - consistent sizing and fit */
-.carousel-item {
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-tertiary);
-  border-radius: 12px;
-  box-shadow: 0 4px 16px var(--shadow);
-  padding: 20px;
-  min-height: 350px;
-}
-
-.carousel-item img {
-  width: 100%;
-  max-width: 400px;
-  height: 250px;
-  object-fit: cover;
-  border-radius: 10px;
-  background: #222;
-  display: block;
-  margin: 0 auto 15px auto;
-}
   </style>
   <script>
     // Theme toggle functionality
@@ -1108,38 +1081,25 @@ if (isset($_SESSION['user_id'])) {
   <?php endif; ?>
 
   <!-- BANNER -->
-  <div class="banner">
-    <h1>Welcome to Meta Accessories</h1>
-    <p>Your Ultimate Tech Marketplace</p>
+  <div class="banner-content" style="position:relative; z-index:1; text-align:center; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+    <h1 style="background:rgba(0,0,0,0.6); color:#44D62C; padding:20px 40px; border-radius:10px; font-size:2.5rem; border:2px solid #44D62C; box-shadow:0 0 20px #44D62C;">Welcome to Meta Accessories</h1>
+    <p style="background:rgba(0,0,0,0.5); color:#44D62C; padding:10px 20px; border-radius:8px; font-size:1.2rem; border:1px solid #44D62C;">Your Ultimate Tech Marketplace</p>
   </div>
 
- <?php
-      include("db.php");
-      $carousel_sql = "SELECT p.*, u.seller_name, u.fullname as seller_fullname 
-        FROM products p 
-        LEFT JOIN users u ON p.seller_id = u.id 
-        WHERE p.is_active = TRUE 
-        ORDER BY RAND() 
-        LIMIT 5";
-      $carousel_result = $conn->query($carousel_sql);
-      $carousel_products = [];
-      if ($carousel_result && $carousel_result->num_rows > 0) {
-        while ($product = $carousel_result->fetch_assoc()) {
-          $carousel_products[] = $product;
-        }
-      }
-      foreach ($carousel_products as $i => $product) {
-        echo '<div class="carousel-item" style="display:' . ($i === 0 ? 'block' : 'none') . ';text-align:center;">';
-        echo '<img src="' . htmlspecialchars($product['image']) . '" alt="' . htmlspecialchars($product['name']) . '" style="width:100%;max-height:300px;object-fit:cover;border-radius:10px;">';
-        echo '<h3 style="color:var(--accent);margin:15px 0 5px 0;">' . htmlspecialchars($product['name']) . '</h3>';
-        echo '<p class="price" style="font-size:1.2rem;">$' . number_format($product['price'], 2) . '</p>';
-        echo '<p class="seller-info" style="font-size:0.9rem;">Sold by: <a href="seller_shop.php?seller_id=' . $product['seller_id'] . '" style="color:var(--accent);text-decoration:none;font-weight:bold;">' . htmlspecialchars($product['seller_name'] ?: $product['seller_fullname']) . '</a></p>';
-        echo '</div>';
-      }
-    ?>
-  </div>
-  <button class="carousel-arrow right" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--accent);color:var(--bg-primary);border:none;border-radius:50%;width:40px;height:40px;font-size:2rem;z-index:2;cursor:pointer;">&#8594;</button>
+<!-- Video Banner -->
+<div class="banner video-banner" style="position: relative; height: 320px; overflow: hidden;">
+  <video 
+    autoplay 
+    muted 
+    loop 
+    playsinline 
+    preload="auto"
+    style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; z-index: 0;">
+    <source src="http://localhost/SaysonCo/mp4/videoplayback.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
 </div>
+
 
   <!-- FEATURES SECTION -->
   <div class="features-section">
@@ -1516,51 +1476,6 @@ if (isset($_SESSION['user_id'])) {
         }, 300);
       }, 3000);
     }
-
-
-   document.addEventListener('DOMContentLoaded', function() {
-  const items = document.querySelectorAll('.carousel-item');
-  const leftArrow = document.querySelector('.carousel-arrow.left');
-  const rightArrow = document.querySelector('.carousel-arrow.right');
-  let current = 0;
-  let interval;
-
-  function showSlide(idx) {
-    items.forEach((item, i) => {
-      item.style.display = i === idx ? 'block' : 'none';
-    });
-  }
-
-  function nextSlide() {
-    current = (current + 1) % items.length;
-    showSlide(current);
-  }
-
-  function prevSlide() {
-    current = (current - 1 + items.length) % items.length;
-    showSlide(current);
-  }
-
-  leftArrow.addEventListener('click', function() {
-    prevSlide();
-    resetInterval();
-  });
-
-  rightArrow.addEventListener('click', function() {
-    nextSlide();
-    resetInterval();
-  });
-
-  function resetInterval() {
-    clearInterval(interval);
-    interval = setInterval(nextSlide, 3000); // Infinite auto loop
-  }
-
-  if (items.length > 0) {
-    showSlide(current);
-    interval = setInterval(nextSlide, 3000); // Infinite auto loop
-  }
-});
   </script>
 
 </body>
