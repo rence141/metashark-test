@@ -1,173 +1,233 @@
-/* =======================
-   Reset & Global Styles
-   ======================= */
+/* Reset */
 * {
-  margin: 0;                  /* Remove default browser margins */
-  padding: 0;                 /* Remove default browser padding */
-  box-sizing: border-box;     /* Include padding & border inside element size */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Hero */
+.hero {
+  background: linear-gradient(to right, #111, #222, #333);
+  color: white;
+
+  /* Center everything in viewport */
+  min-height: 100vh;             /* full screen height */
+  display: flex;
+  align-items: center;           /* vertical center */
+  justify-content: center;       /* horizontal center */
+  gap: 60px;                     /* space between text & carousel */
+  flex-wrap: wrap;
+  text-align: center;
+  padding: 0 20px;               /* small padding on sides */
+  position: relative;
+  overflow: hidden;
 }
 
 body {
-  font-family: Arial, sans-serif;  /* Set default font */
-  line-height: 1.6;                /* Improve text readability */
-  background: #f5f5f5;             /* Light gray background */
-  color: #333;                     /* Dark gray text color */
+  font-family: Arial, sans-serif;
+  background: #252323;
+  color: #ffffff;
 }
 
-/* =======================
-   Navbar Styles
-   ======================= */
+/* Navbar */
 .navbar {
-  display: flex;                   /* Align items horizontally */
-  justify-content: space-between;  /* Spread items across nav */
-  align-items: center;             /* Vertically center items */
-  background: #222;                /* Dark background for navbar */
-  padding: 15px 20px;              /* Inner spacing */
+  background: #111;
+  padding: 15px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .navbar button {
-  border: none;                    /* Remove button border */
-  padding: 10px 15px;              /* Add button spacing */
-  color: white;                    /* White text */
-  font-size: 16px;                 /* Medium font size */
-  cursor: pointer;                 /* Pointer cursor on hover */
-  border-radius: 5px;              /* Slightly rounded corners */
-  transition: background 0.3s ease;/* Smooth background hover effect */
-}
-
-.navbar button:hover {
-  background: #e68900;             /* Orange hover background */
+  font-size: 20px;
+  background: none;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 
 .navbar ul {
-  list-style: none;                /* Remove default list bullets */
-  display: flex;                   /* Horizontal list items */
-  gap: 40px;                       /* Space between list items */
-  background: #333;                /* Dark gray background */
-  padding: 10px;                   /* Inner spacing */
-  border-radius: 8px;              /* Rounded background corners */
-}
-
-.navbar li {
-  color: white;                    /* White text for menu items */
-  cursor: pointer;                 /* Pointer on hover */
-  transition: color 0.3s ease;     /* Smooth color transition */
-}
-
-.navbar li:hover {
-  color: #ff9800;                  /* Orange hover effect */
-}
-
-/* =======================
-   Hero Section
-   ======================= */
-.hero {
-    display: flex;                   /* Flexbox for layout */
-    align-items: center;               /* Align vertically in the middle */
-    padding: 60px 10%;
-    background: linear-gradient(to right, #f95ce4, #6a32f6);
-    color: white;
-    justify-content: space-between;
-    border-radius: 15px;
-    gap: 1px;                       /* Space between text & image */
-    min-height: 100vh;                 /* Optional: full screen height */
-}
-
-.hero-content {
-  flex: 0 1 50%;                           /* Take available space */
-  text-align: left;                  /* Keep text aligned left */
-}
-
-.card-hero {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-  width: 500px;   /* shrink to content */
-  max-height: 1200px; /* limit height */
-  height: auto;
-  gap: 20px;
-  margin-left: auto;    /* push to the right */
-}
-
-
-.hero-img {
-  flex: 1;                           /* Image column */
+  list-style: none;
   display: flex;
-  justify-content: center;           /* Center image horizontally */
+  gap: 20px;
 }
 
-.hero-img img {
-  width: 100%;
-  max-width: 500px;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+.navbar ul li {
+  cursor: pointer;
+  transition: color 0.3s;
 }
 
+.navbar ul li a {
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.navbar ul li:hover a,
+.navbar ul li a:hover {
+  color: #09ff00;
+}
+
+/* Hero Content */
+.hero-content {
+  max-width: 550px;
+  animation: fadeIn 1s ease-in-out;
+}
 
 .hero h1 {
-  font-size: 21px;                /* Large headline */
-  margin-bottom: 10px;            /* Space below heading */
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  letter-spacing: 1px;
 }
 
 .hero p {
-  font-size: 18px;                /* Medium paragraph size */
-  margin-top: 10px;               /* Space above description */
+  margin-bottom: 25px;
+  line-height: 1.6;
+  font-size: 1.1rem;
+  opacity: 0.9;
 }
 
-.hero-btn {
-  text-align: left;      /* Center the button */
-  margin-top: 20px;        /* Space above the button */
+.hero button, .hero .cta-button {
+  padding: 15px 30px;
+  background: linear-gradient(to right, #28eb05, #44D62C);
+  color: #000;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
-.hero-btn button {
-  background: #2575fc;
+.hero button:hover, .hero .cta-button:hover {
+  background: linear-gradient(to right, #44D62C, #28eb05);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+}
+
+/* === Carousel Section === */
+
+/* Container to center the carousel */
+.carousel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 40px 0;
+}
+
+/* Carousel wrapper */
+.carousel {
+  width: 90%;             /* responsive width */
+  max-width: 650px;       /* don't let it get too big */
+  aspect-ratio: 16/9;     /* widescreen style */
+  position: relative;
+  overflow: hidden;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  background: #000;       /* fallback background */
+  animation: slideIn 1s ease-out;
+}
+
+/* Track holds all slides side by side */
+.carousel-track {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+  height: 100%;
+}
+
+/* Each slide */
+.carousel-slide {
+  min-width: 100%;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* Slide images */
+.carousel-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;   /* crop nicely while filling */
+  display: block;
+  border-radius: 12px;
+}
+
+/* Navigation arrows */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.6);
   color: white;
   border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
+  font-size: 1.8rem;
   cursor: pointer;
-  font-size: 16px;
-  transition: background 0.3s ease;
+  padding: 12px 16px;
+  z-index: 2;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.hero-btn button:hover {
-  background: #1a5edb;
-}
-/* =======================
-   Image Section
-   ======================= */
-.img {
-    flex: 1;                         /* Image column */
-  text-align: right;             /* Center the image */
-  margin: 40px 0;                 /* Space above & below image */
+.carousel-btn:hover {
+  background: rgba(40, 235, 5, 0.8);
+  transform: translateY(-50%) scale(1.1);
 }
 
-.img img {
-  width: auto;
-  max-width: 100%;
-  max-height: 600px;   /* Limit height */
-  height: auto;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+.carousel-btn.prev {
+  left: 15px;
 }
 
-
-/* =======================
-   Global Buttons
-   ======================= */
-button, Button {
-  display: inline-block;          /* Inline but allows width/height */
-  background: #2575fc;            /* Blue background */
-  color: white;                   /* White text */
-  border: none;                   /* Remove default border */
-  padding: 12px 20px;             /* Inner spacing */
-  border-radius: 8px;             /* Rounded corners */
-  cursor: pointer;                /* Pointer on hover */
-  font-size: 16px;                /* Medium text size */
-  transition: background 0.3s ease; /* Smooth hover effect */
+.carousel-btn.next {
+  right: 15px;
 }
 
-button:hover, Button:hover {
-  background: #1a5edb;            /* Darker blue on hover */
+/* Dots under carousel */
+.dots-container {
+  text-align: center;
+  margin-top: 15px;
+  position: absolute;
+  bottom: 15px;
+  width: 100%;
+  z-index: 10;
+}
+
+.dot {
+  height: 12px;
+  width: 12px;
+  margin: 0 6px;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  display: inline-block;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.dot:hover {
+  transform: scale(1.2);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.dot.active {
+  background-color: #28eb05;
+  transform: scale(1.2);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
 }
