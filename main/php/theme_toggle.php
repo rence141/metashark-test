@@ -13,18 +13,6 @@ if (isset($_GET['theme'])) {
 }
 ?>
 
-<!-- Theme Toggle Component -->
-<div class="theme-toggle" id="themeToggle">
-    <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
-        <span class="theme-icon" id="themeIcon">
-            <?php echo $theme === 'light' ? '🌙' : '☀️'; ?>
-        </span>
-        <span class="theme-text" id="themeText">
-            <?php echo $theme === 'light' ? 'Dark' : 'Light'; ?>
-        </span>
-    </button>
-</div>
-
 <style>
 /* Theme Toggle Styles */
 .theme-toggle {

@@ -10,6 +10,13 @@ if (!isset($_SESSION["user_id"])) {
 
 include("db.php");
 
+// Handle theme toggle
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
+    $_SESSION['theme'] = ($_SESSION['theme'] ?? 'dark') === 'dark' ? 'light' : 'dark';
+    header("Location: carts_users.php");
+    exit();
+}
+
 $user_id = $_SESSION["user_id"];
 
 // Handle cart operations
@@ -69,32 +76,61 @@ foreach ($cart_items as $item) {
 }
 $tax = $subtotal * 0.08; // 8% tax
 $total = $subtotal + $tax;
+
+$theme = $_SESSION['theme'] ?? 'dark';
 ?>
 
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="<?php echo $theme; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping Cart - Meta Shark</title>
     <link rel="stylesheet" href="fonts/fonts.css">
     <link rel="icon" type="image/png" href="Uploads/logo1.png">
+    <?php include("theme_toggle.php"); ?>
     <style>
         /* Theme Variables */
         :root {
-            --bg-primary: #0A0A0A;
-            --bg-secondary: #111111;
-            --bg-tertiary: #1a1a1a;
-            --text-primary: #ffffff;
-            --text-secondary: #cccccc;
-            --text-muted: #888888;
-            --border: #333333;
-            --border-light: #444444;
+            --color-background: #0A0A0A;
+            --color-foreground: #FFFFFF;
+            --navbar-bg: #000000;
+            --navbar-border: #44D62C;
+            --card-bg: #111111;
+            --card-border: #333333;
+            --product-card-bg: #1A1A1A;
             --accent: #44D62C;
-            --accent-hover: #36b020;
-            --accent-light: #2a5a1a;
+            --accent-hover: #36B020;
+            --text-muted: #888888;
+            --button-primary-bg: #44D62C;
+            --button-primary-text: #000000;
+            --button-secondary-bg: #333333;
+            --button-secondary-border: #44D62C;
+            --button-danger-bg: #FF4444;
+            --button-danger-hover: #CC3333;
             --shadow: rgba(0, 0, 0, 0.3);
             --shadow-hover: rgba(0, 0, 0, 0.4);
+        }
+
+        [data-theme="light"] {
+            --color-background: #F5F5F5;
+            --color-foreground: #000000;
+            --navbar-bg: #FFFFFF;
+            --navbar-border: #44D62C;
+            --card-bg: #E0E0E0;
+            --card-border: #BBBBBB;
+            --product-card-bg: #D5D5D5;
+            --accent: #44D62C;
+            --accent-hover: #36B020;
+            --text-muted: #666666;
+            --button-primary-bg: #44D62C;
+            --button-primary-text: #000000;
+            --button-secondary-bg: #CCCCCC;
+            --button-secondary-border: #44D62C;
+            --button-danger-bg: #FF4444;
+            --button-danger-hover: #CC3333;
+            --shadow: rgba(0, 0, 0, 0.2);
+            --shadow-hover: rgba(0, 0, 0, 0.3);
         }
 
         /* Reset */
@@ -106,22 +142,21 @@ $total = $subtotal + $tax;
 
         body {
             font-family: 'ASUS ROG', Arial, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            background: var(--color-background);
+            color: var(--color-foreground);
             min-height: 100vh;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         /* Navbar */
         .navbar {
-            background: var(--bg-secondary);
+            background: var(--navbar-bg);
             padding: 15px 20px;
             color: var(--accent);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: relative;
-            border-bottom: 2px solid var(--accent);
+            border-bottom: 2px solid var(--navbar-border);
             box-shadow: 0 2px 10px var(--shadow);
             animation: slideInFromTop 0.5s ease-out;
         }
@@ -168,7 +203,7 @@ $total = $subtotal + $tax;
             width: 35px;
             height: 35px;
             border-radius: 50%;
-            background-color: var(--bg-secondary);
+            background-color: var(--card-bg);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -184,6 +219,23 @@ $total = $subtotal + $tax;
         .profile-icon:hover {
             transform: scale(1.15) rotate(10deg);
             box-shadow: 0 0 20px rgba(68, 214, 44, 1);
+        }
+
+        .theme-toggle-btn {
+            padding: 8px 16px;
+            background: var(--button-secondary-bg);
+            color: var(--color-foreground);
+            border: 1px solid var(--button-secondary-border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle-btn:hover {
+            background: var(--accent);
+            color: var(--button-primary-text);
+            transform: translateY(-2px);
         }
 
         .hamburger {
@@ -203,7 +255,7 @@ $total = $subtotal + $tax;
             position: absolute;
             top: 60px;
             right: 20px;
-            background: var(--bg-tertiary);
+            background: var(--product-card-bg);
             list-style: none;
             padding: 15px;
             border-radius: 8px;
@@ -225,7 +277,7 @@ $total = $subtotal + $tax;
         }
 
         .menu li {
-            color: var(--text-primary);
+            color: var(--color-foreground);
             cursor: pointer;
             transition: color 0.3s, transform 0.2s, background-color 0.3s;
             padding: 5px 10px;
@@ -234,7 +286,7 @@ $total = $subtotal + $tax;
 
         .menu li:hover {
             color: var(--accent);
-            background-color: var(--bg-secondary);
+            background-color: var(--card-bg);
             transform: translateX(10px);
         }
 
@@ -298,17 +350,17 @@ $total = $subtotal + $tax;
 
         /* Cart Items */
         .cart-items {
-            background: var(--bg-secondary);
+            background: var(--card-bg);
             border-radius: 10px;
             padding: 20px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--card-border);
         }
 
         .cart-item {
             display: flex;
             align-items: center;
             padding: 20px 0;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--card-border);
             gap: 20px;
             animation: fadeInUp 0.6s ease-out;
         }
@@ -327,7 +379,7 @@ $total = $subtotal + $tax;
             height: 100px;
             object-fit: cover;
             border-radius: 8px;
-            border: 2px solid var(--border);
+            border: 2px solid var(--card-border);
             transition: transform 0.3s ease;
         }
 
@@ -341,7 +393,7 @@ $total = $subtotal + $tax;
 
         .item-name {
             font-size: 1.2rem;
-            color: var(--text-primary);
+            color: var(--color-foreground);
             margin-bottom: 5px;
         }
 
@@ -373,7 +425,7 @@ $total = $subtotal + $tax;
             width: 30px;
             height: 30px;
             border: 1px solid var(--accent);
-            background: var(--bg-tertiary);
+            background: var(--product-card-bg);
             color: var(--accent);
             border-radius: 4px;
             cursor: pointer;
@@ -385,7 +437,7 @@ $total = $subtotal + $tax;
 
         .quantity-btn:hover {
             background: var(--accent);
-            color: var(--bg-primary);
+            color: var(--button-primary-text);
             transform: scale(1.1);
         }
 
@@ -394,15 +446,15 @@ $total = $subtotal + $tax;
             height: 30px;
             text-align: center;
             border: 1px solid var(--accent);
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
+            background: var(--product-card-bg);
+            color: var(--color-foreground);
             border-radius: 4px;
             font-size: 1rem;
         }
 
         .remove-btn {
-            background: #ff4444;
-            color: var(--text-primary);
+            background: var(--button-danger-bg);
+            color: var(--color-foreground);
             border: none;
             padding: 8px 15px;
             border-radius: 4px;
@@ -411,16 +463,16 @@ $total = $subtotal + $tax;
         }
 
         .remove-btn:hover {
-            background: #cc3333;
+            background: var(--button-danger-hover);
             transform: scale(1.05);
         }
 
         /* Cart Summary */
         .cart-summary {
-            background: var(--bg-secondary);
+            background: var(--card-bg);
             border-radius: 10px;
             padding: 25px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--card-border);
             height: fit-content;
             position: sticky;
             top: 20px;
@@ -438,7 +490,7 @@ $total = $subtotal + $tax;
             justify-content: space-between;
             margin-bottom: 15px;
             padding: 10px 0;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--card-border);
         }
 
         .summary-row:last-child {
@@ -453,14 +505,14 @@ $total = $subtotal + $tax;
         }
 
         .summary-value {
-            color: var(--text-primary);
+            color: var(--color-foreground);
         }
 
         .checkout-btn {
             width: 100%;
             padding: 15px;
-            background: var(--accent);
-            color: var(--bg-primary);
+            background: var(--button-primary-bg);
+            color: var(--button-primary-text);
             border: none;
             border-radius: 8px;
             font-size: 1.1rem;
@@ -516,8 +568,8 @@ $total = $subtotal + $tax;
         .clear-cart-btn {
             width: 100%;
             padding: 10px;
-            background: #ff4444;
-            color: var(--text-primary);
+            background: var(--button-danger-bg);
+            color: var(--color-foreground);
             border: none;
             border-radius: 8px;
             font-size: 1rem;
@@ -527,7 +579,7 @@ $total = $subtotal + $tax;
         }
 
         .clear-cart-btn:hover {
-            background: #cc3333;
+            background: var(--button-danger-hover);
             transform: scale(1.05);
         }
 
@@ -535,9 +587,9 @@ $total = $subtotal + $tax;
         .empty-cart {
             text-align: center;
             padding: 60px 20px;
-            background: var(--bg-secondary);
+            background: var(--card-bg);
             border-radius: 10px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--card-border);
             animation: fadeIn 1s ease-out;
         }
 
@@ -555,8 +607,8 @@ $total = $subtotal + $tax;
         .shop-btn {
             display: inline-block;
             padding: 12px 25px;
-            background: var(--accent);
-            color: var(--bg-primary);
+            background: var(--button-primary-bg);
+            color: var(--button-primary-text);
             text-decoration: none;
             border-radius: 8px;
             font-weight: bold;
@@ -568,6 +620,109 @@ $total = $subtotal + $tax;
             transform: scale(1.05) translateY(-2px);
             box-shadow: 0 5px 15px rgba(68, 214, 44, 0.4);
             animation: buttonGlow 1s ease-in-out infinite;
+        }
+
+        /* Loading Screen Styles */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .loading-screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .logo-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .logo-outline {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('Uploads/logo1.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.5;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.7;
+            }
+        }
+
+        .logo-fill {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('Uploads/logo1.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            clip-path: inset(100% 0 0 0);
+            animation: water-fill 2.5s ease-in-out infinite;
+            filter: brightness(1.2) saturate(1.2);
+        }
+
+        @keyframes water-fill {
+            0% {
+                clip-path: inset(100% 0 0 0);
+                filter: hue-rotate(0deg);
+            }
+            50% {
+                clip-path: inset(0 0 0 0);
+                filter: hue-rotate(30deg);
+            }
+            100% {
+                clip-path: inset(100% 0 0 0);
+                filter: hue-rotate(0deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--accent);
+            font-size: 24px;
+            margin-top: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
+            animation: text-wave 2.5s ease-in-out infinite;
+        }
+
+        @keyframes text-wave {
+            0%, 100% {
+                opacity: 0.7;
+                transform: translateY(0);
+            }
+            50% {
+                opacity: 1;
+                transform: translateY(-5px);
+            }
         }
 
         /* Responsive */
@@ -584,10 +739,24 @@ $total = $subtotal + $tax;
             .item-controls {
                 justify-content: center;
             }
+
+            .nav-left {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Handle loading screen
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadingScreen = document.querySelector('.loading-screen');
+            // Ensure loading screen is active on page load
+            loadingScreen.classList.add('active');
+            // Hide loading screen after 2.5 seconds
+            setTimeout(() => {
+                loadingScreen.classList.remove('active');
+            }, 2500);
+
             // Toggle Hamburger Menu
             const hamburger = document.querySelector('.hamburger');
             const menu = document.getElementById('menu');
@@ -615,11 +784,30 @@ $total = $subtotal + $tax;
     </script>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div class="loading-screen active">
+        <div class="logo-container">
+            <div class="logo-outline"></div>
+            <div class="logo-fill"></div>
+        </div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
     <!-- Navbar -->
     <div class="navbar">
         <div class="nav-left">
             <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="logo">
             <h2>Meta Shark</h2>
+<div class="theme-toggle" id="themeToggle">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+        <span class="theme-icon" id="themeIcon">
+            <?php echo $theme === 'light' ? '🌙' : '☀️'; ?>
+        </span>
+        <span class="theme-text" id="themeText">
+            <?php echo $theme === 'light' ? 'Dark' : 'Light'; ?>
+        </span>
+    </button>
+</div>
         </div>
         <div class="nav-right">
             <?php

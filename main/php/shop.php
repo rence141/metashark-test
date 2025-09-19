@@ -1873,6 +1873,16 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="nav-left">
     <img src="Uploads/logo1.png" alt="SaysonCo Logo" class="logo">
     <h2>Meta Shark</h2>
+    <div class="theme-toggle" id="themeToggle">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+        <span class="theme-icon" id="themeIcon">
+            <?php echo $theme === 'light' ? '🌙' : '☀️'; ?>
+        </span>
+        <span class="theme-text" id="themeText">
+            <?php echo $theme === 'light' ? 'Dark' : 'Light'; ?>
+        </span>
+    </button>
+</div>
     <?php include('theme_toggle.php'); ?>
   </div>
   <div class="nav-right">

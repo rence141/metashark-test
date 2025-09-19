@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -219,12 +220,136 @@ $theme = $_SESSION['theme'] ?? 'dark';
       --light-border: #333333;
       --light-text-muted: #24e334ff;
     }
+
+    /* Loading Screen Styles */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .loading-screen.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .logo-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .logo-outline {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: url('Uploads/logo1.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0.5;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.5;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.7;
+      }
+    }
+
+    .logo-fill {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: url('Uploads/logo1.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      clip-path: inset(100% 0 0 0);
+      animation: water-fill 2.5s ease-in-out infinite;
+      filter: brightness(1.2) saturate(1.2);
+    }
+
+    @keyframes water-fill {
+      0% {
+        clip-path: inset(100% 0 0 0);
+        filter: hue-rotate(0deg);
+      }
+      50% {
+        clip-path: inset(0 0 0 0);
+        filter: hue-rotate(30deg);
+      }
+      100% {
+        clip-path: inset(100% 0 0 0);
+        filter: hue-rotate(0deg);
+      }
+    }
+
+    .loading-text {
+      color: #44D62C;
+      font-size: 24px;
+      margin-top: 20px;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
+      animation: text-wave 2.5s ease-in-out infinite;
+    }
+
+    @keyframes text-wave {
+      0%, 100% {
+        opacity: 0.7;
+        transform: translateY(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-5px);
+      }
+    }
   </style>
+  <script>
+    // Handle loading screen
+    document.addEventListener('DOMContentLoaded', () => {
+      const loadingScreen = document.querySelector('.loading-screen');
+      // Ensure loading screen is active on page load
+      loadingScreen.classList.add('active');
+      // Hide loading screen after 2.5 seconds
+      setTimeout(() => {
+        loadingScreen.classList.remove('active');
+      }, 2500);
+    });
+  </script>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div class="loading-screen active">
+    <div class="logo-container">
+      <div class="logo-outline"></div>
+      <div class="logo-fill"></div>
+    </div>
+    <div class="loading-text">Loading...</div>
+  </div>
+
   <nav class="navbar">
     <div class="container">
-     <ul class="nav-links">
+      <ul class="nav-links">
         <li><a href="/SaysonCo/index.html">Home</a></li>
         <li><a href="phone.php">Phones</a></li>
         <li><a href="Tablets.php">Tablets</a></li>
