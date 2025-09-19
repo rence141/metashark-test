@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -16,10 +17,42 @@ if ($user_role !== 'seller' && $user_role !== 'admin') {
 
 include("db.php");
 
-$user_id = $_SESSION["user_id"];
+// Load Twilio SDK (uncomment in production after installing via Composer)
+// require_once 'vendor/autoload.php';
+// use Twilio\Rest\Client;
+
+// Twilio credentials (replace with your own in production, or use environment variables)
+$twilio_sid = 'YOUR_TWILIO_ACCOUNT_SID'; // Replace with your Twilio Account SID
+$twilio_token = 'YOUR_TWILIO_AUTH_TOKEN'; // Replace with your Twilio Auth Token
+$twilio_phone = '+1234567890'; // Replace with your Twilio phone number
+
+// Initialize Twilio client (uncomment in production)
+// $twilio = new Client($twilio_sid, $twilio_token);
+
+// Handle OTP verification
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
+    $otp = trim($_POST['otp']);
+    $new_phone = $_SESSION['pending_phone'] ?? '';
+    
+    if ($otp === $_SESSION['otp'] && !empty($new_phone)) {
+        // OTP is correct, update phone and mark as verified
+        $sql = "UPDATE users SET phone = ?, phone_verified = TRUE WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("si", $new_phone, $_SESSION["user_id"]);
+        if ($stmt->execute()) {
+            $success = "Phone number verified and updated successfully!";
+            unset($_SESSION['otp']);
+            unset($_SESSION['pending_phone']);
+        } else {
+            $error = "Error updating phone number: " . $conn->error;
+        }
+    } else {
+        $error = "Invalid OTP. Please try again.";
+    }
+}
 
 // Handle profile update
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['verify_otp'])) {
     $fullname = trim($_POST["fullname"]);
     $email = trim($_POST["email"]);
     $phone = trim($_POST["phone"]);
@@ -29,81 +62,112 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $business_type = trim($_POST["business_type"]);
     $profile_image = null;
 
-    // Handle image upload
-    if (!empty($_FILES["profile_image"]["name"])) {
-        $targetDir = "uploads/";
-        if (!is_dir($targetDir)) {
-            mkdir($targetDir, 0777, true);
+    // Fetch current user data to check if phone changed
+    $current_query = "SELECT phone, phone_verified FROM users WHERE id = ?";
+    $current_stmt = $conn->prepare($current_query);
+    $current_stmt->bind_param("i", $_SESSION["user_id"]);
+    $current_stmt->execute();
+    $current_user = $current_stmt->get_result()->fetch_assoc();
+    $current_phone = $current_user['phone'];
+    $phone_verified = $current_user['phone_verified'];
+
+    // Validate phone number (must start with '09' and be 11 digits)
+    if (!preg_match('/^09[0-9]{9}$/', $phone)) {
+        $error = "Phone number must be 11 digits starting with '09' (e.g., 09123456789).";
+    } elseif ($phone !== $current_phone && !$phone_verified) {
+        // Phone changed and not verified, trigger OTP
+        $_SESSION['pending_phone'] = $phone;
+        $_SESSION['otp'] = sprintf("%06d", mt_rand(100000, 999999)); // Mock OTP
+        // In production, send OTP via Twilio (uncomment and configure)
+        /*
+        try {
+            $twilio->messages->create(
+                $phone,
+                [
+                    'from' => $twilio_phone,
+                    'body' => "Your Meta Shark OTP is {$_SESSION['otp']}. Valid for 5 minutes."
+                ]
+            );
+        } catch (Exception $e) {
+            $error = "Failed to send OTP: " . $e->getMessage();
         }
+        */
+        $show_otp_modal = true;
+    } else {
+        // Handle image upload
+        if (!empty($_FILES["profile_image"]["name"])) {
+            $targetDir = "Uploads/";
+            if (!is_dir($targetDir)) {
+                mkdir($targetDir, 0777, true);
+            }
 
-        // Get current profile image to delete it later
-        $currentImageQuery = "SELECT profile_image FROM users WHERE id = ?";
-        $currentImageStmt = $conn->prepare($currentImageQuery);
-        $currentImageStmt->bind_param("i", $user_id);
-        $currentImageStmt->execute();
-        $currentImageResult = $currentImageStmt->get_result();
-        $currentImage = $currentImageResult->fetch_assoc()['profile_image'];
+            // Get current profile image to delete it later
+            $currentImageQuery = "SELECT profile_image FROM users WHERE id = ?";
+            $currentImageStmt = $conn->prepare($currentImageQuery);
+            $currentImageStmt->bind_param("i", $_SESSION["user_id"]);
+            $currentImageStmt->execute();
+            $currentImageResult = $currentImageStmt->get_result();
+            $currentImage = $currentImageResult->fetch_assoc()['profile_image'];
 
-        $fileName = $user_id . "_" . time() . "_" . basename($_FILES["profile_image"]["name"]);
-        $targetFilePath = $targetDir . $fileName;
-        $fileType = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
+            $fileName = $_SESSION["user_id"] . "_" . time() . "_" . basename($_FILES["profile_image"]["name"]);
+            $targetFilePath = $targetDir . $fileName;
+            $fileType = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
 
-        // Allow only jpg, png
-        $allowedTypes = ["jpg", "jpeg", "png"];
-        if (in_array($fileType, $allowedTypes)) {
-            if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $targetFilePath)) {
-                $profile_image = $fileName;
-                
-                // Delete old profile image if it exists
-                if (!empty($currentImage) && file_exists($targetDir . $currentImage)) {
-                    unlink($targetDir . $currentImage);
+            // Allow only jpg, png
+            $allowedTypes = ["jpg", "jpeg", "png"];
+            if (in_array($fileType, $allowedTypes)) {
+                if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $targetFilePath)) {
+                    $profile_image = $fileName;
+                    
+                    // Delete old profile image if it exists
+                    if (!empty($currentImage) && file_exists($targetDir . $currentImage)) {
+                        unlink($targetDir . $currentImage);
+                    }
                 }
             }
         }
-    }
 
-    // If password is provided, update with hashing
-    if (!empty($new_password)) {
-        $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
+        // If password is provided, update with hashing
+        if (!empty($new_password)) {
+            $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
 
-        if ($profile_image) {
-            $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssssssssi", $fullname, $email, $phone, $hashedPassword, $profile_image, $seller_name, $seller_description, $business_type, $user_id);
+            if ($profile_image) {
+                $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("ssssssssi", $fullname, $email, $phone, $hashedPassword, $profile_image, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
+            } else {
+                $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("sssssssi", $fullname, $email, $phone, $hashedPassword, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
+            }
         } else {
-            $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssssssi", $fullname, $email, $phone, $hashedPassword, $seller_name, $seller_description, $business_type, $user_id);
+            if ($profile_image) {
+                $sql = "UPDATE users SET fullname=?, email=?, phone=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("sssssssi", $fullname, $email, $phone, $profile_image, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
+            } else {
+                $sql = "UPDATE users SET fullname=?, email=?, phone=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("ssssssi", $fullname, $email, $phone, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
+            }
         }
-    } else {
-        if ($profile_image) {
-            $sql = "UPDATE users SET fullname=?, email=?, phone=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssssssi", $fullname, $email, $phone, $profile_image, $seller_name, $seller_description, $business_type, $user_id);
-        } else {
-            $sql = "UPDATE users SET fullname=?, email=?, phone=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssssssi", $fullname, $email, $phone, $seller_name, $seller_description, $business_type, $user_id);
-        }
-    }
 
-    if ($stmt->execute()) {
-        $_SESSION["fullname"] = $fullname;
-        $success = "Seller profile updated successfully!";
-        
-        // Debug: Log the update
-        if ($profile_image) {
-            $success .= " Profile image updated to: " . $profile_image;
+        if ($stmt->execute()) {
+            $_SESSION["fullname"] = $fullname;
+            $success = "Seller profile updated successfully!";
+            if ($profile_image) {
+                $success .= " Profile image updated to: " . $profile_image;
+            }
+        } else {
+            $error = "Error updating seller profile: " . $conn->error;
         }
-    } else {
-        $error = "Error updating seller profile: " . $conn->error;
     }
 }
 
 // Fetch user info
-$sql = "SELECT id, fullname, email, phone, profile_image, seller_name, seller_description, business_type, seller_rating, total_sales FROM users WHERE id = ?";
+$sql = "SELECT id, fullname, email, phone, profile_image, seller_name, seller_description, business_type, seller_rating, total_sales, phone_verified FROM users WHERE id = ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
+$stmt->bind_param("i", $_SESSION["user_id"]);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
@@ -116,7 +180,7 @@ $stats_sql = "SELECT
     FROM products 
     WHERE seller_id = ? AND is_active = TRUE";
 $stats_stmt = $conn->prepare($stats_sql);
-$stats_stmt->bind_param("i", $user_id);
+$stats_stmt->bind_param("i", $_SESSION["user_id"]);
 $stats_stmt->execute();
 $stats_result = $stats_stmt->get_result();
 $stats = $stats_result->fetch_assoc();
@@ -128,7 +192,7 @@ $stats = $stats_result->fetch_assoc();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($user["seller_name"] ?: $user["fullname"]); ?> - Seller Profile</title>
     <link rel="stylesheet" href="fonts/fonts.css">
-     <link rel="icon" type="image/png" href="uploads/logo1.png">
+    <link rel="icon" type="image/png" href="Uploads/logo1.png">
     <style>
         * {
             margin: 0;
@@ -416,6 +480,48 @@ $stats = $stats_result->fetch_assoc();
             font-family: monospace;
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #111111;
+            border-radius: 10px;
+            padding: 25px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid #44D62C;
+            box-shadow: 0 5px 15px rgba(68, 214, 44, 0.2);
+        }
+
+        .modal-content h3 {
+            color: #44D62C;
+            margin-bottom: 20px;
+        }
+
+        .modal-content input {
+            margin-bottom: 20px;
+        }
+
+        .modal-content .btn {
+            width: auto;
+            padding: 10px 20px;
+        }
+
         @media (max-width: 768px) {
             .seller-info {
                 grid-template-columns: 1fr;
@@ -431,6 +537,15 @@ $stats = $stats_result->fetch_assoc();
             }
         }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (isset($show_otp_modal) && $show_otp_modal): ?>
+                document.getElementById('otpModal').classList.add('show');
+                // For testing: Log OTP to console (remove in production)
+                console.log('OTP for testing: <?php echo $_SESSION['otp'] ?? ''; ?>');
+            <?php endif; ?>
+        });
+    </script>
 </head>
 <body>
     <!-- NAVBAR -->
@@ -439,7 +554,6 @@ $stats = $stats_result->fetch_assoc();
         <div class="nav-right">
             <a href="seller_profile.php">
                 <?php 
-                // Fetch current user's profile image from database
                 $current_user_id = $_SESSION['user_id'];
                 $profile_query = "SELECT profile_image FROM users WHERE id = ?";
                 $profile_stmt = $conn->prepare($profile_query);
@@ -449,14 +563,26 @@ $stats = $stats_result->fetch_assoc();
                 $current_profile = $profile_result->fetch_assoc();
                 $current_profile_image = $current_profile['profile_image'] ?? null;
                 ?>
-                <?php if(!empty($current_profile_image) && file_exists('uploads/' . $current_profile_image)): ?>
-                    <img src="uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
+                <?php if(!empty($current_profile_image) && file_exists('Uploads/' . $current_profile_image)): ?>
+                    <img src="Uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
                 <?php else: ?>
-                    <img src="uploads/default-avatar.svg" alt="Profile" class="profile-icon">
+                    <img src="Uploads/default-avatar.svg" alt="Profile" class="profile-icon">
                 <?php endif; ?>
             </a>
             <a href="seller_dashboard.php" style="color: #44D62C; text-decoration: none; font-weight: bold;">Dashboard</a>
             <a href="logout.php" style="color: #44D62C; text-decoration: none; font-weight: bold;">Logout</a>
+        </div>
+    </div>
+
+    <!-- OTP VERIFICATION MODAL -->
+    <div class="modal<?php echo isset($show_otp_modal) && $show_otp_modal ? ' show' : ''; ?>" id="otpModal">
+        <div class="modal-content">
+            <h3>Verify Phone Number</h3>
+            <p>Enter the 6-digit OTP sent to <?php echo htmlspecialchars($_SESSION['pending_phone'] ?? ''); ?>.</p>
+            <form method="POST">
+                <input type="text" name="otp" placeholder="Enter OTP" required pattern="[0-9]{6}" title="Enter a 6-digit OTP">
+                <button type="submit" name="verify_otp" class="btn">Verify OTP</button>
+            </form>
         </div>
     </div>
 
@@ -466,15 +592,15 @@ $stats = $stats_result->fetch_assoc();
             <div class="seller-info">
                 <div>
                     <?php if (!empty($user["profile_image"])): ?>
-                        <img src="uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Seller Avatar" class="seller-avatar">
+                        <img src="Uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Seller Avatar" class="seller-avatar">
                     <?php else: ?>
-                        <img src="uploads/default-avatar.svg" alt="Default Avatar" class="seller-avatar">
+                        <img src="Uploads/default-avatar.svg" alt="Default Avatar" class="seller-avatar">
                     <?php endif; ?>
                 </div>
                 <div class="seller-details">
                     <h1><?php echo htmlspecialchars($user["seller_name"] ?: $user["fullname"]); ?></h1>
                     <p><strong>Email:</strong> <?php echo htmlspecialchars($user["email"]); ?></p>
-                    <p><strong>Phone:</strong> <?php echo htmlspecialchars($user["phone"]); ?></p>
+                    <p><strong>Phone:</strong> <?php echo htmlspecialchars($user["phone"]); ?> <?php echo $user['phone_verified'] ? '(Verified)' : '(Unverified)'; ?></p>
                     <p><strong>Business Type:</strong> <?php echo htmlspecialchars($user["business_type"] ?: 'Not specified'); ?></p>
                     <p><strong>Rating:</strong> ⭐ <?php echo number_format($user["seller_rating"], 1); ?>/5.0</p>
                     <p><strong>Total Sales:</strong> $<?php echo number_format($user["total_sales"], 2); ?></p>
@@ -523,7 +649,7 @@ $stats = $stats_result->fetch_assoc();
                 <div class="user-id-display">
                     <label>User ID:</label>
                     <input type="text" value="<?php echo htmlspecialchars($user['id']); ?>" readonly>
-                    <small style="color: #6c757d; font-size: 0.8rem;">This is your unique identifier</small>
+                    <div class="help-text">This is your unique identifier</div>
                 </div>
 
                 <div class="form-grid">
@@ -542,9 +668,12 @@ $stats = $stats_result->fetch_assoc();
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label for="phone">Phone Number</label>
+                        <label for="phone">Phone Number <span class="required">*</span></label>
                         <input type="text" id="phone" name="phone" 
-                               value="<?php echo htmlspecialchars($user['phone']); ?>">
+                               value="<?php echo htmlspecialchars($user['phone']); ?>" 
+                               required pattern="09[0-9]{9}" 
+                               title="Phone number must be 11 digits starting with '09' (e.g., 09123456789)">
+                        <div class="help-text">Enter your GCash-registered phone number (e.g., 09123456789). OTP verification required for new numbers.</div>
                     </div>
 
                     <div class="form-group">

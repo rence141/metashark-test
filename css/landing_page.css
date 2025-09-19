@@ -1,0 +1,238 @@
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'ASUS ROG', Arial, sans-serif;
+  background: #F5F5F5;
+  color: #333333;
+  overflow-x: hidden; /* Prevents horizontal scrolling */
+  line-height: 1.6;
+}
+
+.navbar {
+  background: rgb(255, 254, 254);
+  padding: 15px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(236, 251, 231, 0.2);
+  display: flex;
+  justify-content: center;
+  width: 100%; /* Adjust this percentage or use a fixed value like 800px */
+  margin: 0 auto; /* Centers the navbar */
+}
+
+.logo {
+  margin: 0 20px;
+  color: #060505;
+  font-size: 1.5rem;
+  margin-right: auto; /* Pushes the logo to the right */
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+}
+
+nav ul li {
+  margin: 0 20px;
+}
+
+nav ul li a {
+  color: #0a0a0a;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: color 0.3s;
+}
+
+nav ul li a:hover {
+  color: #61fd3eff;
+}
+
+/* Scroll Container */
+.scroll-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-y: scroll; /* Enables scrolling */
+  -ms-overflow-style: none; /* Hides scrollbar for IE and Edge */
+  scrollbar-width: none; /* Hides scrollbar for Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari, and Opera */
+.scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hero Section */
+.hero {
+  height: 100vh;
+  background: url('../main/php/uploads/0001-1.png') no-repeat center;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Vertically center */
+  align-items: flex-start; /* Horizontally align to left */
+  padding: 20px;
+  color: #2c2a2a;
+  text-align: left; /* Ensures inner text is left aligned */
+  margin-bottom: 0.10cm; /* Reduced gap below hero to first product */
+}
+
+/* Hero Inner Elements */
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.cta-button {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #090b0bff;
+  color: #FFFFFF;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+.cta-button:hover {
+  background: #24e334ff;
+}
+
+/* Product Sections */
+/* Make products styled like hero */
+.product {
+  position: relative;
+  width: 100%;
+  height: 100vh; /* Same height as hero */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* Vertically center text like hero */
+  align-items: flex-start;   /* Align text to left */
+  padding: 20px;
+  color: #fff;
+  text-align: left;          /* Left-align text inside */
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+/* Overlay remains */
+.product::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(56, 59, 59, 0.6), rgba(56, 59, 59, 0.3));
+  z-index: 1;
+}
+
+.product > * {
+  position: relative;
+  z-index: 2;
+}
+
+
+.product.bg1 { 
+  background: url('../main/php/uploads/0001_e87e0465-7740-4491-9c4d-09306f5b77bc.png') no-repeat center center; 
+  background-size: cover;
+   margin-bottom: 0.10cm; /* Reduced gap below hero to first product */
+}
+
+.product.bg2 { 
+  background: url('../main/php/uploads/S3-PC_9a677dfe-d355-4623-8067-32b1ea84b537.png') no-repeat center center; 
+  background-size: cover;
+   margin-bottom: 0.10cm; /* Reduced gap below hero to first product */
+}
+
+.product.bg3 { 
+  background: url('../main/php/uploads/KV-Pad_7-PC.png') no-repeat center center; 
+  background-size: cover;
+   margin-bottom: 0.10cm; /* Reduced gap below hero to first product */
+}
+
+.product.bg4 { 
+  background: url('../main/php/uploads/bg-bundle.jpeg') no-repeat center center; 
+  background-size: cover;
+  align-items: center;
+  justify-content: bottom;
+   margin-bottom: 0.10cm; /* Reduced gap below hero to first product */
+}
+
+/* Product headings + text like hero */
+.product h2 {
+  font-size: 3rem; /* Match hero h1 size */
+  margin-bottom: 10px;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+}
+
+.product p {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.product .cta-button {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #090b0bff;
+  color: #FFFFFF;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+.product .cta-button:hover {
+  background: #24e334ff;
+}
+
+
+/* Footer */
+.footer {
+  background: rgb(255, 254, 254); /* Matches navbar background */
+  padding: 20px 0;
+  box-shadow: 0 -2px 10px rgba(236, 251, 231, 0.2); /* Subtle shadow, mirrors navbar */
+  display: flex;
+  justify-content: center;
+  width: 100%; /* Matches navbar width */
+margin-right: auto;
+  margin-top: 20px; /* Space above footer */
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px; /* Space between links */
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li a {
+  color: #060505; /* Matches logo color */
+  font-size: 1rem;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer-links li a:hover {
+  color: #4a4a4a; /* Slightly lighter on hover for contrast */
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+

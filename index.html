@@ -1,148 +1,68 @@
+<!-- File: landingpage.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ecommerce Landing Page</title>
-  <link rel="stylesheet" href="css/landinpage.css">
-   <link rel="icon" type="image/png" href="../SaysonCo/main/php/uploads/logo1.png">
+  <title>Meta Shark | Products</title>
+  <link rel="icon" type="image/png" href="../SaysonCo/main/php/uploads/logo1.png">
+  <link rel="stylesheet" href="../SaysonCo/css/landing_page.css">
 </head>
 <body>
-
   <!-- NAVBAR -->
-  <div class="navbar">
-    <div class="nav-left">
-      <h2>Meta Shark</h2>
-    </div>
-    <button></button>
-    <ul id="menu">
-      <li><a href="index.html">Home</a></li>
-      <li><a href="main/php/shop.php">Shop</a></li>
-      <li><a href="about_us.html">About</a></li>
-      <li><a href="privacy_policy.html">Privacy & Terms</a></li>
-    </ul>
-  </div>
+  <header class="navbar">
+    <h1 class="logo">Meta Shark</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="main/php/shop.php">Shop</a></li>
+        <li><a href="about_us.html">About</a></li>
+        <li><a href="privacy_policy.html">Privacy</a></li>
+      </ul>
+    </nav>
+  </header>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-content">
+  <!-- SCROLL SECTIONS -->
+  <main class="scroll-container">
+    <!-- HERO -->
+    <section class="hero">
       <h1>Discover Your Style</h1>
-      <p>Find the perfect product that matches your lifestyle. Shop now and enjoy exclusive discounts!</p>
-      <a href="http://localhost/SaysonCo/main/php/shop.php">
-        <button class="cta-button">Shop Now</button>
-      </a>
-    </div>
+      <p>Find products that match your lifestyle. Shop now and enjoy exclusive discounts!</p>
+      <a href="main/php/shop.php" class="cta-button">Learn More</a>
+    </section>
 
-    <!-- Product Carousel -->
-    <div class="carousel">
-      <div class="carousel-track">
-        <div class="carousel-slide">
-          <img src="https://tse1.mm.bing.net/th/id/OIP._zlZD5XxOp7DmNiOS0U8nAHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Iphone 13">
-        </div>
-        <div class="carousel-slide">
-          <img src="https://cdn.mos.cms.futurecdn.net/ceErW6rLyvDyqRuqeaMFzP-1200-80.jpg" alt="Product 2">
-        </div>
-        <div class="carousel-slide">
-          <img src="https://tse4.mm.bing.net/th/id/OIP.6O8XMBrM5dbPi7Rxc3tCygHaFm?r=0&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Product 3">
-        </div>
-        <div class="carousel-slide">
-          <img src="https://cf.shopee.ph/file/7c7430da7659ddb33575115eff4894e0" alt="Product 4">
-        </div>
-      </div>
-      <button class="carousel-btn prev">&#10094;</button>
-      <button class="carousel-btn next">&#10095;</button>
-      <div class="dots-container">
-        <span class="dot active" data-index="0"></span>
-        <span class="dot" data-index="1"></span>
-        <span class="dot" data-index="2"></span>
-        <span class="dot" data-index="3"></span>
-        
-      </div>
-    </div>
-  </section>
+    <!-- PRODUCTS -->
+    <section class="product bg1">
+      <h2>Make Durable Changes</h2>
+      <p>Powerful, sleek, and built for your lifestyle.</p>
+      <a href="main/php/shop.php" class="cta-button">Learn More</a>
+    </section>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const track = document.querySelector('.carousel-track');
-      const slides = document.querySelectorAll('.carousel-slide');
-      const prevBtn = document.querySelector('.carousel-btn.prev');
-      const nextBtn = document.querySelector('.carousel-btn.next');
-      const dots = document.querySelectorAll('.dot');
-      
-      let currentIndex = 0;
-      let slideWidth = slides[0].clientWidth;
-      
-      // Function to update slide position
-      function updateSlidePosition() {
-        track.style.transform = `translateX(${-currentIndex * slideWidth}px)`;
-        
-        // Update active dot
-        dots.forEach(dot => dot.classList.remove('active'));
-        dots[currentIndex].classList.add('active');
-      }
-      
-      // Handle window resize
-      function handleResize() {
-        slideWidth = slides[0].clientWidth;
-        updateSlidePosition();
-      }
-      
-      // Next slide function
-      function nextSlide() {
-        currentIndex = (currentIndex + 1) % slides.length;
-        track.style.transition = 'transform 0.5s ease-in-out';
-        updateSlidePosition();
-      }
-      
-      // Previous slide function
-      function prevSlide() {
-        currentIndex = (currentIndex - 1 + slides.length) % slides.length;
-        track.style.transition = 'transform 0.5s ease-in-out';
-        updateSlidePosition();
-      }
-      
-      // Event listeners
-      nextBtn.addEventListener('click', () => {
-        clearInterval(autoSlideInterval);
-        nextSlide();
-        startAutoSlide();
-      });
-      
-      prevBtn.addEventListener('click', () => {
-        clearInterval(autoSlideInterval);
-        prevSlide();
-        startAutoSlide();
-      });
-      
-      // Dot navigation
-      dots.forEach(dot => {
-        dot.addEventListener('click', () => {
-          clearInterval(autoSlideInterval);
-          currentIndex = parseInt(dot.getAttribute('data-index'));
-          track.style.transition = 'transform 0.5s ease-in-out';
-          updateSlidePosition();
-          startAutoSlide();
-        });
-      });
-      
-      // Handle window resize
-      window.addEventListener('resize', handleResize);
-      
-      // Auto slide functionality
-      let autoSlideInterval;
-      
-      function startAutoSlide() {
-        autoSlideInterval = setInterval(() => {
-          nextSlide();
-        }, 4000);
-      }
-      
-      // Initialize carousel
-      updateSlidePosition();
-      startAutoSlide();
-    });
+    <section class="product bg2">
+      <h2>Smartwatch</h2>
+      <p>Track your health and stay connected on the go.</p>
+      <a href="main/php/shop.php" class="cta-button">Learn More</a>
+    </section>
 
-  </script>
+    <section class="product bg3">
+      <h2>Slim and Wide</h2>
+      <p>Power Unbound. Play Unstoppable.</p>
+      <a href="main/php/shop.php" class="cta-button">Learn More</a>
+    </section>
 
+    <section class="product bg4">
+      <h2>Ultra Gaming Laptop</h2>
+      <p>Immersive, Powerful and Built For Gaming.</p>
+      <a href="main/php/shop.php" class="cta-button">Learn More</a>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+ <footer class="footer">
+    <ul class="footer-links">
+      Meta Shark &copy; 2025  
+      <li><a href="/privacy">Privacy Policy</a></li>
+    </ul>
+  </footer>
 </body>
 </html>
