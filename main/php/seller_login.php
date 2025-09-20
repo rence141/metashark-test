@@ -161,6 +161,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         .links p {
             color: #888;
             margin-bottom: 10px;
+            color: #44D62C;
         }
 
         .links a {

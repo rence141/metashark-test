@@ -1,25 +1,19 @@
 <?php
 session_start();
-
-
 // Check if user just logged in
 $just_logged_in = isset($_SESSION['login_success']) && $_SESSION['login_success'] === true;
-
 // Clear the login success flag
 if ($just_logged_in) {
     $_SESSION['login_success'] = false;
 }
-
 // Set theme preference
 $theme = $_SESSION['theme'] ?? 'dark';
-
 // Handle theme toggle
 if (isset($_GET['theme'])) {
     $new_theme = $_GET['theme'] === 'light' ? 'light' : 'dark';
     $_SESSION['theme'] = $new_theme;
     $theme = $new_theme;
 }
-
 // Verify user session is valid
 if (isset($_SESSION['user_id'])) {
     include("db.php");
@@ -28,7 +22,7 @@ if (isset($_SESSION['user_id'])) {
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+   
     if ($result->num_rows === 0) {
         session_unset();
         session_destroy();
@@ -36,7 +30,6 @@ if (isset($_SESSION['user_id'])) {
         exit();
     }
 }
-
 // Handle add to cart
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_to_cart"])) {
     if (isset($_SESSION['user_id'])) {
@@ -44,13 +37,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_to_cart"])) {
         $user_id = $_SESSION['user_id'];
         $product_id = $_POST['product_id'];
         $quantity = 1;
-        
+       
         $check_sql = "SELECT quantity FROM cart WHERE user_id = ? AND product_id = ?";
         $check_stmt = $conn->prepare($check_sql);
         $check_stmt->bind_param("ii", $user_id, $product_id);
         $check_stmt->execute();
         $check_result = $check_stmt->get_result();
-        
+       
         if ($check_result->num_rows > 0) {
             $existing_item = $check_result->fetch_assoc();
             $new_quantity = $existing_item['quantity'] + $quantity;
@@ -64,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_to_cart"])) {
             $insert_stmt->bind_param("iii", $user_id, $product_id, $quantity);
             $insert_stmt->execute();
         }
-        
+       
         $cart_message = "Item added to cart!";
         $cart_success = true;
     } else {
@@ -72,7 +65,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["add_to_cart"])) {
         exit();
     }
 }
-
 // Get cart count for display
 $cart_count = 0;
 if (isset($_SESSION['user_id'])) {
@@ -88,7 +80,6 @@ if (isset($_SESSION['user_id'])) {
         $cart_count = $cart_data['total'] ?: 0;
     }
 }
-
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="<?php echo $theme; ?>">
@@ -97,7 +88,7 @@ if (isset($_SESSION['user_id'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meta Shark</title>
   <link rel="stylesheet" href="fonts/fonts.css">
-  <link rel="icon" type="image/png" href="uploads/logo1.png">
+  <link rel="icon" type="image/png" href="Uploads/logo1.png">
 <style>
   /* Loading Screen Styles */
   .loading-screen {
@@ -116,12 +107,10 @@ if (isset($_SESSION['user_id'])) {
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-
   .loading-screen.active {
     opacity: 1;
     visibility: visible;
   }
-
   .logo-container {
     position: relative;
     width: 200px;
@@ -130,7 +119,6 @@ if (isset($_SESSION['user_id'])) {
     justify-content: center;
     align-items: center;
   }
-
   .logo-outline {
     position: absolute;
     width: 100%;
@@ -142,7 +130,6 @@ if (isset($_SESSION['user_id'])) {
     opacity: 0.5;
     animation: pulse 3s ease-in-out infinite;
   }
-
   @keyframes pulse {
     0%, 100% {
       transform: scale(1);
@@ -153,7 +140,6 @@ if (isset($_SESSION['user_id'])) {
       opacity: 0.7;
     }
   }
-
   .logo-fill {
     position: absolute;
     width: 100%;
@@ -166,7 +152,6 @@ if (isset($_SESSION['user_id'])) {
     animation: water-fill 2.5s ease-in-out infinite;
     filter: brightness(1.2) saturate(1.2);
   }
-
   @keyframes water-fill {
     0% {
       clip-path: inset(100% 0 0 0);
@@ -181,7 +166,6 @@ if (isset($_SESSION['user_id'])) {
       filter: hue-rotate(0deg);
     }
   }
-
   .loading-text {
     color: #44D62C;
     font-size: 24px;
@@ -190,7 +174,6 @@ if (isset($_SESSION['user_id'])) {
     text-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
     animation: text-wave 2.5s ease-in-out infinite;
   }
-
   @keyframes text-wave {
     0%, 100% {
       opacity: 0.7;
@@ -201,7 +184,6 @@ if (isset($_SESSION['user_id'])) {
       transform: translateY(-5px);
     }
   }
-
   /* Theme Variables */
   :root {
     --bg-primary: var(--dark-bg-primary);
@@ -261,7 +243,6 @@ if (isset($_SESSION['user_id'])) {
     --dark-theme-toggle-hover: #333333;
     --dark-theme-shadow: rgba(0, 0, 0, 0.3);
   }
-
   /* Dark Theme */
   [data-theme="dark"] {
     --bg-primary: var(--dark-bg-primary);
@@ -283,7 +264,6 @@ if (isset($_SESSION['user_id'])) {
     --theme-toggle-hover: var(--dark-theme-toggle-hover);
     --theme-shadow: var(--dark-theme-shadow);
   }
-
   /* Light Theme */
   [data-theme="light"] {
     --bg-primary: var(--light-bg-primary);
@@ -305,21 +285,18 @@ if (isset($_SESSION['user_id'])) {
     --theme-toggle-hover: var(--light-theme-toggle-hover);
     --theme-shadow: var(--light-theme-shadow);
   }
-
   /* Reset */
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
-
   body {
     font-family: 'ASUS ROG', Arial, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
   }
-
   /* Navbar */
   .navbar {
     background: var(--bg-secondary);
@@ -334,6 +311,16 @@ if (isset($_SESSION['user_id'])) {
     animation: slideInFromTop 0.5s ease-out;
   }
 
+  /* Navbar Links (non-users) */
+  a {
+  text-decoration: none;
+}
+
+a .nonuser-text,
+a .profile-icon {
+  color: var(--dark-accent);
+}
+
   @keyframes slideInFromTop {
     0% {
       transform: translateY(-100%);
@@ -344,40 +331,33 @@ if (isset($_SESSION['user_id'])) {
       opacity: 1;
     }
   }
-
   .nav-left {
     display: flex;
     align-items: center;
     gap: 15px;
   }
-
   .logo {
     height: 40px;
     width: auto;
     border-radius: 5px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
-
   .logo:hover {
     transform: scale(1.1) rotate(5deg);
     box-shadow: 0 0 15px rgba(68, 214, 44, 0.8);
   }
-
   .navbar h2 {
     margin: 0;
     transition: color 0.3s ease;
   }
-
   .navbar h2:hover {
     color: var(--accent-hover);
   }
-
   .nav-right {
     display: flex;
     align-items: center;
     gap: 15px;
   }
-
   .profile-icon {
     width: 35px;
     height: 35px;
@@ -394,13 +374,11 @@ if (isset($_SESSION['user_id'])) {
     border: 2px solid #44D62C;
     box-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
   }
-
   .profile-icon:hover {
     transform: scale(1.15) rotate(10deg);
     box-shadow: 0 0 20px rgba(68, 214, 44, 1);
     opacity: 1;
   }
-
   .hamburger {
     font-size: 24px;
     cursor: pointer;
@@ -409,12 +387,10 @@ if (isset($_SESSION['user_id'])) {
     color: #44D62C;
     transition: transform 0.3s ease;
   }
-
   .hamburger:hover {
     transform: scale(1.2) rotate(90deg);
     opacity: 1;
   }
-
   .menu {
     position: absolute;
     top: 60px;
@@ -433,43 +409,39 @@ if (isset($_SESSION['user_id'])) {
     opacity: 0;
     transition: all 0.3s ease;
   }
-
   .menu.show {
     display: flex;
     transform: translateY(0);
     opacity: 1;
   }
-
-  .menu li {
+  .menu li a {
     color: var(--text-primary);
     cursor: pointer;
+    text-decoration: none;
     transition: color 0.3s, transform 0.2s, background-color 0.3s;
     padding: 5px 10px;
     border-radius: 4px;
+    color: #44D62C;
+    text-decoration: nonetext-decoration: none
   }
-
   [data-theme="light"] .menu li,
   [data-theme="light"] .menu li a {
     color: #44D62C;
   }
-
   .menu li:hover {
     color: var(--accent);
     background-color: var(--bg-secondary);
     transform: translateX(10px);
     opacity: 1;
   }
-
   .hamburger {
     cursor: pointer !important;
     z-index: 10000 !important;
     position: relative !important;
   }
-
   .menu {
     z-index: 9999 !important;
   }
-
   /* Banner */
   .banner {
     background: linear-gradient(135deg, var(--accent-light), var(--bg-secondary));
@@ -482,7 +454,6 @@ if (isset($_SESSION['user_id'])) {
     position: relative;
     overflow: hidden;
   }
-
   .banner::after {
     content: '';
     position: absolute;
@@ -493,7 +464,6 @@ if (isset($_SESSION['user_id'])) {
     background: var(--shadow);
     z-index: 1;
   }
-
   .banner h1 {
     background: var(--bg-tertiary);
     padding: 20px;
@@ -509,7 +479,6 @@ if (isset($_SESSION['user_id'])) {
     color: var(--accent);
     animation: fadeInScale 1s ease-out;
   }
-
   .banner p {
     background: var(--bg-tertiary);
     padding: 10px 20px;
@@ -521,7 +490,6 @@ if (isset($_SESSION['user_id'])) {
     color: var(--accent);
     animation: fadeInScale 1s ease-out 0.2s;
   }
-
   @keyframes fadeInScale {
     0% {
       opacity: 0;
@@ -532,18 +500,16 @@ if (isset($_SESSION['user_id'])) {
       transform: scale(1);
     }
   }
-
   /* Video Banner */
   .video-banner {
     position: relative;
-    height: 500px;
+    height: 700px;
     overflow: hidden;
     border-radius: 20px;
     margin: 20px auto;
     width: 100%;
     animation: zoomIn 1.5s ease-out;
   }
-
   @keyframes zoomIn {
     0% {
       transform: scale(1.1);
@@ -554,20 +520,31 @@ if (isset($_SESSION['user_id'])) {
       opacity: 1;
     }
   }
-
   .video-banner video {
     position: absolute;
     top: 50%;
     left: 50%;
     width: 100%;
-    height: 100%;
+    height: 700px;
     max-width: none;
     transform: translate(-50%, -50%);
     object-fit: cover;
     z-index: 0;
     border-radius: 20px;
   }
-
+  /* Video Logo */
+  .video-logo {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2;
+    width: 100px;
+    height: auto;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .video-logo:hover {
+    transform: scale(1.1);
+  }
   /* Shop container */
   .shop-container {
     padding: 40px 20px;
@@ -575,7 +552,6 @@ if (isset($_SESSION['user_id'])) {
     margin: auto;
     background-color: var(--bg-primary);
   }
-
   .shop-title {
     text-align: center;
     margin-bottom: 20px;
@@ -590,7 +566,6 @@ if (isset($_SESSION['user_id'])) {
     padding-bottom: 10px;
     animation: fadeIn 1s ease-out;
   }
-
   .shop-title::after {
     content: '';
     position: absolute;
@@ -602,7 +577,6 @@ if (isset($_SESSION['user_id'])) {
     box-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
     animation: expandWidth 1s ease-out;
   }
-
   @keyframes expandWidth {
     0% {
       width: 0;
@@ -611,7 +585,6 @@ if (isset($_SESSION['user_id'])) {
       width: 100%;
     }
   }
-
   /* Search & Filter */
   .filter-bar {
     display: flex;
@@ -621,7 +594,6 @@ if (isset($_SESSION['user_id'])) {
     margin-bottom: 30px;
     gap: 15px;
   }
-
   .search-bar input {
     padding: 10px;
     width: 250px;
@@ -633,18 +605,15 @@ if (isset($_SESSION['user_id'])) {
     outline: none;
     transition: all 0.3s ease;
   }
-
   .search-bar input:focus {
     box-shadow: 0 0 8px rgba(68, 214, 44, 0.5);
     transform: scale(1.02);
   }
-
   /* Categories Section */
   .categories-section {
     background: var(--bg-primary);
     padding: 60px 0;
   }
-
   .category-filter select {
     padding: 10px;
     border-radius: 5px;
@@ -655,19 +624,16 @@ if (isset($_SESSION['user_id'])) {
     outline: none;
     transition: all 0.3s ease;
   }
-
   .category-filter select:focus {
     box-shadow: 0 0 8px rgba(68, 214, 44, 0.5);
     transform: scale(1.02);
   }
-
   /* Product grid */
   .product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
   }
-
   .product-card {
     background: var(--bg-tertiary);
     border-radius: 10px;
@@ -680,12 +646,10 @@ if (isset($_SESSION['user_id'])) {
     transform: translateY(20px);
     animation: fadeInUp 0.6s ease-out forwards;
   }
-
   .product-card:nth-child(2) { animation-delay: 0.1s; }
   .product-card:nth-child(3) { animation-delay: 0.2s; }
   .product-card:nth-child(4) { animation-delay: 0.3s; }
   .product-card:nth-child(n+5) { animation-delay: 0.4s; }
-
   @keyframes fadeInUp {
     0% {
       opacity: 0;
@@ -696,7 +660,6 @@ if (isset($_SESSION['user_id'])) {
       transform: translateY(0);
     }
   }
-
   .product-card:hover {
     transform: scale(1.05) translateY(-5px);
     box-shadow: 0 10px 20px rgba(68, 214, 44, 0.4);
@@ -704,7 +667,6 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: glowHover 1s ease-in-out infinite;
   }
-
   @keyframes glowHover {
     0%, 100% {
       box-shadow: 0 10px 20px rgba(68, 214, 44, 0.4);
@@ -713,70 +675,58 @@ if (isset($_SESSION['user_id'])) {
       box-shadow: 0 10px 25px rgba(68, 214, 44, 0.6);
     }
   }
-
   .product-card img {
     width: 100%;
     height: 250px;
     object-fit: cover;
     transition: transform 0.3s ease;
   }
-
   .product-card:hover img {
     transform: scale(1.1);
     opacity: 1;
   }
-
   .product-info {
     padding: 15px;
   }
-
   .product-info h3 {
     margin-bottom: 10px;
     font-size: 1.2rem;
     transition: color 0.3s ease;
   }
-
   .product-info h3:hover {
     color: var(--accent-hover);
     opacity: 1;
   }
-
   .product-info p {
     margin-bottom: 10px;
     color: var(--text-secondary);
   }
-
   .seller-info {
     color: var(--accent) !important;
     font-size: 0.9rem;
     font-weight: bold;
   }
-
   .seller-info a {
     color: var(--accent) !important;
     text-decoration: none;
     font-weight: bold;
     transition: all 0.3s ease;
   }
-
   .seller-info a:hover {
     color: var(--accent-hover) !important;
     text-decoration: underline;
     transform: scale(1.05);
     opacity: 1;
   }
-
   .price {
     color: var(--accent) !important;
     font-size: 1.2rem;
     font-weight: bold;
   }
-
   .stock {
     color: var(--text-muted) !important;
     font-size: 0.9rem;
   }
-
   .product-info button {
     padding: 10px 20px;
     background: var(--accent);
@@ -790,7 +740,6 @@ if (isset($_SESSION['user_id'])) {
     position: relative;
     overflow: hidden;
   }
-
   .product-info button:hover {
     background: var(--accent-hover);
     transform: scale(1.1) translateY(-2px);
@@ -798,7 +747,6 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: buttonGlow 1s ease-in-out infinite;
   }
-
   @keyframes buttonGlow {
     0%, 100% {
       box-shadow: 0 5px 15px rgba(68, 214, 44, 0.4);
@@ -807,11 +755,9 @@ if (isset($_SESSION['user_id'])) {
       box-shadow: 0 5px 20px rgba(68, 214, 44, 0.6);
     }
   }
-
   .product-info button:active {
     transform: scale(0.95);
   }
-
   .product-info button::after {
     content: '';
     position: absolute;
@@ -824,13 +770,11 @@ if (isset($_SESSION['user_id'])) {
     transform: translate(-50%, -50%);
     transition: width 0.3s ease, height 0.3s ease;
   }
-
   .product-info button:active::after {
     width: 200px;
     height: 200px;
     opacity: 0;
   }
-
   .product-info button:disabled {
     background: var(--text-muted);
     cursor: not-allowed;
@@ -838,14 +782,12 @@ if (isset($_SESSION['user_id'])) {
     box-shadow: none;
     opacity: 1;
   }
-
   .product-actions {
     display: flex;
     gap: 10px;
     margin-top: 15px;
     justify-content: center;
   }
-
   .btn-edit, .btn-manage {
     background: var(--accent);
     color: var(--bg-primary);
@@ -860,7 +802,6 @@ if (isset($_SESSION['user_id'])) {
     position: relative;
     overflow: hidden;
   }
-
   .btn-edit:hover, .btn-manage:hover {
     background: var(--accent-hover);
     transform: scale(1.1) translateY(-2px);
@@ -868,17 +809,14 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: buttonGlow 1s ease-in-out infinite;
   }
-
   .btn-manage {
     background: var(--accent);
     color: var(--bg-primary);
   }
-
   .btn-manage:hover {
     background: var(--accent-hover);
     opacity: 1;
   }
-
   /* Notification System */
   .notification {
     position: fixed;
@@ -893,12 +831,10 @@ if (isset($_SESSION['user_id'])) {
     transition: all 0.3s ease;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   }
-
   .notification.show {
     transform: translateX(0);
     animation: bounceIn 0.5s ease-out;
   }
-
   @keyframes bounceIn {
     0% {
       transform: translateX(400px) scale(0.8);
@@ -913,22 +849,18 @@ if (isset($_SESSION['user_id'])) {
       opacity: 1;
     }
   }
-
   .notification.success {
     background: linear-gradient(135deg, #44D62C, #36b020);
     border-left: 4px solid #2a8a1a;
   }
-
   .notification.error {
     background: linear-gradient(135deg, #ff4444, #cc3333);
     border-left: 4px solid #aa2222;
   }
-
   .notification.info {
     background: linear-gradient(135deg, #44D62C, #36b020);
     border-left: 4px solid #2a8a1a;
   }
-
   /* Product Popup Advertisement */
   .product-popup {
     position: fixed;
@@ -940,6 +872,7 @@ if (isset($_SESSION['user_id'])) {
     box-shadow: 0 10px 30px var(--shadow);
     width: 90%;
     max-width: 500px;
+    height: 600px;
     z-index: 10001;
     overflow: hidden;
     opacity: 0;
@@ -947,14 +880,12 @@ if (isset($_SESSION['user_id'])) {
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     border: 2px solid var(--accent);
   }
-
   .product-popup.show {
     opacity: 1;
     visibility: visible;
     transform: translate(-50%, -50%) scale(1);
     animation: popIn 0.5s ease-out;
   }
-
   @keyframes popIn {
     0% {
       transform: translate(-50%, -50%) scale(0.5);
@@ -969,7 +900,6 @@ if (isset($_SESSION['user_id'])) {
       opacity: 1;
     }
   }
-
   .popup-header {
     background: linear-gradient(135deg, var(--accent), var(--accent-hover));
     padding: 15px 20px;
@@ -977,7 +907,6 @@ if (isset($_SESSION['user_id'])) {
     justify-content: space-between;
     align-items: center;
   }
-
   .popup-header h3 {
     color: var(--bg-primary);
     margin: 0;
@@ -985,7 +914,6 @@ if (isset($_SESSION['user_id'])) {
     text-transform: uppercase;
     letter-spacing: 1px;
   }
-
   .popup-close {
     background: none;
     border: none;
@@ -994,46 +922,39 @@ if (isset($_SESSION['user_id'])) {
     cursor: pointer;
     transition: transform 0.3s ease;
   }
-
   .popup-close:hover {
     transform: scale(1.2) rotate(90deg);
     opacity: 1;
   }
-
   .popup-content {
     padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
   }
-
   .popup-image {
     width: 100%;
-    height: 200px;
+    height: 300px;
     object-fit: cover;
     border-radius: 8px;
     margin-bottom: 15px;
     border: 1px solid var(--border);
     transition: transform 0.3s ease;
   }
-
   .popup-image:hover {
     transform: scale(1.1);
     opacity: 1;
   }
-
   .popup-product-info {
     width: 100%;
     text-align: center;
   }
-
   .popup-product-name {
     font-size: 1.4rem;
     margin-bottom: 10px;
     color: var(--text-primary);
     animation: fadeIn 0.5s ease-out;
   }
-
   .popup-product-price {
     font-size: 1.6rem;
     font-weight: bold;
@@ -1041,21 +962,18 @@ if (isset($_SESSION['user_id'])) {
     margin-bottom: 15px;
     animation: fadeIn 0.5s ease-out 0.1s;
   }
-
   .popup-product-description {
     color: var(--text-secondary);
     margin-bottom: 20px;
     line-height: 1.5;
     animation: fadeIn 0.5s ease-out 0.2s;
   }
-
   .popup-actions {
     display: flex;
     gap: 15px;
     justify-content: center;
     width: 100%;
   }
-
   .popup-view-btn, .popup-add-btn {
     padding: 12px 25px;
     border-radius: 8px;
@@ -1068,13 +986,11 @@ if (isset($_SESSION['user_id'])) {
     position: relative;
     overflow: hidden;
   }
-
   .popup-view-btn {
     background: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border);
   }
-
   .popup-view-btn:hover {
     background: var(--bg-tertiary);
     transform: scale(1.1) translateY(-2px);
@@ -1082,12 +998,10 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: buttonGlow 1s ease-in-out infinite;
   }
-
   .popup-add-btn {
     background: var(--accent);
     color: var(--bg-primary);
   }
-
   .popup-add-btn:hover {
     background: var(--accent-hover);
     transform: scale(1.1) translateY(-2px);
@@ -1095,11 +1009,9 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: buttonGlow 1s ease-in-out infinite;
   }
-
   .popup-view-btn:active, .popup-add-btn:active {
     transform: scale(0.95);
   }
-
   .popup-view-btn::after, .popup-add-btn::after {
     content: '';
     position: absolute;
@@ -1112,13 +1024,11 @@ if (isset($_SESSION['user_id'])) {
     transform: translate(-50%, -50%);
     transition: width 0.3s ease, height 0.3s ease;
   }
-
   .popup-view-btn:active::after, .popup-add-btn:active::after {
     width: 200px;
     height: 200px;
     opacity: 0;
   }
-
   .popup-overlay {
     position: fixed;
     top: 0;
@@ -1131,12 +1041,10 @@ if (isset($_SESSION['user_id'])) {
     visibility: hidden;
     transition: all 0.3s ease;
   }
-
   .popup-overlay.show {
     opacity: 1;
     visibility: visible;
   }
-
   /* Button Loading State */
   .product-info button.loading {
     background: var(--text-muted);
@@ -1144,7 +1052,6 @@ if (isset($_SESSION['user_id'])) {
     position: relative;
     color: transparent;
   }
-
   .product-info button.loading::after {
     content: '';
     position: absolute;
@@ -1158,27 +1065,22 @@ if (isset($_SESSION['user_id'])) {
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
-
   @keyframes spin {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
   }
-
   /* Cart Count Animation */
   .cart-count {
     transition: all 0.3s ease;
   }
-
   .cart-count.updated {
     animation: bounce 0.6s ease;
   }
-
   @keyframes bounce {
     0%, 20%, 50%, 80%, 100% { transform: scale(1); }
     40% { transform: scale(1.2); }
     60% { transform: scale(1.1); }
   }
-
   /* Empty Products State */
   .empty-products {
     text-align: center;
@@ -1189,7 +1091,6 @@ if (isset($_SESSION['user_id'])) {
     margin: 40px 0;
     animation: fadeIn 1s ease-out;
   }
-
   .empty-products h3 {
     font-size: 2rem;
     color: var(--accent);
@@ -1197,13 +1098,11 @@ if (isset($_SESSION['user_id'])) {
     text-transform: uppercase;
     letter-spacing: 2px;
   }
-
   .empty-products p {
     color: var(--text-secondary);
     font-size: 1.2rem;
     margin-bottom: 30px;
   }
-
   .btn-add-product,
   .btn-become-seller,
   .btn-login {
@@ -1221,7 +1120,6 @@ if (isset($_SESSION['user_id'])) {
     position: relative;
     overflow: hidden;
   }
-
   .btn-add-product:hover,
   .btn-become-seller:hover,
   .btn-login:hover {
@@ -1231,13 +1129,11 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: buttonGlow 1s ease-in-out infinite;
   }
-
   .btn-add-product:active,
   .btn-become-seller:active,
   .btn-login:active {
     transform: scale(0.95);
   }
-
   .btn-add-product::after,
   .btn-become-seller::after,
   .btn-login::after {
@@ -1252,7 +1148,6 @@ if (isset($_SESSION['user_id'])) {
     transform: translate(-50%, -50%);
     transition: width 0.3s ease, height 0.3s ease;
   }
-
   .btn-add-product:active::after,
   .btn-become-seller:active::after,
   .btn-login:active::after {
@@ -1260,110 +1155,143 @@ if (isset($_SESSION['user_id'])) {
     height: 200px;
     opacity: 0;
   }
-
   .empty-products ul {
     list-style: none;
     padding: 0;
   }
-
   .empty-products li {
     padding: 8px 0;
     border-bottom: 1px solid var(--border);
   }
-
   .empty-products li:last-child {
     border-bottom: none;
   }
-
   /* Features Section */
-  .features-section {
-    background: var(--bg-secondary);
-    padding: 60px 0;
-    border-top: 2px solid var(--accent);
-    border-bottom: 2px solid var(--accent);
-  }
+.features-section {
+  background: url('Uploads/features-bg.jpg') no-repeat center center;
+  background-size: cover;
+  padding: 60px 0;
+  border-top: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
 
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 30px;
-    margin-top: 40px;
-  }
+/* Default blur effect for background */
+.features-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  filter: blur(5px);
+  z-index: 0;
+  transition: filter 0.3s ease;
+}
 
-  .feature-card {
-    background: var(--bg-tertiary);
-    padding: 30px 20px;
-    border-radius: 10px;
-    text-align: center;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
+/* Clearer image on hover */
+.features-section:hover::before {
+  filter: blur(0);
+}
+
+/* Ensure content stays above background */
+.features-section > * {
+  position: relative;
+  z-index: 1;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.feature-card {
+  background: var(--bg-tertiary);
+  padding: 30px 20px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+.feature-card:nth-child(2) { animation-delay: 0.1s; }
+.feature-card:nth-child(3) { animation-delay: 0.2s; }
+.feature-card:nth-child(4) { animation-delay: 0.3s; }
+
+@keyframes slideUp {
+  0% {
     opacity: 0;
     transform: translateY(20px);
-    animation: slideUp 0.6s ease-out forwards;
   }
-
-  .feature-card:nth-child(2) { animation-delay: 0.1s; }
-  .feature-card:nth-child(3) { animation-delay: 0.2s; }
-  .feature-card:nth-child(4) { animation-delay: 0.3s; }
-
-  @keyframes slideUp {
-    0% {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .feature-card:hover {
-    border-color: var(--accent);
-    transform: scale(1.05) translateY(-5px);
-    box-shadow: 0 10px 20px rgba(68, 214, 44, 0.4);
+  100% {
     opacity: 1;
-    animation: glowHover 1s ease-in-out infinite;
+    transform: translateY(0);
   }
+}
 
-  .feature-icon {
-    font-size: 3rem;
-    margin-bottom: 20px;
-    transition: transform 0.3s ease, color 0.3s ease;
-  }
+.feature-card:hover {
+  border-color: var(--accent);
+  transform: scale(1.05) translateY(-5px);
+  box-shadow: 0 10px 20px rgba(68, 214, 44, 0.4);
+  opacity: 1;
+  animation: glowHover 1s ease-in-out infinite;
+}
 
-  .feature-card:hover .feature-icon {
-    transform: scale(1.2);
-    color: var(--accent-hover);
-    opacity: 1;
-  }
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
 
-  .feature-card h3 {
-    color: #44D62C;
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
+.feature-card:hover .feature-icon {
+  transform: scale(1.2);
+  color: var(--accent-hover);
+  opacity: 1;
+}
 
-  .feature-card p {
-    color: var(--text-secondary);
-    font-size: 1rem;
-    line-height: 1.6;
-  }
+.feature-card h3 {
+  color: #44D62C;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
 
+.feature-card p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Theme-specific adjustments for background */
+[data-theme="light"] .features-section::before {
+  background: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2)), url('Uploads/features-bg.jpg') no-repeat center center;
+  background-size: cover;
+}
+
+[data-theme="dark"] .features-section::before {
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3)), url('Uploads/features-bg.jpg') no-repeat center center;
+  background-size: cover;
+}
   /* Categories Section */
   .categories-section {
     background: var(--bg-primary);
     padding: 60px 0;
   }
-
   .categories-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 25px;
     margin-top: 40px;
   }
-
   .category-card {
     background: var(--bg-tertiary);
     padding: 25px 20px;
@@ -1378,13 +1306,11 @@ if (isset($_SESSION['user_id'])) {
     transform: translateY(20px);
     animation: fadeInUp 0.6s ease-out forwards;
   }
-
   .category-card:nth-child(2) { animation-delay: 0.1s; }
   .category-card:nth-child(3) { animation-delay: 0.2s; }
   .category-card:nth-child(4) { animation-delay: 0.3s; }
   .category-card:nth-child(5) { animation-delay: 0.4s; }
   .category-card:nth-child(6) { animation-delay: 0.5s; }
-
   .category-card:hover {
     border-color: var(--accent);
     transform: scale(1.05) translateY(-5px);
@@ -1392,7 +1318,6 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: glowHover 1s ease-in-out infinite;
   }
-
   @keyframes glowHover {
     0%, 100% {
       box-shadow: 0 8px 15px rgba(68, 214, 44, 0.4);
@@ -1401,18 +1326,15 @@ if (isset($_SESSION['user_id'])) {
       box-shadow: 0 8px 20px rgba(68, 214, 44, 0.6);
     }
   }
-
   .category-icon {
     font-size: 2.5rem;
     margin-bottom: 15px;
     transition: transform 0.3s ease;
   }
-
   .category-card:hover .category-icon {
     transform: scale(1.2);
     opacity: 1;
   }
-
   .category-card h3 {
     color: #44D62C;
     font-size: 1.3rem;
@@ -1420,13 +1342,11 @@ if (isset($_SESSION['user_id'])) {
     text-transform: uppercase;
     letter-spacing: 1px;
   }
-
   .category-card p {
     color: var(--text-secondary);
     font-size: 0.9rem;
     line-height: 1.5;
   }
-
   /* Section Titles */
   .section-title {
     text-align: center;
@@ -1442,7 +1362,6 @@ if (isset($_SESSION['user_id'])) {
     padding-bottom: 15px;
     animation: fadeIn 1s ease-out;
   }
-
   .section-title::after {
     content: '';
     position: absolute;
@@ -1454,7 +1373,6 @@ if (isset($_SESSION['user_id'])) {
     box-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
     animation: expandWidth 1s ease-out;
   }
-
   /* Product Section */
   .product {
     position: relative;
@@ -1473,7 +1391,6 @@ if (isset($_SESSION['user_id'])) {
     overflow: hidden;
     margin: 0 auto;
   }
-
   .product::before {
     content: '';
     position: absolute;
@@ -1484,13 +1401,11 @@ if (isset($_SESSION['user_id'])) {
     background: linear-gradient(rgba(56, 59, 59, 0.6), rgba(56, 59, 59, 0.3));
     z-index: 1;
   }
-
   .product > * {
     position: relative;
     z-index: 2;
     animation: slideInLeft 1s ease-out;
   }
-
   @keyframes slideInLeft {
     0% {
       opacity: 0;
@@ -1501,7 +1416,6 @@ if (isset($_SESSION['user_id'])) {
       transform: translateX(0);
     }
   }
-
   .cta-button {
     display: inline-block;
     padding: 15px 30px;
@@ -1517,7 +1431,6 @@ if (isset($_SESSION['user_id'])) {
     position: relative;
     overflow: hidden;
   }
-
   .cta-button:hover {
     background: var(--accent-hover);
     transform: scale(1.1) translateY(-2px);
@@ -1525,11 +1438,9 @@ if (isset($_SESSION['user_id'])) {
     opacity: 1;
     animation: buttonGlow 1s ease-in-out infinite;
   }
-
   .cta-button:active {
     transform: scale(0.95);
   }
-
   .cta-button::after {
     content: '';
     position: absolute;
@@ -1542,13 +1453,11 @@ if (isset($_SESSION['user_id'])) {
     transform: translate(-50%, -50%);
     transition: width 0.3s ease, height 0.3s ease;
   }
-
   .cta-button:active::after {
     width: 200px;
     height: 200px;
     opacity: 0;
   }
-
   /* Footer */
   footer {
     text-align: center;
@@ -1557,58 +1466,162 @@ if (isset($_SESSION['user_id'])) {
     color: #0cef32;
     animation: fadeIn 1s ease-out;
   }
-
-  .product.bg1 { 
-    background: url('Uploads/5vv1uf4kn1xvorsl-4_0_desktop_0_2X.jpeg') no-repeat center center; 
+  .product.bg1 {
+    background: url('uploads/5vv1uf4kn1xvorsl-4_0_desktop_0_2X.jpeg') no-repeat center center;
     background-size: cover;
     margin-bottom: 0.10cm;
   }
+  /* Carousel for .product.bg2 */
+.product.bg2 {
+  width: 1400px;
+  height: 700px;
+  margin-bottom: 0.10cm;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center horizontally */
+  padding-bottom: 40px; /* Adjust distance from bottom */
+  position: relative;
+  overflow: hidden;
+}
 
-  .product.bg2 { 
-      background: url('Uploads/airpods-acc-inpage-engraving-202509.png') no-repeat center center; 
-      background-size: cover;
-      margin-bottom: 0.10cm;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end; /* Push content to bottom */
-      align-items: center; /* Center horizontally */
-      padding-bottom: 40px; /* Adjust distance from bottom */
-  }
+/* Carousel container */
+.carousel-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
 
+/* Carousel slides */
+.carousel-slides {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s ease-in-out;
+}
+
+/* Individual slide */
+.carousel-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+/* Specific slide backgrounds */
+.carousel-slide:nth-child(1) {
+  background: url('Uploads/GameLobby.png') no-repeat center center;
+  background-size: 100% 100%;
+}
+
+/* Placeholder for additional slides */
+.carousel-slide:nth-child(2) {
+  background: url('Uploads/carousel2.png') no-repeat center center;
+  background-size: 100% 100%;
+}
+
+.carousel-slide:nth-child(3) {
+  background: url('Uploads/carousel3.png') no-repeat center center;
+  background-size: 100% 100%;
+}
+
+.carousel-slide:nth-child(4) {
+  background: url('Uploads/carousel4.jpeg') no-repeat center center;
+  background-size: 100% 100%;
+}
+/* Navigation buttons */
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.carousel-nav button {
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--accent);
+  border: none;
+  padding: 10px 20px;
+  font-size: 24px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.carousel-nav button:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  transform: scale(1.1);
+}
+
+.carousel-nav button:active {
+  transform: scale(0.95);
+}
+
+/* Ensure content stays above carousel */
+.product.bg2 > * {
+  position: relative;
+  z-index: 1;
+}
   .product-content {
       text-align: center; /* Ensure text is centered within the container */
       max-width: 600px; /* Optional: limit width for readability */
   }
-
   .product-content h2 {
       font-size: 3em; /* Increase h2 font size */
   }
-
   .product-content p {
       font-family: 'Bebas Neue', sans-serif; /* Apply Bebas Neue font to p */
   }
-
   /* Accessories Category Card */
   .category-card[data-category="accessories"] {
-      background: url('uploads/headphones_jbl.png') no-repeat center center;
+      background: url('Uploads/headphones_jbl.png') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
       min-height: 200px; /* Ensure card has height to show background */
   }
-
   /* Phones Category Card */
   .category-card[data-category="phones"] {
-      background: url('uploads/Rog_asus.png') no-repeat center center;
+      background: url('Uploads/Rog_asus.png') no-repeat center center;
+      background-size: cover;
+      position: relative;
+      overflow: hidden;
+      min-height: 200px; /* Ensure card has height to show background */
+  }
+    /*Tablet Category Card */
+  .category-card[data-category="tablet"] {
+      background: url('Uploads/tablet.jpeg') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
       min-height: 200px; /* Ensure card has height to show background */
   }
 
-    /*Tablet Category Card */
-  .category-card[data-category="tablet"] {
-      background: url('uploads/tablet.jpeg') no-repeat center center;
+  /*Laptop Category Card */
+  .category-card[data-category="laptop"] {
+      background: url('Uploads/laptop-scaled.jpg') no-repeat center center;
+      background-size: cover;
+      position: relative;
+      overflow: hidden; 
+      min-height: 200px; /* Ensure card has height to show background */
+  }
+  /*Gaming Category Card */
+  .category-card[data-category="gaming"] {
+      background: url('Uploads/gaming.jpeg') no-repeat center center;
+      background-size: cover;
+      position: relative;
+      overflow: hidden;
+      min-height: 200px; /* Ensure card has height to show background */
+  }
+
+  /*Other Category Card */
+  .category-card[data-category="other"] {
+      background: url('Uploads/Others.png') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
@@ -1618,7 +1631,10 @@ if (isset($_SESSION['user_id'])) {
   /* Overlay for text readability and blur effect */
   .category-card[data-category="accessories"]::before,
   .category-card[data-category="phones"]::before,
-  .category-card[data-category="tablet"]::before {
+  .category-card[data-category="tablet"]::before,
+  .category-card[data-category="laptop"]::before,
+  .category-card[data-category="gaming"]::before,
+  .category-card[data-category="other"]::before {
       content: '';
       position: absolute;
       top: 0;
@@ -1629,36 +1645,29 @@ if (isset($_SESSION['user_id'])) {
       z-index: 1;
       transition: filter 0.3s ease, background 0.3s ease;
   }
-
   /* Strong blur and opaque overlay on hover */
   .category-card[data-category="accessories"]:hover::before,
-  .category-card[data-category="phones"]:hover::before, 
-  .category-card[data-category="tablet"]:hover::before {
+  .category-card[data-category="phones"]:hover::before,
+  .category-card[data-category="tablet"]:hover::before,
+  .category-card[data-category="laptop"]:hover::before,
+  .category-card[data-category="gaming"]:hover::before,
+  .category-card[data-category="other"]:hover::before {
       filter: blur(20px); /* Increased blur to obscure background */
       background: rgba(0, 0, 0, 0.91); /* Opaque overlay to hide background */
   }
-
   /* Ensure content stays above overlay */
   .category-card[data-category="accessories"] > *,
   .category-card[data-category="phones"] > *,
-  .category-card[data-category="tablet"] > * {
+  .category-card[data-category="tablet"] > *,
+  .category-card[data-category="laptop"] > *,
+  .category-card[data-category="gaming"] > *,
+  .category-card[data-category="other"] > * {
       position: relative;
       z-index: 2;
   }
-
   /* Category icon with 3D image, hidden by default */
   .category-card[data-category="accessories"] .category-icon {
-      background: url('uploads/3D_Headphones.png') no-repeat center center;
-      background-size: contain;
-      width: 150px;
-      height: 150px;
-      margin: 0 auto 15px;
-      opacity: 0; /* Hidden by default */
-      transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
-  }
-
-  .category-card[data-category="phones"] .category-icon {
-      background: url('uploads/phone_left.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('Uploads/3D_Headphones.png') no-repeat center center;
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1667,7 +1676,7 @@ if (isset($_SESSION['user_id'])) {
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
   .category-card[data-category="phones"] .category-icon {
-      background: url('uploads/phone_left.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('Uploads/phone_left.png') no-repeat center center; /* Replace with actual 3D image */
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1676,7 +1685,7 @@ if (isset($_SESSION['user_id'])) {
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
   .category-card[data-category="tablet"] .category-icon {
-      background: url('uploads/3D_Tablet.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('Uploads/3D_Tablet.png') no-repeat center center; /* Replace with actual 3D image */
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1684,75 +1693,157 @@ if (isset($_SESSION['user_id'])) {
       opacity: 0; /* Hidden by default */
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
-
+  .category-card[data-category="laptop"] .category-icon {
+      background: url('uploads/3D-Laptop.png') no-repeat center center; /* Replace with actual 3D image */
+      background-size: contain;
+      width: 150px;
+      height: 150px;
+      margin: 0 auto 15px;
+      opacity: 0; /* Hidden by default */
+      transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+  }
+  .category-card[data-category="gaming"] .category-icon {
+      background: url('Uploads/PS5.png') no-repeat center center; /* Replace with actual 3D image */
+      background-size: contain;
+      width: 150px;
+      height: 150px;
+      margin: 0 auto 15px;
+      opacity: 0; /* Hidden by default */
+      transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+  }
+  .category-card[data-category="other"] .category-icon {
+      background: url('Uploads/Others2.png') no-repeat center center; /* Replace with actual 3D image */
+      background-size: contain;
+      width: 150px;
+      height: 150px;
+      margin: 0 auto 15px;
+      opacity: 0; /* Hidden by default */
+      transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+  }
   /* 3D effect and visibility on hover */
   .category-card[data-category="accessories"]:hover .category-icon,
   .category-card[data-category="phones"]:hover .category-icon,
-  .category-card[data-category="tablet"]:hover .category-icon {
+  .category-card[data-category="tablet"]:hover .category-icon,
+  .category-card[data-category="laptop"]:hover .category-icon,
+  .category-card[data-category="gaming"]:hover .category-icon,
+  .category-card[data-category="other"]:hover .category-icon {
       opacity: 1; /* Visible on hover */
       transform: perspective(1000px) rotateY(15deg) scale(1.2);
- 
   }
-
   /* Theme-specific adjustments */
   [data-theme="light"] .category-card[data-category="accessories"]::before,
-  [data-theme="light"] .category-card[data-category="phones"]::before. 
-  [data-theme="light"] .category-card[data-category="tablet"]::before {
-      background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.2));
+  [data-theme="light"] .category-card[data-category="phones"]::before,
+  [data-theme="light"] .category-card[data-category="tablet"]::before,
+  [data-theme="light"] .category-card[data-category="laptop"]::before,
+  [data-theme="light"] .category-card[data-category="gaming"]::before,
+  [data-theme="light"] .category-card[data-category="other"]::before {
+      background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
   }
-
   [data-theme="light"] .category-card[data-category="accessories"]:hover::before,
   [data-theme="light"] .category-card[data-category="phones"]:hover::before,
-  [data-theme="light"] .category-card[data-category="tablet"]:hover::before {
-      background: rgba(255, 255, 255, 0.7); /* Light theme opaque overlay */
+  [data-theme="light"] .category-card[data-category="tablet"]:hover::before,
+  [data-theme="light"] .category-card[data-category="laptop"]:hover::before,
+  [data-theme="light"] .category-card[data-category="gaming"]:hover::before,
+  [data-theme="light"] .category-card[data-category="other"]:hover::before {
+      background: rgba(255, 255, 255, 0.7); /* Light Overlay para sa mga matatanda */
   }
-
   [data-theme="light"] .category-card[data-category="accessories"] h3,
   [data-theme="light"] .category-card[data-category="accessories"] p,
   [data-theme="light"] .category-card[data-category="phones"] h3,
   [data-theme="light"] .category-card[data-category="phones"] p,
   [data-theme="light"] .category-card[data-category="tablet"] h3,
-  [data-theme="light"] .category-card[data-category="tablet"] p {
+  [data-theme="light"] .category-card[data-category="tablet"] p,
+  [data-theme="light"] .category-card[data-category="laptop"] h3,
+  [data-theme="light"] .category-card[data-category="laptop"] p,
+  [data-theme="light"] .category-card[data-category="gaming"] h3,
+  [data-theme="light"] .category-card[data-category="gaming"] p,
+  [data-theme="light"] .category-card[data-category="other"] h3,
+  [data-theme="light"] .category-card[data-category="other"] p {
       color: var(--light-text-primary);
   }
-
   [data-theme="dark"] .category-card[data-category="accessories"] h3,
   [data-theme="dark"] .category-card[data-category="accessories"] p,
   [data-theme="dark"] .category-card[data-category="phones"] h3,
   [data-theme="dark"] .category-card[data-category="phones"] p,
   [data-theme="dark"] .category-card[data-category="tablet"] h3,
-  [data-theme="dark"] .category-card[data-category="tablet"] p {
+  [data-theme="dark"] .category-card[data-category="tablet"] p,
+  [data-theme="dark"] .category-card[data-category="laptop"] h3,
+  [data-theme="dark"] .category-card[data-category="laptop"] p,
+  [data-theme="dark"] .category-card[data-category="gaming"] h3,
+  [data-theme="dark"] .category-card[data-category="gaming"] p,
+  [data-theme="dark"] .category-card[data-category="other"] h3,
+  [data-theme="dark"] .category-card[data-category="other"] p {
       color: var(--dark-text-primary);
   }
-
   /* Responsive adjustments */
   @media (max-width: 768px) {
       .category-card[data-category="accessories"] .category-icon,
-      .category-card[data-category="phones"] .category-icon {
+      .category-card[data-category="phones"] .category-icon,
+      .category-card[data-category="tablet"] .category-icon,
+      .category-card[data-category="laptop"] .category-icon,
+      .category-card[data-category="gaming"] .category-icon,
+      .category-card[data-category="other"] .category-icon {
           width: 120px;
           height: 120px;
       }
       .category-card[data-category="accessories"],
       .category-card[data-category="phones"],
-      .category-card[data-category="tablet"] {
+      .category-card[data-category="tablet"],
+      .category-card[data-category="laptop"],
+      .category-card[data-category="gaming"],
+      .category-card[data-category="other"] {
           min-height: 150px;
       }
   }
-
   /* Fallback for debugging */
   .category-card[data-category="accessories"],
   .category-card[data-category="phones"],
-  .category-card[data-category="tablet"] {
+  .category-card[data-category="tablet"],
+  .category-card[data-category="laptop"],
+  .category-card[data-category="gaming"],
+  .category-card[data-category="other"] {
       background-color: #f0f0f0; /* Fallback if image fails */
   }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  const carousel = document.querySelector('.carousel-slides');
+  const prevBtn = document.querySelector('.carousel-prev');
+  const nextBtn = document.querySelector('.carousel-next');
+  let currentIndex = 0;
+  const slides = document.querySelectorAll('.carousel-slide');
+  const totalSlides = slides.length;
+
+  function showSlide(index) {
+    if (index >= totalSlides) {
+      currentIndex = 0;
+    } else if (index < 0) {
+      currentIndex = totalSlides - 1;
+    } else {
+      currentIndex = index;
+    }
+    carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    showSlide(currentIndex - 1);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    showSlide(currentIndex + 1);
+  });
+
+  // Optional: Auto-slide every 5 seconds
+  setInterval(() => {
+    showSlide(currentIndex + 1);
+  }, 5000);
+});
+
+document.addEventListener('DOMContentLoaded', function() {
   // Theme toggle functionality
   const theme = '<?php echo $theme; ?>';
   document.documentElement.setAttribute('data-theme', theme);
   updateThemeToggleButton();
-
   // Handle loading screen
   const loadingScreen = document.querySelector('.loading-screen');
   if (loadingScreen.classList.contains('active')) {
@@ -1760,7 +1851,6 @@ document.addEventListener('DOMContentLoaded', function() {
       loadingScreen.classList.remove('active');
     }, 2000);
   }
-
   // Toggle Hamburger Menu
   const hamburger = document.querySelector('.hamburger');
   const menu = document.getElementById('menu');
@@ -1770,13 +1860,11 @@ document.addEventListener('DOMContentLoaded', function() {
       e.stopPropagation();
       menu.classList.toggle('show');
     });
-
     document.addEventListener('click', function(e) {
       if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
         menu.classList.remove('show');
       }
     });
-
     const menuItems = menu.querySelectorAll('a');
     menuItems.forEach(item => {
       item.addEventListener('click', function() {
@@ -1784,16 +1872,13 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   }
-
   // Search & Filter
   const searchInput = document.getElementById('searchInput');
   const categorySelect = document.getElementById('categorySelect');
   const productCards = document.querySelectorAll('.product-card');
-
   function filterProducts() {
     const searchText = searchInput.value.toLowerCase();
     const category = categorySelect.value;
-
     productCards.forEach(card => {
       const title = card.querySelector('h3').textContent.toLowerCase();
       const matchesSearch = title.includes(searchText);
@@ -1801,14 +1886,12 @@ document.addEventListener('DOMContentLoaded', function() {
       card.style.display = matchesSearch && matchesCategory ? 'block' : 'none';
     });
   }
-
   if (searchInput) {
     searchInput.addEventListener('input', filterProducts);
   }
   if (categorySelect) {
     categorySelect.addEventListener('change', filterProducts);
   }
-
   // Category card click functionality
   const categoryCards = document.querySelectorAll('.category-card');
   categoryCards.forEach(card => {
@@ -1822,7 +1905,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
-
   // Product Popup Advertisement
   const productPopup = document.getElementById('productPopup');
   const popupOverlay = document.getElementById('popupOverlay');
@@ -1833,7 +1915,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const popupDescription = document.getElementById('popupDescription');
   const popupViewBtn = document.getElementById('popupViewBtn');
   const popupAddBtn = document.getElementById('popupAddBtn');
-
   function getAllProducts() {
     const products = [];
     productCards.forEach(card => {
@@ -1842,21 +1923,19 @@ document.addEventListener('DOMContentLoaded', function() {
         price: card.querySelector('.price').textContent,
         image: card.querySelector('img').src,
         category: card.dataset.category,
-        productId: card.querySelector('.add-to-cart-form') ? 
+        productId: card.querySelector('.add-to-cart-form') ?
                   card.querySelector('.add-to-cart-form').dataset.productId : null
       };
       products.push(product);
     });
     return products;
   }
-
   function getRandomProduct() {
     const products = getAllProducts();
     if (products.length === 0) return null;
     const randomIndex = Math.floor(Math.random() * products.length);
     return products[randomIndex];
   }
-
   function showProductPopup(product) {
     if (!product) return;
     popupImage.src = product.image;
@@ -1888,19 +1967,16 @@ document.addEventListener('DOMContentLoaded', function() {
     popupOverlay.classList.add('show');
     productPopup.classList.add('show');
   }
-
   function closePopup() {
     popupOverlay.classList.remove('show');
     productPopup.classList.remove('show');
   }
-
   if (popupClose) {
     popupClose.addEventListener('click', closePopup);
   }
   if (popupOverlay) {
     popupOverlay.addEventListener('click', closePopup);
   }
-
   function showRandomProductPopup() {
     const randomProduct = getRandomProduct();
     if (randomProduct) {
@@ -1914,7 +1990,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   }
-
   <?php if (isset($just_logged_in) && $just_logged_in): ?>
     setTimeout(() => {
       showRandomProductPopup();
@@ -1922,7 +1997,6 @@ document.addEventListener('DOMContentLoaded', function() {
   <?php else: ?>
     showRandomProductPopup();
   <?php endif; ?>
-
   // Enhanced Add to Cart functionality
   const addToCartForms = document.querySelectorAll('.add-to-cart-form');
   addToCartForms.forEach(form => {
@@ -1933,7 +2007,6 @@ document.addEventListener('DOMContentLoaded', function() {
       button.classList.add('loading');
       button.disabled = true;
       showNotification(`Adding ${productName} to cart...`, 'info');
-
       // Submit form via AJAX
       const formData = new FormData(form);
       fetch(form.action, {
@@ -1963,17 +2036,14 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   });
-
   // Notification function
   function showNotification(message, type = 'success') {
     const existingNotifications = document.querySelectorAll('.notification');
     existingNotifications.forEach(notif => notif.remove());
-
     const notification = document.createElement('div');
     notification.className = `notification ${type} show`;
     notification.innerHTML = `${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}`;
     document.body.appendChild(notification);
-
     setTimeout(() => {
       notification.classList.remove('show');
       setTimeout(() => {
@@ -1981,7 +2051,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 300);
     }, 3000);
   }
-
   // Auto-hide existing notification
   const notification = document.getElementById('cartNotification');
   if (notification) {
@@ -1992,7 +2061,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }, 300);
     }, 3000);
   }
-
   // Theme toggle functionality
   function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -2001,7 +2069,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateThemeToggleButton();
     fetch(`?theme=${newTheme}`);
   }
-
   function updateThemeToggleButton() {
     const themeIcon = document.getElementById('themeIcon');
     const themeText = document.getElementById('themeText');
@@ -2023,7 +2090,6 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
   <div class="loading-text">Loading...</div>
 </div>
-
 <!-- Product Popup Advertisement -->
 <div class="popup-overlay" id="popupOverlay"></div>
 <div class="product-popup" id="productPopup">
@@ -2044,7 +2110,6 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
-
 <!-- Navbar -->
 <div class="navbar">
   <div class="nav-left">
@@ -2085,10 +2150,10 @@ document.addEventListener('DOMContentLoaded', function() {
       </a>
     <?php else: ?>
       <a href="login_users.php">
-        <div class="text">Login</div>
+        <div class="nonuser-text">Login</div>
       </a>
       <a href="signup_users.php">
-        <div class="text">Signup</div>
+        <div class="nonuser-text">Signup</div>
       </a>
       <a href="login_users.php">
         <div class="profile-icon">👤</div>
@@ -2096,7 +2161,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
     <button class="hamburger">☰</button>
   </div>
-  <ul class="menu" id="menu">
+  <ul class="menu " id="menu">
     <li><a href="shop.php">Home</a></li>
     <li><a href="carts_users.php">Cart (<span class="cart-count" id="cartCount"><?php echo $cart_count; ?></span>)</a></li>
     <?php if(isset($_SESSION['user_id'])): ?>
@@ -2113,20 +2178,20 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php endif; ?>
   </ul>
 </div>
-
 <!-- Notification -->
 <?php if (isset($cart_success) && $cart_success): ?>
   <div class="notification success show" id="cartNotification">
     ✅ <?php echo $cart_message; ?>
   </div>
 <?php endif; ?>
-
 <!-- Video Banner -->
 <div class="banner video-banner">
   <video autoplay muted loop playsinline preload="auto">
-    <source src="http://localhost/SaysonCo/mp4/advertisement.mp4" type="video/mp4">
+    <source src="../../mp4/bateo.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
+    <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="video-logo">
+  </a>
 </div>
 
 <!-- Features Section -->
@@ -2173,43 +2238,44 @@ document.addEventListener('DOMContentLoaded', function() {
       <a href="accessories.php" class="category-card" data-category="accessories">
         <div class="category-icon"></div>
         <h3>Accessories</h3>
-        <p>Headphones, cases, chargers and more</p>
       </a>
       <a href="phone.php" class="category-card" data-category="phones">
         <div class="category-icon"></div>
         <h3>Phones</h3>
-        <p>Latest smartphones and mobile devices</p>
       </a>
       <a href="Tablets.php" class="category-card" data-category="tablet">
         <div class="category-icon"></div>
         <h3>Tablets</h3>
-        <p>Tablets for work and entertainment</p>
       </a>
       <a href="laptop.php" class="category-card" data-category="laptop">
         <div class="category-icon"></div>
         <h3>Laptops</h3>
-        <p>High-performance laptops and notebooks</p>
       </a>
       <a href="gaming.php" class="category-card" data-category="gaming">
         <div class="category-icon"></div>
         <h3>Gaming</h3>
-        <p>Gaming peripherals and accessories</p>
       </a>
-      <a href="other.php" class="category-card" data-category="other">
+      <a href="others.php" class="category-card" data-category="other">
         <div class="category-icon"></div>
         <h3>Other</h3>
-        <p>Miscellaneous tech products</p>
       </a>
     </div>
   </div>
 </div>
 
 <section class="product bg2">
-    <div class="product-content">
-        <h2>Slim and Wide</h2>
-        <p>Power Unbound. Play Unstoppable.</p>
-        <a href="shop.php" class="cta-button">Learn More</a>
+  <div class="carousel-container">
+    <div class="carousel-slides">
+      <div class="carousel-slide"></div>
+      <div class="carousel-slide"></div>
+      <div class="carousel-slide"></div>
+        <div class="carousel-slide"></div>
     </div>
+    <div class="carousel-nav">
+      <button class="carousel-prev">&#10094;</button>
+      <button class="carousel-next">&#10095;</button>
+    </div>
+  </div>
 </section>
 
 <!-- Shop Section -->
