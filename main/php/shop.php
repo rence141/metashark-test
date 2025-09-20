@@ -1210,6 +1210,7 @@ a .profile-icon {
   margin-top: 40px;
 }
 
+/* Default state – no background image */
 .feature-card {
   background: var(--bg-tertiary);
   padding: 30px 20px;
@@ -1220,7 +1221,10 @@ a .profile-icon {
   opacity: 0;
   transform: translateY(20px);
   animation: slideUp 0.6s ease-out forwards;
+  background-size: cover;
+  background-position: center;
 }
+
 
 .feature-card:nth-child(2) { animation-delay: 0.1s; }
 .feature-card:nth-child(3) { animation-delay: 0.2s; }
@@ -1237,12 +1241,17 @@ a .profile-icon {
   }
 }
 
+/* Hover state – show image */
 .feature-card:hover {
   border-color: var(--accent);
   transform: scale(1.05) translateY(-5px);
   box-shadow: 0 10px 20px rgba(68, 214, 44, 0.4);
   opacity: 1;
   animation: glowHover 1s ease-in-out infinite;
+  background-image: url('uploads/feature1.png'); /* 👈 replace with your image */
+  background-size: cover;
+  background-position: center;
+  animation: slideUp 0.6s ease-out forwards;
 }
 
 .feature-icon {
@@ -1273,7 +1282,7 @@ a .profile-icon {
 
 /* Theme-specific adjustments for background */
 [data-theme="light"] .features-section::before {
-  background: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2)), url('Uploads/features-bg.jpg') no-repeat center center;
+  background: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2)), url('uploads/feature1.png') no-repeat center center;
   background-size: cover;
 }
 
