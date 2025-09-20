@@ -1543,8 +1543,8 @@ a .profile-icon {
 }
 
 .carousel-nav button {
-  background: rgba(0, 0, 0, 0.5);
-  color: var(--accent);
+  color: var(--light-accent-light);
+  background-color: #ffffff02;
   border: none;
   padding: 10px 20px;
   font-size: 24px;
@@ -1553,14 +1553,14 @@ a .profile-icon {
 }
 
 .carousel-nav button:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
+  color: var(--dark-accent);
   transform: scale(1.1);
 }
 
 .carousel-nav button:active {
   transform: scale(0.95);
 }
+
 
 /* Ensure content stays above carousel */
 .product.bg2 > * {

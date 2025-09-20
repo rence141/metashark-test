@@ -69,7 +69,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
       position: relative;
       width: 100%;
       height: 435.19px;
-      background: url('uplaods/laptopbanner.jpeg') no-repeat center;
+      background: url('uploads/laptopbanner.png') no-repeat center;
       background-size: cover;
       margin: 0 auto;
       overflow: hidden;
