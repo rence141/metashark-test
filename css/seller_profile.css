@@ -1,0 +1,342 @@
+* {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'ASUS ROG', Arial, sans-serif;
+            background: #0A0A0A;
+            color: #FFFFFF;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: #000000;
+            padding: 15px 20px;
+            color: #44D62C;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #44D62C;
+        }
+
+        .navbar h2 {
+            margin: 0;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .profile-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background-color: #222222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #44D62C;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            object-fit: cover;
+            border: 2px solid #44D62C;
+            box-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
+        }
+
+        .profile-icon:hover {
+            background-color: #333333;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(68, 214, 44, 0.8);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .seller-header {
+            background: #111111;
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 30px;
+            border: 1px solid #44D62C;
+            box-shadow: 0 10px 30px rgba(68, 214, 44, 0.1);
+        }
+
+        .seller-info {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .seller-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #44D62C;
+            box-shadow: 0 0 20px rgba(68, 214, 44, 0.3);
+        }
+
+        .seller-details h1 {
+            color: #44D62C;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .seller-details p {
+            color: #888;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .seller-badge {
+            background: #44D62C;
+            color: #000000;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #111111;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #333333;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #44D62C;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(68, 214, 44, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            color: #44D62C;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .profile-form {
+            background: #111111;
+            border-radius: 15px;
+            padding: 40px;
+            border: 1px solid #333333;
+        }
+
+        .form-title {
+            color: #44D62C;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #44D62C;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #44D62C;
+            border-radius: 8px;
+            background: #1a1a1a;
+            color: #FFFFFF;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(68, 214, 44, 0.3);
+            border-color: #36b020;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .required {
+            color: #ff4444;
+        }
+
+        .btn {
+            background: #44D62C;
+            color: #000000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: #36b020;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(68, 214, 44, 0.3);
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .success {
+            background: rgba(68, 214, 44, 0.2);
+            color: #44D62C;
+            border: 1px solid #44D62C;
+        }
+
+        .error {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+
+        .help-text {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .user-id-display {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #333333;
+        }
+
+        .user-id-display label {
+            display: block;
+            font-weight: bold;
+            color: #44D62C;
+            margin-bottom: 5px;
+        }
+
+        .user-id-display input {
+            background: #e9ecef;
+            color: #6c757d;
+            font-family: monospace;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10001;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #111111;
+            border-radius: 10px;
+            padding: 25px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid #44D62C;
+            box-shadow: 0 5px 15px rgba(68, 214, 44, 0.2);
+        }
+
+        .modal-content h3 {
+            color: #44D62C;
+            margin-bottom: 20px;
+        }
+
+        .modal-content input {
+            margin-bottom: 20px;
+        }
+
+        .modal-content .btn {
+            width: auto;
+            padding: 10px 20px;
+        }
+
+        @media (max-width: 768px) {
+            .seller-info {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }

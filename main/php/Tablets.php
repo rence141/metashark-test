@@ -1,8 +1,35 @@
 <?php
 session_start();
-
-// Set theme preference
 $theme = $_SESSION['theme'] ?? 'dark';
+include("db.php");
+
+// Handle Add to Cart AJAX
+if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
+    $product_id = intval($_POST['product_id']);
+    $user_id = $_SESSION['user_id'];
+
+    // Check if product is already in cart
+    $stmt = $conn->prepare("SELECT quantity FROM cart WHERE user_id=? AND product_id=?");
+    $stmt->bind_param("ii", $user_id, $product_id);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($qty);
+        $stmt->fetch();
+        $new_qty = $qty + 1;
+        $update = $conn->prepare("UPDATE cart SET quantity=? WHERE user_id=? AND product_id=?");
+        $update->bind_param("iii", $new_qty, $user_id, $product_id);
+        $update->execute();
+    } else {
+        $insert = $conn->prepare("INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, 1)");
+        $insert->bind_param("ii", $user_id, $product_id);
+        $insert->execute();
+    }
+
+    echo json_encode(['status' => 'success']);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="<?php echo $theme; ?>">
@@ -11,244 +38,27 @@ $theme = $_SESSION['theme'] ?? 'dark';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tech Haven - Tablets</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="../../css/tablets.css">
   <link rel="icon" type="image/png" href="Uploads/logo1.png">
-  <style>
-    /* Global Reset */
-    *, :after, :before { box-sizing: border-box; }
-
-    /* Body */
-    body {
-      background: #000000; /* Black background */
-      color: #FFFFFF; /* White text */
-      font-family: 'Orbitron', 'Arial', sans-serif;
-      margin: 0;
-      overflow-x: hidden;
-    }
-
-    /* Container */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
-
-    /* Navbar */
-    .navbar {
-      background: #000000; /* Black background */
-      padding: 15px 0;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      box-shadow: 0 2px 10px rgba(36, 227, 52, 0.2); /* Green-tinted shadow */
-      display: flex;
-      justify-content: flex-end;
-      width: 100%;
-    }
-    .nav-links {
-      list-style: none;
-      display: flex;
-      margin: 0;
-      padding: 0;
-    }
-    .nav-links li {
-      margin: 0 20px;
-    }
-    .nav-links a {
-      color: #FFFFFF; /* White text */
-      text-decoration: none;
-      font-size: 1.1rem;
-      transition: color 0.3s;
-    }
-    .nav-links a:hover {
-      color: #24e334ff; /* Green hover */
-    }
-
-    /* Banner */
-    .banner {
-      position: relative;
-      width: 100%;
-      height: 435.19px;
-      background: url('uploads/productivity.jpg') no-repeat center; /* Replace with actual tablet banner image */
-      background-size: cover;
-      margin: 0 auto;
-      overflow: hidden;
-    }
-    .banner-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.3)); /* Black-based gradient */
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .banner-quick-links {
-      padding: 10px 20px;
-      display: flex;
-      gap: 15px;
-    }
-    .banner-quick-links a {
-      color: #FFFFFF; /* White text */
-      text-decoration: none;
-      font-size: 1.2rem;
-      transition: color 0.3s;
-    }
-    .banner-quick-links a:hover {
-      color: #24e334ff; /* Green hover */
-    }
-    .banner-quick-links .home-icon::before {
-      content: "⌂ ";
-      font-size: 1.2rem;
-      vertical-align: middle;
-      color: #FFFFFF;
-    }
-    .banner-title {
-      font-size: 4.5rem;
-      color: #FFFFFF; /* White text */
-      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
-      text-transform: uppercase;
-      animation: fadeIn 2s ease-in;
-      padding: 20px;
-      margin: 20px;
-    }
-
-    /* Product Grid */
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 30px;
-      padding: 60px 20px;
-      background: #000000; /* Black background */
-    }
-    .product-card {
-      background: #FFFFFF; /* White card background */
-      border-radius: 12px;
-      overflow: hidden;
-      text-align: center;
-      border: 1px solid #333333; /* Subtle dark border */
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      display: flex;
-      flex-direction: column; /* Stack image and details vertically */
-    }
-    .product-card:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-    }
-    .product-image {
-      height: 250px; /* Fixed height for consistency */
-      width: 100%; /* Full width */
-      overflow: hidden; /* Prevent image overflow */
-    }
-    .product-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover; /* Scale image properly */
-      display: block; /* Ensure no inline spacing issues */
-    }
-    .product-details {
-      padding: 20px;
-      color: #000000; /* Black text */
-      flex-grow: 1; /* Allow details to take remaining space */
-    }
-    .product-details h3 {
-      margin: 0 0 12px;
-      font-size: 1.4rem;
-      color: #000000; /* Black text */
-    }
-    .product-details p {
-      margin: 8px 0;
-      font-size: 0.95rem;
-      color: #24e334ff; /* Green for seller and stock */
-    }
-    .product-details .price {
-      color: #000000; /* Black for price */
-      font-weight: bold;
-      font-size: 1.2rem;
-    }
-    .product-details button {
-      margin-top: 12px;
-      padding: 10px 20px;
-      background: #000000; /* Black background */
-      border: none;
-      color: #FFFFFF; /* White text */
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background 0.3s, transform 0.2s;
-      font-size: 1rem;
-    }
-    .product-details button:hover {
-      background: #24e334ff; /* Green hover */
-      transform: translateY(-2px);
-    }
-    .product-details button:disabled {
-      background: #666666; /* Gray for disabled */
-      cursor: not-allowed;
-    }
-
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    /* Theme Variables */
-    :root {
-      --color-background: #000000; /* Black */
-      --color-foreground: #FFFFFF; /* White */
-      --accent: #000000;
-      --accent-hover: #24e334ff; /* Green */
-      --border: #333333;
-      --text-muted: #24e334ff;
-    }
-    [data-theme="light"] {
-      --color-background: #000000; /* Black */
-      --color-foreground: #FFFFFF; /* White */
-      --accent: #000000;
-      --accent-hover: #24e334ff; /* Green */
-      --border: #333333;
-      --text-muted: #24e334ff;
-      background: #000000;
-      color: #FFFFFF;
-    }
-    [data-theme="light"] .banner {
-      background: url('Uploads/Tablets_banner.png') no-repeat center; /* Replace with actual tablet banner image */
-      background-size: cover;
-    }
-    [data-theme="light"] .navbar {
-      background: #000000; /* Black */
-    }
-    [data-theme="light"] .nav-links a {
-      color: #FFFFFF; /* White text */
-    }
-    [data-theme="light"] .nav-links a:hover {
-      color: #24e334ff; /* Green hover */
-    }
-    [data-theme="light"] .product-card {
-      background: #FFFFFF; /* White card */
-      color: #000000; /* Black text */
-    }
-    [data-theme="light"] .product-details h3 {
-      color: #000000; /* Black */
-    }
-    [data-theme="light"] .product-details .price {
-      color: #000000; /* Black */
-    }
-  </style>
+  
 </head>
 <body>
+
+  <!-- Navbar -->
   <nav class="navbar">
     <div class="container">
       <ul class="nav-links">
-        <li><a href="../SaysonCo/index.html">Home</a></li>
+        <li><a href="../../index.html">Home</a></li>
         <li><a href="phone.php">Phones</a></li>
-        <li><a href="accessories.php">Accessories</a></li>
         <li><a href="tablets.php">Tablets</a></li>
-        <li><a href="#">Contact</a></li>
+        <li><a href="accessories.php">Accessories</a></li>
+        <li><a href="laptop.php">Laptops</a></li>
+        <li><a href="Gaming.php">Gaming</a></li>
       </ul>
     </div>
   </nav>
+
+  <!-- Banner -->
   <div class="banner">
     <div class="banner-overlay">
       <div class="banner-quick-links">
@@ -258,50 +68,98 @@ $theme = $_SESSION['theme'] ?? 'dark';
       <h1 class="banner-title">Tablets</h1>
     </div>
   </div>
+
+  <!-- Products Grid -->
   <div class="container">
     <div class="product-grid">
-      <?php
-      include("db.php"); // Adjust path to database connection file
-      $category = "tablet";
-      $sql = "SELECT p.*, u.seller_name, u.fullname as seller_fullname 
-              FROM products p 
-              LEFT JOIN users u ON p.seller_id = u.id 
-              WHERE p.category = ? AND p.is_active = TRUE 
-              ORDER BY p.created_at DESC";
-      $stmt = $conn->prepare($sql);
-      $stmt->bind_param("s", $category);
-      $stmt->execute();
-      $result = $stmt->get_result();
+    <?php
+$category = "Tablet"; // Category name must match your categories table
 
-      if ($result && $result->num_rows > 0) {
-        while ($product = $result->fetch_assoc()) {
-          echo '<div class="product-card">';
-          echo '<div class="product-image">';
-          echo '<img src="' . htmlspecialchars($product['image']) . '" alt="' . htmlspecialchars($product['name']) . '">';
-          echo '</div>';
-          echo '<div class="product-details">';
-          echo '<h3>' . htmlspecialchars($product['name']) . '</h3>';
-          echo '<p>Seller: ' . htmlspecialchars($product['seller_name'] ?: $product['seller_fullname']) . '</p>';
-          echo '<p class="price">$' . number_format($product['price'], 2) . '</p>';
-          echo '<p>Stock: ' . $product['stock_quantity'] . '</p>';
-          if (!isset($_SESSION['user_id'])) {
-            echo '<button onclick="alert(\'Please login to add to cart!\')">Add to Cart</button>';
-          } else {
-            echo '<form method="POST" style="display: inline;">';
-            echo '<input type="hidden" name="product_id" value="' . $product['id'] . '">';
-            echo '<button type="submit" name="add_to_cart" ' . ($product['stock_quantity'] <= 0 ? 'disabled' : '') . '>';
-            echo $product['stock_quantity'] <= 0 ? 'Out of Stock' : 'Add to Cart';
-            echo '</button>';
-            echo '</form>';
-          }
-          echo '</div>';
-          echo '</div>';
+$sql = "SELECT DISTINCT p.*, u.seller_name, u.fullname AS seller_fullname
+        FROM products p
+        LEFT JOIN users u ON p.seller_id = u.id
+        INNER JOIN product_categories pc ON p.id = pc.product_id
+        INNER JOIN categories c ON pc.category_id = c.id
+        WHERE c.name = ? AND p.is_active = TRUE
+        ORDER BY p.created_at DESC";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $category);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result && $result->num_rows > 0) {
+    while ($product = $result->fetch_assoc()) {
+
+        // Fetch all categories for this product
+        $cat_sql = "SELECT c.name FROM categories c
+                    INNER JOIN product_categories pc ON c.id = pc.category_id
+                    WHERE pc.product_id = ?";
+        $cat_stmt = $conn->prepare($cat_sql);
+        $cat_stmt->bind_param("i", $product['id']);
+        $cat_stmt->execute();
+        $cat_result = $cat_stmt->get_result();
+        $categories = [];
+        while ($cat_row = $cat_result->fetch_assoc()) {
+            $categories[] = $cat_row['name'];
         }
-      } else {
-        echo '<div style="text-align: center; padding: 40px; color: #24e334ff;">No tablets available.</div>';
-      }
-      ?>
+        $category_list = implode(", ", $categories);
+
+        echo '<div class="product-card">';
+            echo '<div class="product-image">';
+                echo '<img src="' . htmlspecialchars($product['image']) . '" alt="' . htmlspecialchars($product['name']) . '">';
+            echo '</div>';
+            echo '<div class="product-details">';
+                echo '<h3>' . htmlspecialchars($product['name']) . '</h3>';
+                echo '<p>Seller: ' . htmlspecialchars($product['seller_name'] ?: $product['seller_fullname']) . '</p>';
+                echo '<p class="categories">Categories: ' . htmlspecialchars($category_list) . '</p>';
+                echo '<p class="price">$' . number_format($product['price'], 2) . '</p>';
+                echo '<p>Stock: ' . $product['stock_quantity'] . '</p>';
+
+                if (!isset($_SESSION['user_id'])) {
+                    echo '<button onclick="alert(\'Please login to add to cart!\')">Add to Cart</button>';
+                } else {
+                    echo '<button class="add-to-cart-btn" data-product-id="' . $product['id'] . '" ' . ($product['stock_quantity'] <= 0 ? 'disabled' : '') . '>';
+                    echo $product['stock_quantity'] <= 0 ? 'Out of Stock' : 'Add to Cart';
+                    echo '</button>';
+                }
+
+            echo '</div>';
+        echo '</div>';
+    }
+} else {
+    echo '<div style="text-align: center; padding: 40px; color: #24e334ff;">No tablets available.</div>';
+}
+?>
+
     </div>
   </div>
+
+  <!-- Cart Notification -->
+  <div class="cart-notification" id="cartNotification">Added to cart!</div>
+
+  <!-- AJAX Add to Cart -->
+  <script>
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const productId = button.dataset.productId;
+        fetch('', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'add_to_cart=1&product_id=' + productId
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            button.classList.add('added');
+            const notification = document.getElementById('cartNotification');
+            notification.classList.add('show');
+            setTimeout(() => { notification.classList.remove('show'); }, 2000);
+            setTimeout(() => { button.classList.remove('added'); }, 700);
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>
