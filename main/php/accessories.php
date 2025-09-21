@@ -69,7 +69,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
       position: relative;
       width: 100%;
       height: 435.19px;
-      background: url('Uploads/Earphones_banner.png') no-repeat center;
+      background: url('Uploads/accessoriesbanner.png') no-repeat center;
       background-size: cover;
       margin: 0 auto;
       overflow: hidden;

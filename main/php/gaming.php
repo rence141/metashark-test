@@ -382,7 +382,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
         <a href="/SaysonCo/index.html" class="home-icon"></a>
         <a href="shop.php">Shop</a>
       </div>
-      <h1 class="banner-title">Gaming</h1>
+      <h1 class="banner-title">Gaming Gears</h1>
     </div>
   </div>
   <div class="container">
