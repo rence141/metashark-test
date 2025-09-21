@@ -276,12 +276,14 @@ $theme = $_SESSION['theme'] ?? 'dark';
             opacity: 1;
         }
 
-        .menu li {
-            color: var(--color-foreground);
+        .menu li a {
+            color: var(--accent);
             cursor: pointer;
             transition: color 0.3s, transform 0.2s, background-color 0.3s;
             padding: 5px 10px;
             border-radius: 4px;
+            text-decoration: none;
+            
         }
 
         .menu li:hover {

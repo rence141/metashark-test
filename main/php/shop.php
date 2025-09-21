@@ -1166,16 +1166,16 @@ a .profile-icon {
   .empty-products li:last-child {
     border-bottom: none;
   }
-  /* Features Section */
+  
+ /* Features Section */
 .features-section {
-  background: url('Uploads/features-bg.jpg') no-repeat center center;
+  background: url('uploads/features-bg.jpg') no-repeat center center;
   background-size: cover;
   padding: 60px 0;
   border-top: 2px solid var(--accent);
   border-bottom: 2px solid var(--accent);
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
 }
 
 /* Default blur effect for background */
@@ -1192,11 +1192,6 @@ a .profile-icon {
   transition: filter 0.3s ease;
 }
 
-/* Clearer image on hover */
-.features-section:hover::before {
-  filter: blur(0);
-}
-
 /* Ensure content stays above background */
 .features-section > * {
   position: relative;
@@ -1204,92 +1199,176 @@ a .profile-icon {
 }
 
 .features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;   /* center align */
+  gap: 30px;                 /* consistent spacing between cards */
   margin-top: 40px;
+  max-width: 1700px;         /* optional: limit total row width */
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 20px;
 }
 
-/* Default state – no background image */
-.feature-card {
+
+/* Base card styling */
+.feature-card-1,
+.feature-card-2,
+.feature-card-3,
+.feature-card-4 {
   background: var(--bg-tertiary);
-  padding: 30px 20px;
-  border-radius: 10px;
-  text-align: center;
+  border-radius: 15px;
   border: 1px solid var(--border);
-  transition: all 0.3s ease;
-  opacity: 0;
-  transform: translateY(20px);
-  animation: slideUp 0.6s ease-out forwards;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+  padding: 30px 20px;
+  text-align: center;
+  min-height: 250px;
+  width: 350px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Background image inside the card */
+.feature-card-1::after,
+.feature-card-2::after,
+.feature-card-3::after,
+.feature-card-4::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   background-size: cover;
   background-position: center;
+  border-radius: 15px;
+  z-index: 0;
+  opacity: 0.9;
+  transition: transform 0.4s ease;
 }
 
+/* Assign images */
+.feature-card-1::after { background-image: url('uploads/feature1.png'); }
+.feature-card-2::after { background-image: url('uploads/feature2.png'); }
+.feature-card-3::after { background-image: url('uploads/feature3.jpg'); }
+.feature-card-4::after { background-image: url('uploads/feature4.jpg'); }
 
-.feature-card:nth-child(2) { animation-delay: 0.1s; }
-.feature-card:nth-child(3) { animation-delay: 0.2s; }
-.feature-card:nth-child(4) { animation-delay: 0.3s; }
-
-@keyframes slideUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Dark overlay */
+.feature-card-1::before,
+.feature-card-2::before,
+.feature-card-3::before,
+.feature-card-4::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 15px;
+  background: rgba(0,0,0,0.4);
+  z-index: 1;
+  transition: background 0.3s ease;
 }
 
-/* Hover state – show image */
-.feature-card:hover {
-  border-color: var(--accent);
-  transform: scale(1.05) translateY(-5px);
-  box-shadow: 0 10px 20px rgba(68, 214, 44, 0.4);
-  opacity: 1;
-  animation: glowHover 1s ease-in-out infinite;
-  background-image: url('uploads/feature1.png'); /* 👈 replace with your image */
-  background-size: cover;
-  background-position: center;
-  animation: slideUp 0.6s ease-out forwards;
+/* Content above */
+.feature-card-1 > *,
+.feature-card-2 > *,
+.feature-card-3 > *,
+.feature-card-4 > * {
+  position: relative;
+  z-index: 2;
 }
 
+/* Hover effects */
+.feature-card-1:hover,
+.feature-card-2:hover,
+.feature-card-3:hover,
+.feature-card-4:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.25);
+}
+
+.feature-card-1:hover::after,
+.feature-card-2:hover::after,
+.feature-card-3:hover::after,
+.feature-card-4:hover::after {
+  transform: scale(1.08); /* zoom effect */
+}
+
+.feature-card-1:hover::before,
+.feature-card-2:hover::before,
+.feature-card-3:hover::before,
+.feature-card-4:hover::before {
+  background: rgba(0,0,0,0.2);
+}
+
+/* Icon styling */
 .feature-icon {
-  font-size: 3rem;
-  margin-bottom: 20px;
-  transition: transform 0.3s ease, color 0.3s ease;
+  background-size: contain;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 15px;
+  opacity: 0.85;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-.feature-card:hover .feature-icon {
-  transform: scale(1.2);
-  color: var(--accent-hover);
-  opacity: 1;
-}
+.feature-card-1 .feature-icon { background: url('uploads/3D-shopping-cart.png') no-repeat center center; }
+.feature-card-2 .feature-icon { background: url('uploads/3D-lock.png') no-repeat center center; }
+.feature-card-3 .feature-icon { background: url('uploads/3D-truck.png') no-repeat center center; }
+.feature-card-4 .feature-icon { background: url('uploads/3D-check-circle.png') no-repeat center center; }
 
-.feature-card h3 {
-  color: #44D62C;
-  font-size: 1.5rem;
-  margin-bottom: 15px;
+/* Headings */
+.feature-card-1 h3,
+.feature-card-2 h3,
+.feature-card-3 h3,
+.feature-card-4 h3 {
+  font-size: 1.6rem;
+  margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
+  font-weight: 700; /* stronger for readability */
+  transition: color 0.3s ease;
 }
 
-.feature-card p {
-  color: var(--text-secondary);
-  font-size: 1rem;
-  line-height: 1.6;
+/* Paragraphs */
+.feature-card-1 p,
+.feature-card-2 p,
+.feature-card-3 p,
+.feature-card-4 p {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  font-weight: 400;
+  transition: color 0.3s ease;
 }
 
-/* Theme-specific adjustments for background */
-[data-theme="light"] .features-section::before {
-  background: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.2)), url('uploads/feature1.png') no-repeat center center;
-  background-size: cover;
+/* Light Theme - stronger contrast */
+[data-theme="light"] .feature-card-1 h3,
+[data-theme="light"] .feature-card-2 h3,
+[data-theme="light"] .feature-card-3 h3,
+[data-theme="light"] .feature-card-4 h3 {
+  color: #45e33dff; /* almost black for clarity */
 }
 
-[data-theme="dark"] .features-section::before {
-  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3)), url('Uploads/features-bg.jpg') no-repeat center center;
-  background-size: cover;
+[data-theme="light"] .feature-card-1 p,
+[data-theme="light"] .feature-card-2 p,
+[data-theme="light"] .feature-card-3 p,
+[data-theme="light"] .feature-card-4 p {
+  color: #ddd3cfff; /* darker gray, readable on light background */
 }
+
+/* Dark Theme - softer but still high contrast */
+[data-theme="dark"] .feature-card-1 h3,
+[data-theme="dark"] .feature-card-2 h3,
+[data-theme="dark"] .feature-card-3 h3,
+[data-theme="dark"] .feature-card-4 h3 {
+  color: #E8E8E8; /* light gray for readability */
+}
+
+[data-theme="dark"] .feature-card-1 p,
+[data-theme="dark"] .feature-card-2 p,
+[data-theme="dark"] .feature-card-3 p,
+[data-theme="dark"] .feature-card-4 p {
+  color: #CCCCCC; /* softer gray for long text */
+}
+
   /* Categories Section */
   .categories-section {
     background: var(--bg-primary);
@@ -2202,28 +2281,27 @@ document.addEventListener('DOMContentLoaded', function() {
     <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="video-logo">
   </a>
 </div>
-
 <!-- Features Section -->
-<div class="features-section">
+</div><div class="features-section">
   <div class="container">
     <h2 class="section-title">Why Choose Meta Shark?</h2>
     <div class="features-grid">
-      <div class="feature-card">
+      <div class="feature-card-1">
         <div class="feature-icon"></div>
         <h3>Easy Shopping</h3>
         <p>Browse and buy from multiple sellers in one place</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card-2">
         <div class="feature-icon"></div>
         <h3>Secure Payments</h3>
         <p>Safe and secure checkout process</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card-3">
         <div class="feature-icon"></div>
         <h3>Fast Delivery</h3>
         <p>Quick shipping from trusted sellers</p>
       </div>
-      <div class="feature-card">
+      <div class="feature-card-4">
         <div class="feature-icon"></div>
         <h3>Quality Products</h3>
         <p>Verified sellers with quality products</p>
@@ -2231,7 +2309,6 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 </div>
-
 <!-- Product Sections -->
 <section class="product bg1">
   <h2>Unleash Your Capabilities</h2>
