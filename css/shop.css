@@ -1485,37 +1485,37 @@ a .profile-icon {
 /* Carousel container */
 .carousel-container {
   width: 100%;
-  max-width: 1400px; /* optional, limit overall size */
-  height: 700px; /* fixed height for all slides */
+  max-width: 1400px;
+  height: 700px;
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* hides the next slide */
   margin: 0 auto;
 }
 
 /* Carousel slides wrapper */
 .carousel-slides {
-    max-width: 1200px; /* optional, limit overall size */
-  height: 400px; /* fixed height for all slides */
   display: flex;
   width: 100%;
   height: 100%;
   transition: transform 0.5s ease-in-out;
 }
 
-/* Individual slide */
+/* Each slide should take full container */
 .carousel-slide {
-  flex: 0 0 100%; 
-  height: 100%;   
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+  flex: 0 0 100%; /* each slide = 100% of container */
+  width: 100%;
+  height: 100%;
+  background-size: cover;       /* fills container */
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
+
+/* Make images cover the full slide */
 .carousel-slide img {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* ensures image fills slide without distortion */
+  object-fit: cover; /* fill without distortion */
 }
 
 
