@@ -557,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </section>
 
-<!-- Shop Section -->
+<!-- category section -->
 <div class="shop-container">
   <h2 class="shop-title">Featured Products</h2>
   <div class="filter-bar">
@@ -577,112 +577,98 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
   <div class="product-grid" id="productGrid">
     <?php
-    if (isset($_SESSION['user_id'])) {
-      include("db.php");
-      $table_check = $conn->query("SHOW TABLES LIKE 'products'");
-      if ($table_check && $table_check->num_rows > 0) {
-        $products_sql = "SELECT p.*, u.seller_name, u.fullname as seller_fullname 
-                        FROM products p 
-                        LEFT JOIN users u ON p.seller_id = u.id 
-                        WHERE p.is_active = TRUE 
-                        ORDER BY p.created_at DESC";
-        $products_result = $conn->query($products_sql);
-        if ($products_result && $products_result->num_rows > 0) {
-          while ($product = $products_result->fetch_assoc()) {
-            echo '<div class="product-card" data-category="' . htmlspecialchars($product['category']) . '">';
-            echo '<img src="' . htmlspecialchars($product['image']) . '" alt="' . htmlspecialchars($product['name']) . '">';
-            echo '<div class="product-info">';
-            echo '<h3>' . htmlspecialchars($product['name']) . '</h3>';
-            echo '<p class="seller-info">Sold by: <a href="seller_shop.php?seller_id=' . $product['seller_id'] . '">' . htmlspecialchars($product['seller_name'] ?: $product['seller_fullname']) . '</a></p>';
-            echo '<p class="price">$' . number_format($product['price'], 2) . '</p>';
-            echo '<p class="stock">Stock: ' . $product['stock_quantity'] . '</p>';
-            echo '<div class="product-actions">';
-            if (!isset($_SESSION['user_id']) || $_SESSION['user_id'] != $product['seller_id']) {
-              echo '<form method="POST" class="add-to-cart-form" data-product-id="' . $product['id'] . '">';
-              echo '<input type="hidden" name="add_to_cart" value="1">';
-              echo '<input type="hidden" name="product_id" value="' . $product['id'] . '">';
-              echo '<button type="submit" class="add-to-cart-btn" ' . ($product['stock_quantity'] <= 0 ? 'disabled' : '') . ' data-product-name="' . htmlspecialchars($product['name']) . '">';
-              echo $product['stock_quantity'] <= 0 ? 'Out of Stock' : 'Add to Cart';
-              echo '</button>';
-              echo '</form>';
-            } else {
-              echo '<a href="edit_product.php?id=' . $product['id'] . '" class="btn-edit">Edit</a>';
-              echo '<a href="seller_dashboard.php" class="btn-manage">Manage</a>';
-            }
-            echo '</div>';
-            echo '</div>';
-            echo '</div>';
-          }
-        } else {
-          echo '<div class="empty-products">';
-          echo '<h3>Welcome to Meta Accessories!</h3>';
-          echo '<p>Our marketplace is ready for sellers to add their amazing products!</p>';
-          echo '<p>No products have been added yet - be the first to showcase your tech accessories!</p>';
-          if(isset($_SESSION['user_id'])) {
-            $seller_check = $conn->prepare("SELECT role FROM users WHERE id = ?");
-            $seller_check->bind_param("i", $_SESSION['user_id']);
-            $seller_check->execute();
-            $seller_result = $seller_check->get_result();
-            $user_role = $seller_result->fetch_assoc()['role'] ?? 'buyer';
-            if($user_role === 'seller' || $user_role === 'admin') {
-              echo '<a href="add_product.php" class="btn-add-product">Add Your First Product</a>';
-            } else {
-              echo '<a href="become_seller.php" class="btn-become-seller">Become a Seller</a>';
-            }
+    include("db.php");
+
+    $table_check = $conn->query("SHOW TABLES LIKE 'products'");
+    if ($table_check && $table_check->num_rows > 0) {
+      $products_sql = "
+        SELECT p.id, p.name, p.image, p.price, p.stock_quantity, p.seller_id,
+               u.seller_name, u.fullname AS seller_fullname,
+               GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ',') AS categories
+        FROM products p
+        LEFT JOIN users u ON p.seller_id = u.id
+        LEFT JOIN product_categories pc ON p.id = pc.product_id
+        LEFT JOIN categories c ON pc.category_id = c.id
+        WHERE p.is_active = TRUE
+        GROUP BY p.id, p.name, p.image, p.price, p.stock_quantity, p.seller_id, u.seller_name, u.fullname
+        ORDER BY p.created_at DESC
+      ";
+      $products_result = $conn->query($products_sql);
+
+      if ($products_result && $products_result->num_rows > 0) {
+        while ($product = $products_result->fetch_assoc()) {
+          echo '<div class="product-card" data-category="' . htmlspecialchars(strtolower($product['categories'])) . '">';
+          echo '<img src="' . htmlspecialchars($product['image']) . '" alt="' . htmlspecialchars($product['name']) . '">';
+          echo '<div class="product-info">';
+          echo '<h3>' . htmlspecialchars($product['name']) . '</h3>';
+          echo '<p class="seller-info">Sold by: <a href="seller_shop.php?seller_id=' . $product['seller_id'] . '">' . htmlspecialchars($product['seller_name'] ?: $product['seller_fullname']) . '</a></p>';
+          echo '<p class="price">$' . number_format($product['price'], 2) . '</p>';
+          echo '<p class="stock">Stock: ' . $product['stock_quantity'] . '</p>';
+          echo '<div class="product-actions">';
+
+          if (!isset($_SESSION['user_id']) || $_SESSION['user_id'] != $product['seller_id']) {
+            echo '<form method="POST" class="add-to-cart-form" data-product-id="' . $product['id'] . '">';
+            echo '<input type="hidden" name="add_to_cart" value="1">';
+            echo '<input type="hidden" name="product_id" value="' . $product['id'] . '">';
+            echo '<button type="submit" class="add-to-cart-btn" ' . ($product['stock_quantity'] <= 0 ? 'disabled' : '') . ' data-product-name="' . htmlspecialchars($product['name']) . '">';
+            echo $product['stock_quantity'] <= 0 ? 'Out of Stock' : 'Add to Cart';
+            echo '</button>';
+            echo '</form>';
           } else {
-            echo '<a href="login_users.php" class="btn-login">Login to Start Selling</a>';
+            echo '<a href="edit_product.php?id=' . $product['id'] . '" class="btn-edit">Edit</a>';
+            echo '<a href="seller_dashboard.php" class="btn-manage">Manage</a>';
           }
-          echo '</div>';
+
+          echo '</div>'; // product-actions
+          echo '</div>'; // product-info
+          echo '</div>'; // product-card
         }
       } else {
         echo '<div class="empty-products">';
-        echo '<h3>Database Setup Required</h3>';
-        echo '<p>Please set up the database tables first to start using the marketplace.</p>';
-        echo '<p>Run the SQL setup scripts in your MySQL database:</p>';
-        echo '<ul style="text-align: left; max-width: 400px; margin: 20px auto; color: var(--text-secondary);">';
-        echo '<li>1. Run setup_cart_tables.sql</li>';
-        echo '<li>2. Run setup_seller_system.sql</li>';
-        echo '</ul>';
-        echo '<a href="login_users.php" class="btn-login">Login After Setup</a>';
+        echo '<h3>No Products Available</h3>';
+        echo '<p>There are currently no products listed in the marketplace.</p>';
         echo '</div>';
       }
     } else {
-      include("db.php");
-      $table_check = $conn->query("SHOW TABLES LIKE 'products'");
-      if ($table_check && $table_check->num_rows > 0) {
-        $products_sql = "SELECT p.*, u.seller_name, u.fullname as seller_fullname 
-                        FROM products p 
-                        LEFT JOIN users u ON p.seller_id = u.id 
-                        WHERE p.is_active = TRUE 
-                        ORDER BY p.created_at DESC";
-        $products_result = $conn->query($products_sql);
-        if ($products_result && $products_result->num_rows > 0) {
-          while ($product = $products_result->fetch_assoc()) {
-            echo '<div class="product-card" data-category="' . htmlspecialchars($product['category']) . '">';
-            echo '<img src="' . htmlspecialchars($product['image']) . '" alt="' . htmlspecialchars($product['name']) . '">';
-            echo '<div class="product-info">';
-            echo '<h3>' . htmlspecialchars($product['name']) . '</h3>';
-            echo '<p class="seller-info">Sold by: <a href="seller_shop.php?seller_id=' . $product['seller_id'] . '">' . htmlspecialchars($product['seller_name'] ?: $product['seller_fullname']) . '</a></p>';
-            echo '<p class="price">$' . number_format($product['price'], 2) . '</p>';
-            echo '<p class="stock">Stock: ' . $product['stock_quantity'] . '</p>';
-            echo '<button onclick="alert(\'Please login to add items to cart!\')">Add to Cart</button>';
-            echo '</div>';
-            echo '</div>';
-          }
-        } else {
-          echo '<div class="empty-products">';
-          echo '<h3>No Products Available</h3>';
-          echo '<p>There are currently no products listed in the marketplace.</p>';
-          echo '</div>';
-        }
-      } else {
-        echo '<div class="empty-products">';
-        echo '<h3>Database Setup Required</h3>';
-        echo '<p>Please set up the database tables first to start using the marketplace.</p>';
-        echo '</div>';
-      }
+      echo '<div class="empty-products">';
+      echo '<h3>Database Setup Required</h3>';
+      echo '<p>Please set up the database tables first to start using the marketplace.</p>';
+      echo '</div>';
     }
     ?>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const searchInput = document.getElementById("searchInput");
+  const categorySelect = document.getElementById("categorySelect");
+  const productCards = document.querySelectorAll(".product-card");
+
+  function filterProducts() {
+    const searchText = searchInput ? searchInput.value.toLowerCase() : "";
+    const category = categorySelect ? categorySelect.value.toLowerCase() : "all";
+
+    productCards.forEach(card => {
+      const title = card.querySelector("h3").textContent.toLowerCase();
+      const categories = card.dataset.category
+        .toLowerCase()
+        .split(",")
+        .map(c => c.trim());
+
+      const matchesSearch = title.includes(searchText);
+      const matchesCategory = category === "all" || categories.includes(category);
+
+      card.style.display = matchesSearch && matchesCategory ? "block" : "none";
+    });
+  }
+
+  if (searchInput) searchInput.addEventListener("input", filterProducts);
+  if (categorySelect) categorySelect.addEventListener("change", filterProducts);
+});
+</script>
+
+
   </div>
 </div>
 
