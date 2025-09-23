@@ -156,6 +156,10 @@ $theme = $_SESSION['theme'] ?? 'dark';
                     <img src="Uploads/default-avatar.svg" alt="Profile" class="profile-icon">
                 <?php endif; ?>
             </a>
+            <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+                <span style="font-size:18px;">🛒</span>
+                <span>(<?php echo (int)$total_items; ?>)</span>
+            </a>
             <button class="hamburger">☰</button>
         </div>
         <ul class="menu" id="menu">

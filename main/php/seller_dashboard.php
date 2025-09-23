@@ -66,6 +66,22 @@ $stats_result = $stats_stmt->get_result();
 $stats = $stats_result->fetch_assoc();
 
 $theme = $_SESSION['theme'] ?? 'dark';
+
+// Cart count for navbar
+$cart_count = 0;
+if (isset($_SESSION['user_id'])) {
+    $count_sql = "SELECT SUM(quantity) as total FROM cart WHERE user_id = ?";
+    $count_stmt = $conn->prepare($count_sql);
+    if ($count_stmt) {
+        $count_stmt->bind_param("i", $_SESSION['user_id']);
+        $count_stmt->execute();
+        $count_result = $count_stmt->get_result();
+        if ($count_result && $count_result->num_rows > 0) {
+            $cart_data = $count_result->fetch_assoc();
+            $cart_count = $cart_data['total'] ?: 0;
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -146,6 +162,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
                 <?php else: ?>
                     <img src="Uploads/default-avatar.svg" alt="Profile" class="profile-icon">
                 <?php endif; ?>
+            </a>
+            <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+                <span style="font-size:18px;">🛒</span>
+                <span>(<?php echo (int)$cart_count; ?>)</span>
             </a>
         </div>
     </div>
