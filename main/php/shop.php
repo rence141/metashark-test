@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="nav-right">
   <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
                 <span style="font-size:18px;">🛒</span>
-                <span>(<?php echo (int)$total_items; ?>)</span>
+                <span>(<?php echo (int)$cart_count; ?>)</span>
             </a>
     <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
       <?php
