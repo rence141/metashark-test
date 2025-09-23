@@ -1217,12 +1217,6 @@ a .profile-icon {
   opacity: 0.85;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
-
-.feature-card-1 .feature-icon { background: url('../main/php/uploads/3D-shopping-cart.png') no-repeat center center; }
-.feature-card-2 .feature-icon { background: url('../main/php/uploads/3D-lock.png') no-repeat center center; }
-.feature-card-3 .feature-icon { background: url('../main/php/uploads/3D-truck.png') no-repeat center center; }
-.feature-card-4 .feature-icon { background: url('../main/php/uploads/3D-check-circle.png') no-repeat center center; }
-
 /* Headings */
 .feature-card-1 h3,
 .feature-card-2 h3,

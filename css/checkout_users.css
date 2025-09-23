@@ -215,6 +215,7 @@
             padding: 25px;
             border: 1px solid var(--border);
             height: fit-content;
+            width: 100%;
             position: sticky;
             top: 20px;
         }
@@ -520,3 +521,17 @@
                 grid-template-columns: 1fr;
             }
         }
+
+         .confirmation-panel {
+        background-color: rgba(50, 51, 51, 1);
+        padding: 40px; /* bigger padding */
+        border-radius: 12px;
+        width: 1200px; /* set a fixed width */
+        max-width: 100%; /* responsive on small screens */
+        margin: 50px auto; /* centers horizontally with margin */
+        text-align: center; /* centers text */
+        color: white; /* make text stand out */
+        font-size: 1.2rem; /* bigger text */
+        }
+        
+        

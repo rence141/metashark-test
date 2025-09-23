@@ -8,7 +8,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
 
 // Fetch user's orders
 $orders = [];
-$os = $conn->prepare("SELECT id, total_price, status, created_at, paid_at FROM orders WHERE buyer_id = ? ORDER BY created_at DESC");
+$os = $conn->prepare("SELECT id, total, status, created_at, paid_at FROM orders WHERE user_id = ? ORDER BY created_at DESC");
 if ($os) { $os->bind_param("i", $userId); $os->execute(); $rs = $os->get_result(); while ($row = $rs->fetch_assoc()) { $orders[] = $row; } }
 
 // Fetch status updates per order
