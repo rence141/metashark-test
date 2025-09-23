@@ -228,6 +228,11 @@ $theme = $_SESSION['theme'] ?? 'dark';
                                     <button type="submit" class="remove-btn" 
                                             onclick="return confirm('Remove this item from cart?')">Remove</button>
                                 </form>
+
+                                <form method="GET" action="checkout_users.php" style="display: inline; margin-left: 8px;">
+                                    <input type="hidden" name="product_id" value="<?php echo $item['product_id']; ?>">
+                                    <button type="submit" class="checkout-btn">Checkout This Item</button>
+                                </form>
                             </div>
                         </div>
                     <?php endforeach; ?>

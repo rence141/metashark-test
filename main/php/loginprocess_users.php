@@ -1,13 +1,15 @@
 <?php
 session_start();
 include("db.php");
+include_once("email.php");
+include_once("contacts_sync.php");
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST["email"]);
     $password = trim($_POST["password"]);
 
     // Check if user exists
-    $sql = "SELECT * FROM users WHERE email = ?";
+    $sql = "SELECT id, fullname, email, password, role, is_verified, verification_code, verification_expires FROM users WHERE email = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
     $stmt->execute();
@@ -18,6 +20,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Verify password
         if (password_verify($password, $user["password"])) {
+            $isVerified = isset($user['is_verified']) ? (int)$user['is_verified'] === 1 : 1; // Backward compatible
+
+            if (!$isVerified) {
+                // Always generate a fresh 6-digit code (cryptographically secure)
+                $code = sprintf('%06d', random_int(0, 999999));
+                $expiryAt = date('Y-m-d H:i:s', time() + 15 * 60);
+                $upd = $conn->prepare("UPDATE users SET verification_code = ?, verification_expires = ? WHERE id = ?");
+                if ($upd) {
+                    $upd->bind_param("ssi", $code, $expiryAt, $user['id']);
+                    $upd->execute();
+                }
+
+                // Stash for verify step
+                $_SESSION['pending_verification_user_id'] = $user['id'];
+                $_SESSION['pending_verification_email'] = $user['email'];
+                $_SESSION['pending_verification_role'] = $user['role'] ?? 'buyer';
+
+                // Send email with code
+                $subject = 'Your SaysonCo verification code';
+                $body = "Hello,\n\nYour verification code is: $code\nThis code expires in 15 minutes.\n\nIf you did not request this, you can ignore this email.";
+                @send_email($user['email'], $subject, $body);
+
+                header("Location: verify_account.php?email=" . urlencode($user['email']));
+                exit();
+            }
+
             // Store session
             $_SESSION["user_id"] = $user["id"];
             $_SESSION["fullname"] = $user["fullname"];
@@ -26,6 +54,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Set a session variable to indicate successful login
             $_SESSION["login_success"] = true;
+            // Opportunistic contact sync
+            @sync_user_contact_fields($conn, $user['id']);
             
             // Redirect to shop front page
             header("Location: shop.php");
@@ -44,11 +74,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Process - MetaAccessories</title>
-      <link rel="icon" type="image/png" href="uploads/logo1.png">
-</html>

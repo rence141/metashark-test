@@ -183,6 +183,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
             <a href="shop.php" class="btn btn-secondary">View Store</a>
             <a href="carts_users.php" class="btn btn-secondary">My Cart</a>
             <a href="seller_profile.php" class="btn btn-secondary">Profile</a>
+            <a href="seller_vouchers.php" class="btn btn-secondary">Vouchers</a>
         </div>
 
         <!-- PRODUCTS SECTION -->

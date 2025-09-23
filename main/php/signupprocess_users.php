@@ -36,6 +36,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($stmt->execute()) {
         // Get the newly created user's ID
         $new_user_id = $conn->insert_id;
+
+        // Set default profile image if column exists and is empty
+        $colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'profile_image'");
+        if ($colCheck && $colCheck->num_rows > 0) {
+            $upd = $conn->prepare("UPDATE users SET profile_image = 'default-avatar.svg' WHERE id = ? AND (profile_image IS NULL OR profile_image = '')");
+            if ($upd) { $upd->bind_param("i", $new_user_id); $upd->execute(); }
+        }
         
         // Automatically log the user in by setting session variables
         $_SESSION["user_id"] = $new_user_id;

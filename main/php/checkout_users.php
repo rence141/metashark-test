@@ -12,20 +12,56 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Enforce verified users only
+if (!isset($_SESSION['role'])) {
+    // fetch from DB to check is_verified quickly
+    include("db.php");
+    $uid = $_SESSION['user_id'];
+    $chk = $conn->prepare("SELECT is_verified FROM users WHERE id = ?");
+    if ($chk) { $chk->bind_param("i", $uid); $chk->execute(); $r = $chk->get_result(); $u = $r->fetch_assoc(); }
+    if (empty($u) || (int)($u['is_verified'] ?? 0) !== 1) {
+        header("Location: verify_account.php");
+        exit();
+    }
+}
+
 include("db.php");
 $user_id = $_SESSION['user_id'];
 
-// Default GCash number (configurable via database or env)
-$default_gcash_number = '09123456789'; // TODO: Fetch from config table or env
+// Fetch user's contact number dynamically (use phone if available)
+$default_gcash_number = '';
+$gcq = $conn->prepare("SELECT phone FROM users WHERE id = ?");
+if ($gcq) {
+    $gcq->bind_param("i", $user_id);
+    $gcq->execute();
+    $gcr = $gcq->get_result();
+    if ($gcr->num_rows) {
+        $row = $gcr->fetch_assoc();
+        $default_gcash_number = trim((string)($row['phone'] ?? ''));
+    }
+}
+
+// Support single-item checkout via ?product_id=...
+$onlyProductId = isset($_GET['product_id']) ? intval($_GET['product_id']) : 0;
 
 // Fetch cart items with product details (basic query without seller join to avoid error)
-$sql = "SELECT c.*, p.name, p.price, p.image, p.description 
-        FROM cart c 
-        LEFT JOIN products p ON c.product_id = p.id 
-        WHERE c.user_id = ? 
-        ORDER BY c.created_at DESC";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
+if ($onlyProductId > 0) {
+    $sql = "SELECT c.*, p.name, p.price, p.image, p.description 
+            FROM cart c 
+            LEFT JOIN products p ON c.product_id = p.id 
+            WHERE c.user_id = ? AND c.product_id = ? 
+            ORDER BY c.created_at DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $user_id, $onlyProductId);
+} else {
+    $sql = "SELECT c.*, p.name, p.price, p.image, p.description 
+            FROM cart c 
+            LEFT JOIN products p ON c.product_id = p.id 
+            WHERE c.user_id = ? 
+            ORDER BY c.created_at DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+}
 $stmt->execute();
 $result = $stmt->get_result();
 $cart_items = $result->fetch_all(MYSQLI_ASSOC);
@@ -38,7 +74,8 @@ foreach ($cart_items as $item) {
     $subtotal += $item_total;
     $total_items += $item['quantity'];
 }
-$tax = $subtotal * 0.08; // 8% tax
+$subtotal = round($subtotal, 2);
+$tax = round($subtotal * 0.08, 2); // 8% tax
 $discount = 0;
 $voucher_code = '';
 $voucher_message = '';
@@ -110,7 +147,8 @@ if (isset($_SESSION['applied_voucher'])) {
     }
 }
 
-$total = $subtotal + $tax - $discount;
+$discount = round($discount, 2);
+$total = round($subtotal + $tax - $discount, 2);
 
 // Handle checkout submission
 $order_success = false;
@@ -127,23 +165,81 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
         $order_message = "Input fields exceed maximum length.";
     } elseif (empty($cart_items)) {
         $order_message = "Your cart is empty.";
-    } elseif ($payment_method === 'gcash' && empty($default_gcash_number)) {
-        $order_message = "No GCash number configured for payment.";
     } else {
         try {
             // Start transaction
             $conn->begin_transaction();
 
-            // Attempt to create order
+            // Re-fetch latest cart and prices, verify stock & product active
+            $verify_sql = "SELECT c.product_id, c.quantity, p.price, p.is_active, p.stock AS stock
+                           FROM cart c JOIN products p ON p.id = c.product_id
+                           WHERE c.user_id = ?";
+            $vs = $conn->prepare($verify_sql);
+            $latest_items = [];
+            $latest_subtotal = 0;
+            if ($vs) {
+                $vs->bind_param("i", $user_id);
+                $vs->execute();
+                $rs = $vs->get_result();
+                while ($row = $rs->fetch_assoc()) {
+                    if (!($row['is_active'] ?? 1)) { throw new Exception('Product inactive.'); }
+                    if ((int)$row['stock'] < (int)$row['quantity']) { throw new Exception('Insufficient stock.'); }
+                    $latest_items[] = $row;
+                    $latest_subtotal += ((float)$row['price'] * (int)$row['quantity']);
+                }
+            }
+            $latest_subtotal = round($latest_subtotal, 2);
+            $latest_tax = round($latest_subtotal * 0.08, 2);
+            $latest_discount = 0.0;
+            if (!empty($_SESSION['applied_voucher'])) {
+                $codeCheck = $_SESSION['applied_voucher'];
+                // Load voucher and optional seller scoping
+                $hasSeller = false;
+                $col = $conn->query("SHOW COLUMNS FROM vouchers LIKE 'seller_id'");
+                if ($col && $col->num_rows > 0) { $hasSeller = true; }
+                if ($hasSeller) {
+                    $vq = $conn->prepare("SELECT discount_type, discount_value, min_purchase, seller_id FROM vouchers WHERE code = ? AND expiry_date > NOW()");
+                } else {
+                    $vq = $conn->prepare("SELECT discount_type, discount_value, min_purchase, NULL AS seller_id FROM vouchers WHERE code = ? AND expiry_date > NOW()");
+                }
+                if ($vq) {
+                    $vq->bind_param("s", $codeCheck);
+                    $vq->execute();
+                    $vr = $vq->get_result();
+                    if ($vr->num_rows > 0) {
+                        $v = $vr->fetch_assoc();
+                        // If seller-scoped, compute subtotal for that seller only
+                        $scopeSubtotal = 0.0;
+                        if (!empty($v['seller_id'])) {
+                            foreach ($latest_items as $li) {
+                                // Need seller_id for product; fetch quickly
+                                $ps = $conn->prepare("SELECT seller_id FROM products WHERE id = ?");
+                                if ($ps) { $pid = (int)$li['product_id']; $ps->bind_param("i", $pid); $ps->execute(); $pr = $ps->get_result(); if ($pr->num_rows) { $prow = $pr->fetch_assoc(); if ((int)$prow['seller_id'] === (int)$v['seller_id']) { $scopeSubtotal += ((float)$li['price'] * (int)$li['quantity']); } } }
+                            }
+                        } else {
+                            $scopeSubtotal = $latest_subtotal;
+                        }
+
+                        if ($scopeSubtotal >= (float)$v['min_purchase']) {
+                            $latest_discount = ($v['discount_type'] === 'percentage') ? round($scopeSubtotal * ((float)$v['discount_value'] / 100), 2) : round((float)$v['discount_value'], 2);
+                        } else {
+                            unset($_SESSION['applied_voucher']);
+                        }
+                    }
+                }
+            }
+            $latest_total = round($latest_subtotal + $latest_tax - $latest_discount, 2);
+
+            // Attempt to create order (mark as paid immediately; email verification already required)
             $order_created = false;
             $order_id = null;
             try {
                 // Create order with status
-                $order_query = "INSERT INTO orders (user_id, shipping_name, shipping_address, payment_method, subtotal, tax, discount, total, status, created_at) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+                $order_query = "INSERT INTO orders (user_id, shipping_name, shipping_address, payment_method, subtotal, tax, discount, total, status, created_at, paid_at) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'paid', NOW(), NOW())";
                 $order_stmt = $conn->prepare($order_query);
                 if ($order_stmt) {
-                    $order_stmt->bind_param("isssdddd", $user_id, $shipping_name, $shipping_address, $payment_method, $subtotal, $tax, $discount, $total);
+                    $order_stmt->bind_param("isssdddd", $user_id, $shipping_name, $shipping_address, $payment_method, $latest_subtotal, $latest_tax, $latest_discount, $latest_total);
                     $order_stmt->execute();
                     $order_id = $conn->insert_id;
                     $order_created = true;
@@ -158,8 +254,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                     $item_query = "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
                     $item_stmt = $conn->prepare($item_query);
                     if ($item_stmt) {
-                        foreach ($cart_items as $item) {
-                            $item_stmt->bind_param("iiid", $order_id, $item['product_id'], $item['quantity'], $item['price']);
+                        foreach ($latest_items as $li) {
+                            $pid = (int)$li['product_id'];
+                            $qty = (int)$li['quantity'];
+                            $price = (float)$li['price'];
+                            $item_stmt->bind_param("iiid", $order_id, $pid, $qty, $price);
                             $item_stmt->execute();
                         }
                     }
@@ -168,17 +267,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                 }
             }
 
-            // Deduct product stock if order was created
+            // Commit creation of paid order + items
+            $conn->commit();
+
+            // Deduct product stock
             if ($order_created) {
                 try {
                     $update_stock_query = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
                     $stock_stmt = $conn->prepare($update_stock_query);
                     if ($stock_stmt) {
-                        foreach ($cart_items as $item) {
-                            $stock_stmt->bind_param("iii", $item['quantity'], $item['product_id'], $item['quantity']);
+                        foreach ($latest_items as $li) {
+                            $q = (int)$li['quantity'];
+                            $pid = (int)$li['product_id'];
+                            $stock_stmt->bind_param("iii", $q, $pid, $q);
                             $result = $stock_stmt->execute();
                             if ($conn->affected_rows === 0) {
-                                error_log("Stock deduction failed for product ID " . $item['product_id'] . " - insufficient stock or product not found");
+                                error_log("Stock deduction failed for product ID " . $pid . " - insufficient stock or product not found");
                             }
                         }
                     }
@@ -201,16 +305,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                 }
             }
 
-            // Clear cart (always do this)
+            // Clear cart
             $clear_sql = "DELETE FROM cart WHERE user_id = ?";
             $clear_stmt = $conn->prepare($clear_sql);
             if ($clear_stmt) {
                 $clear_stmt->bind_param("i", $user_id);
                 $clear_stmt->execute();
             }
-
-            // Commit transaction
-            $conn->commit();
 
             // Prepare cart items for notifications (fetch seller info separately)
             $items_with_sellers = $cart_items;

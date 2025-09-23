@@ -24,6 +24,14 @@ if ($seller_result->num_rows === 0) {
 
 $seller = $seller_result->fetch_assoc();
 
+// Load active vouchers for this seller if column exists
+$store_vouchers = [];
+$vcCol = $conn->query("SHOW COLUMNS FROM vouchers LIKE 'seller_id'");
+if ($vcCol && $vcCol->num_rows > 0) {
+    $vstmt = $conn->prepare("SELECT code, discount_type, discount_value, min_purchase, expiry_date, max_uses, current_uses FROM vouchers WHERE seller_id = ? AND expiry_date > NOW() AND (max_uses IS NULL OR current_uses < max_uses) ORDER BY expiry_date ASC");
+    if ($vstmt) { $vstmt->bind_param("i", $seller_id); $vstmt->execute(); $vres = $vstmt->get_result(); while ($row = $vres->fetch_assoc()) { $store_vouchers[] = $row; } }
+}
+
 // Get seller's products
 $products_query = "SELECT * FROM products WHERE seller_id = ? AND is_active = TRUE ORDER BY created_at DESC";
 $products_stmt = $conn->prepare($products_query);
@@ -123,7 +131,8 @@ if (isset($_SESSION['user_id'])) {
             <div class="seller-info">
                 <h1><?php echo htmlspecialchars($seller['seller_name'] ?: $seller['fullname']); ?></h1>
                 <?php if($seller['business_type']): ?>
-                    <p class="business-type"><?php echo htmlspecialchars($seller['business_type']); ?></p>
+                    <?php $bt_disp = ucwords(str_replace('_', ' ', (string)$seller['business_type'])); ?>
+                    <p class="business-type"><?php echo htmlspecialchars($bt_disp); ?></p>
                 <?php endif; ?>
                 <?php if($seller['seller_description']): ?>
                     <p class="description"><?php echo htmlspecialchars($seller['seller_description']); ?></p>
@@ -145,6 +154,32 @@ if (isset($_SESSION['user_id'])) {
                 </div>
             </div>
         </div>
+
+        <!-- Store Vouchers (if any) -->
+        <?php if (!empty($store_vouchers)): ?>
+            <div class="card" style="background:#111; border:1px solid #333; border-radius:10px; padding:16px; margin:16px 0;">
+                <h2 style="color:#44D62C; margin:0 0 10px;">Store Vouchers</h2>
+                <ul style="list-style:none; padding:0; margin:0;">
+                    <?php foreach ($store_vouchers as $v): ?>
+                        <li style="padding:10px 0; border-bottom:1px solid #222; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                            <div>
+                                <div style="font-weight:bold;">Code: <?php echo htmlspecialchars($v['code']); ?></div>
+                                <div style="color:#aaa; font-size:0.9em;">
+                                    <?php echo $v['discount_type'] === 'percentage' ? (float)$v['discount_value'] . '% off' : '₱' . number_format((float)$v['discount_value'], 2) . ' off'; ?>
+                                    <?php if ($v['min_purchase'] > 0): ?>
+                                        · Min spend ₱<?php echo number_format((float)$v['min_purchase'], 2); ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="color:#aaa;">Expires: <?php echo htmlspecialchars($v['expiry_date']); ?></div>
+                                <button onclick="navigator.clipboard.writeText('<?php echo htmlspecialchars($v['code']); ?>'); alert('Voucher copied!');" style="margin-top:6px; padding:8px 12px; border:none; background:#44D62C; color:#000; border-radius:6px; cursor:pointer;">Copy Code</button>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
 
         <!-- Shop Title -->
         <h2 class="shop-title"><?php echo htmlspecialchars($seller['seller_name'] ?: $seller['fullname']); ?>'s Products</h2>
