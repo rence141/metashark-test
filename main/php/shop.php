@@ -413,10 +413,6 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php include('theme_toggle.php'); ?>
   </div>
   <div class="nav-right">
-  <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-                <span style="font-size:18px;">🛒</span>
-                <span>(<?php echo (int)$cart_count; ?>)</span>
-            </a>
     <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
       <?php
       $user_role = $_SESSION['role'] ?? 'buyer';
@@ -448,7 +444,14 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="profile-icon">👤</div>
       </a>
     <?php endif; ?>
-    <button class="hamburger">☰</button>
+      <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+        <span style="font-size:18px;">🔔</span>
+      </a>
+      <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+                <span style="font-size:18px;">🛒</span>
+                <span>(<?php echo (int)$cart_count; ?>)</span>
+            </a>
+      <button class="hamburger">☰</button>
   </div>
   <ul class="menu " id="menu">
     <li><a href="shop.php">Home</a></li>

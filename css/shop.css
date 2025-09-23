@@ -1157,7 +1157,7 @@ a .profile-icon {
 }
 
 /* Assign images */
-.feature-card-1::after { background-image: url('../main/php/uploads/feature1.png'); }
+.feature-card-1::after { background-image: url('../main/php/uploads/PioloTheOnlyOne.jpg'); }
 .feature-card-2::after { background-image: url('../main/php/uploads/feature2.png'); }
 .feature-card-3::after { background-image: url('../main/php/uploads/feature3.jpg'); }
 .feature-card-4::after { background-image: url('../main/php/uploads/feature4.jpg'); }

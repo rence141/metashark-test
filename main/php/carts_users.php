@@ -262,6 +262,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
                     </div>
                     
                     <a href="checkout_users.php" class="checkout-btn" <?php echo $total_items == 0 ? 'disabled' : ''; ?>>Proceed to Checkout</a>
+                    <a href="orders.php" class="checkout-btn" style="background:var(--button-primary-bg); margin-top:8px;">My Orders</a>
                     
                     <form method="POST">
                         <input type="hidden" name="action" value="clear_cart">

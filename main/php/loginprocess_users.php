@@ -20,45 +20,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Verify password
         if (password_verify($password, $user["password"])) {
-            $isVerified = isset($user['is_verified']) ? (int)$user['is_verified'] === 1 : 1; // Backward compatible
-
-            if (!$isVerified) {
-                // Always generate a fresh 6-digit code (cryptographically secure)
-                $code = sprintf('%06d', random_int(0, 999999));
-                $expiryAt = date('Y-m-d H:i:s', time() + 15 * 60);
-                $upd = $conn->prepare("UPDATE users SET verification_code = ?, verification_expires = ? WHERE id = ?");
-                if ($upd) {
-                    $upd->bind_param("ssi", $code, $expiryAt, $user['id']);
-                    $upd->execute();
-                }
-
-                // Stash for verify step
-                $_SESSION['pending_verification_user_id'] = $user['id'];
-                $_SESSION['pending_verification_email'] = $user['email'];
-                $_SESSION['pending_verification_role'] = $user['role'] ?? 'buyer';
-
-                // Send email with code
-                $subject = 'Your SaysonCo verification code';
-                $body = "Hello,\n\nYour verification code is: $code\nThis code expires in 15 minutes.\n\nIf you did not request this, you can ignore this email.";
-                @send_email($user['email'], $subject, $body);
-
-                header("Location: verify_account.php?email=" . urlencode($user['email']));
-                exit();
+            // ALWAYS: generate OTP and require verification on every login
+            $code = sprintf('%06d', random_int(0, 999999));
+            $expiryAt = date('Y-m-d H:i:s', time() + 15 * 60);
+            $upd = $conn->prepare("UPDATE users SET verification_code = ?, verification_expires = ? WHERE id = ?");
+            if ($upd) {
+                $upd->bind_param("ssi", $code, $expiryAt, $user['id']);
+                $upd->execute();
             }
 
-            // Store session
-            $_SESSION["user_id"] = $user["id"];
-            $_SESSION["fullname"] = $user["fullname"];
-            $_SESSION["email"] = $user["email"];
-            $_SESSION["role"] = $user["role"] ?? 'buyer';
+            // Stash for verify step
+            $_SESSION['pending_verification_user_id'] = $user['id'];
+            $_SESSION['pending_verification_email'] = $user['email'];
+            $_SESSION['pending_verification_role'] = $user['role'] ?? 'buyer';
 
-            // Set a session variable to indicate successful login
-            $_SESSION["login_success"] = true;
-            // Opportunistic contact sync
-            @sync_user_contact_fields($conn, $user['id']);
-            
-            // Redirect to shop front page
-            header("Location: shop.php");
+            // Send email with code
+            $subject = 'Your SaysonCo verification code';
+            $body = "Hello,\n\nYour verification code is: $code\nThis code expires in 15 minutes.\n\nIf you did not request this, you can ignore this email.";
+            @send_email($user['email'], $subject, $body);
+
+            header("Location: verify_account.php?email=" . urlencode($user['email']));
             exit();
         } else {
             $error = "Invalid password.";

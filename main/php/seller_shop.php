@@ -4,6 +4,15 @@ include("db.php");
 
 // Get seller ID from URL parameter
 $seller_id = isset($_GET['seller_id']) ? (int)$_GET['seller_id'] : 0;
+$buyer_id = $_SESSION['user_id'] ?? 0;
+if ($buyer_id) {
+    $ver = $conn->prepare("SELECT is_verified FROM users WHERE id = ?");
+    if ($ver) { $ver->bind_param("i", $buyer_id); $ver->execute(); $vr = $ver->get_result(); $vu = $vr->fetch_assoc(); }
+    if (empty($vu) || (int)($vu['is_verified'] ?? 0) !== 1) {
+        header("Location: verify_account.php");
+        exit();
+    }
+}
 
 if ($seller_id <= 0) {
     header("Location: shop.php");

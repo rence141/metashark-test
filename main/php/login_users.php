@@ -171,6 +171,9 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     <input type="email" name="email" placeholder="Email" required>
     <input type="password" name="password" placeholder="Password" required>
     <button type="submit">Login</button>
+    <div style="margin-top:10px;">
+      <a href="forgot_password.php" style="color:#44D62C;">Forgot password?</a>
+    </div>
     <?php if (!empty($error)) echo "<p style='color:red;'>$error</p>"; ?>
   </form>
 

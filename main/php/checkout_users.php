@@ -26,6 +26,7 @@ if (!isset($_SESSION['role'])) {
 }
 
 include("db.php");
+include_once("email.php");
 $user_id = $_SESSION['user_id'];
 
 // Fetch user's contact number dynamically (use phone if available)
@@ -171,7 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
             $conn->begin_transaction();
 
             // Re-fetch latest cart and prices, verify stock & product active
-            $verify_sql = "SELECT c.product_id, c.quantity, p.price, p.is_active, p.stock AS stock
+            $verify_sql = "SELECT c.product_id, c.quantity, p.price, p.is_active, p.stock_quantity AS stock_quantity
                            FROM cart c JOIN products p ON p.id = c.product_id
                            WHERE c.user_id = ?";
             $vs = $conn->prepare($verify_sql);
@@ -183,7 +184,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                 $rs = $vs->get_result();
                 while ($row = $rs->fetch_assoc()) {
                     if (!($row['is_active'] ?? 1)) { throw new Exception('Product inactive.'); }
-                    if ((int)$row['stock'] < (int)$row['quantity']) { throw new Exception('Insufficient stock.'); }
+                    if ((int)$row['stock_quantity'] < (int)$row['quantity']) { throw new Exception('Insufficient stock.'); }
                     $latest_items[] = $row;
                     $latest_subtotal += ((float)$row['price'] * (int)$row['quantity']);
                 }
@@ -270,10 +271,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
             // Commit creation of paid order + items
             $conn->commit();
 
-            // Deduct product stock
+            // Deduct product stock_quantity
             if ($order_created) {
                 try {
-                    $update_stock_query = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
+                    $update_stock_query = "UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?";
                     $stock_stmt = $conn->prepare($update_stock_query);
                     if ($stock_stmt) {
                         foreach ($latest_items as $li) {
@@ -371,7 +372,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                     }
                     $body .= "\nPlease check your seller dashboard for more details.\n\n";
                     $body .= "Best regards,\nMeta Shark Team";
-                    mail($email, $subject, $body, "From: noreply@metashark.com\r\nReply-To: support@metashark.com");
+                    @send_email($email, $subject, $body);
                 }
             }
 
@@ -399,7 +400,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                     }
                     $buyer_body .= "\nWe'll notify you when your order ships.\n\n";
                     $buyer_body .= "Best regards,\nMeta Shark Team";
-                    mail($buyer_email, $buyer_subject, $buyer_body, "From: noreply@metashark.com\r\nReply-To: support@metashark.com");
+                    @send_email($buyer_email, $buyer_subject, $buyer_body);
                 }
             }
 
@@ -706,7 +707,8 @@ $default_address = ''; // Default to empty since address column doesn't exist
             <div class="checkout-content">
                 <div class="checkout-form">
                     <h3 class="summary-title">Shipping & Payment</h3>
-                    <form method="POST">
+                    <!-- Voucher form separated to avoid triggering checkout -->
+                    <form method="POST" style="margin-bottom: 12px;">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <div class="form-group voucher-group">
                             <div style="flex: 1;">
@@ -715,6 +717,11 @@ $default_address = ''; // Default to empty since address column doesn't exist
                             </div>
                             <button type="submit" name="apply_voucher" class="apply-voucher-btn">Apply</button>
                         </div>
+                    </form>
+
+                    <!-- Checkout form -->
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="checkout" value="1">
                         <div class="form-group">
                             <label for="shipping_name">Full Name</label>

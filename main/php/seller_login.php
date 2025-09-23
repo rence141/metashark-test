@@ -22,37 +22,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Verify password
         if (password_verify($password, $user["password"])) {
-            $isVerified = isset($user['is_verified']) ? (int)$user['is_verified'] === 1 : 1;
-            if (!$isVerified) {
-                // Always generate a fresh 6-digit code (cryptographically secure)
-                $code = sprintf('%06d', random_int(0, 999999));
-                $expiryAt = date('Y-m-d H:i:s', time() + 15 * 60);
-                $upd = $conn->prepare("UPDATE users SET verification_code = ?, verification_expires = ? WHERE id = ?");
-                if ($upd) {
-                    $upd->bind_param("ssi", $code, $expiryAt, $user['id']);
-                    $upd->execute();
-                }
-                $_SESSION['pending_verification_user_id'] = $user['id'];
-                $_SESSION['pending_verification_email'] = $user['email'];
-                $_SESSION['pending_verification_role'] = $user['role'];
-
-                // Send email with code
-                $subject = 'Hello from Meta Shark';
-                $body = "Hello,\n\nYour verification code is: $code\nThis code expires in 15 minutes.\n\nIf you did not request this, you can ignore this email.";
-                @send_email($user['email'], $subject, $body);
-                header("Location: verify_account.php?email=" . urlencode($user['email']));
-                exit();
+            // ALWAYS: generate OTP and require verification on every login
+            $code = sprintf('%06d', random_int(0, 999999));
+            $expiryAt = date('Y-m-d H:i:s', time() + 15 * 60);
+            $upd = $conn->prepare("UPDATE users SET verification_code = ?, verification_expires = ? WHERE id = ?");
+            if ($upd) {
+                $upd->bind_param("ssi", $code, $expiryAt, $user['id']);
+                $upd->execute();
             }
+            $_SESSION['pending_verification_user_id'] = $user['id'];
+            $_SESSION['pending_verification_email'] = $user['email'];
+            $_SESSION['pending_verification_role'] = $user['role'];
 
-            // Store session
-            $_SESSION["user_id"] = $user["id"];
-            $_SESSION["fullname"] = $user["fullname"];
-            $_SESSION["email"] = $user["email"];
-            $_SESSION["role"] = $user["role"];
-
-            // Redirect to seller dashboard
-            @sync_user_contact_fields($conn, $user['id']);
-            header("Location: seller_dashboard.php");
+            // Send email with code
+            $subject = 'Hello from Meta Shark';
+            $body = "Hello,\n\nYour verification code is: $code\nThis code expires in 15 minutes.\n\nIf you did not request this, you can ignore this email.";
+            @send_email($user['email'], $subject, $body);
+            header("Location: verify_account.php?email=" . urlencode($user['email']));
             exit();
         } else {
             $error = "Invalid password.";
@@ -260,6 +246,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <br><br>
             <p>Regular user?</p>
             <a href="login_users.php">Regular Login</a>
+            <br><br>
+            <p>Forgot your password?</p>
+            <a href="forgot_password.php">Reset Password</a>
             <br><br>
             <p>Don't have an account?</p>
             <a href="seller_signup.php">Sign Up as Seller</a>

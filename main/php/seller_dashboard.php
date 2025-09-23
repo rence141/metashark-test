@@ -12,6 +12,14 @@ include("db.php");
 
 $user_id = $_SESSION["user_id"];
 
+// Enforce verification for logged-in sellers/admins
+$ver = $conn->prepare("SELECT is_verified FROM users WHERE id = ?");
+if ($ver) { $ver->bind_param("i", $user_id); $ver->execute(); $vr = $ver->get_result(); $vu = $vr->fetch_assoc(); }
+if (empty($vu) || (int)($vu['is_verified'] ?? 0) !== 1) {
+    header("Location: verify_account.php");
+    exit();
+}
+
 // Check if user has seller role
 $user_sql = "SELECT role, seller_name FROM users WHERE id = ?";
 $user_stmt = $conn->prepare($user_sql);
@@ -167,6 +175,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
                 <span style="font-size:18px;">🛒</span>
                 <span>(<?php echo (int)$cart_count; ?>)</span>
             </a>
+            <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+                <span style="font-size:18px;">🔔</span>
+            </a>
         </div>
     </div>
 
@@ -204,6 +215,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
             <a href="carts_users.php" class="btn btn-secondary">My Cart</a>
             <a href="seller_profile.php" class="btn btn-secondary">Profile</a>
             <a href="seller_vouchers.php" class="btn btn-secondary">Vouchers</a>
+            <a href="seller_order_updates.php" class="btn btn-secondary">Order Updates</a>
         </div>
 
         <!-- PRODUCTS SECTION -->
