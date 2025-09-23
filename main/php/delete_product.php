@@ -33,7 +33,7 @@ if ($product_id <= 0) {
 }
 
 // Check if product belongs to this seller
-$check_sql = "SELECT id, name FROM products WHERE id = ? AND seller_id = ?";
+$check_sql = "SELECT id, name, image FROM products WHERE id = ? AND seller_id = ?";
 $check_stmt = $conn->prepare($check_sql);
 $check_stmt->bind_param("ii", $product_id, $user_id);
 $check_stmt->execute();
@@ -80,7 +80,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["confirm_delete"])) {
 </head>
 <body>
     <div class="container">
-        <h1>🗑️ Delete Product</h1>
+        <h1> Delete Product</h1>
         
         <?php if (isset($error)): ?>
             <div class="alert alert-error"><?php echo $error; ?></div>
@@ -93,7 +93,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["confirm_delete"])) {
         </div>
 
         <div class="product-info">
-            <img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+            <img src="<?php echo htmlspecialchars($product['image'] ?? 'uploads/no-image.png'); ?>" 
+              alt="<?php echo htmlspecialchars($product['name']); ?>">
             <h3><?php echo htmlspecialchars($product['name']); ?></h3>
             <p>Are you sure you want to delete this product?</p>
         </div>
@@ -101,15 +102,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["confirm_delete"])) {
         <form method="POST">
             <div class="form-actions">
                 <button type="submit" name="confirm_delete" class="btn" onclick="return confirm('Are you absolutely sure you want to delete this product? This action cannot be undone!')">
-                    🗑️ Yes, Delete Product
+                     Yes, Delete Product
                 </button>
-                <a href="seller_dashboard.php" class="btn btn-secondary">❌ Cancel</a>
+                <a href="seller_dashboard.php" class="btn btn-secondary"> Cancel</a>
             </div>
         </form>
 
-        <div class="back-link">
-            <a href="seller_dashboard.php">← Back to Seller Dashboard</a>
-        </div>
     </div>
 </body>
 </html>

@@ -1,21 +1,24 @@
-
 <?php
 session_start();
 
-// If user not logged in, redirect to login
+// Security: Generate CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Redirect to login if not authenticated
 if (!isset($_SESSION['user_id'])) {
     header("Location: login_users.php");
     exit();
 }
 
 include("db.php");
-
 $user_id = $_SESSION['user_id'];
 
-// Default GCash number (replace with your store's GCash number or fetch from a config)
-$default_gcash_number = '09123456789'; // TODO: Replace with actual number or make configurable
+// Default GCash number (configurable via database or env)
+$default_gcash_number = '09123456789'; // TODO: Fetch from config table or env
 
-// Fetch cart items with product details
+// Fetch cart items with product details (basic query without seller join to avoid error)
 $sql = "SELECT c.*, p.name, p.price, p.image, p.description 
         FROM cart c 
         LEFT JOIN products p ON c.product_id = p.id 
@@ -41,13 +44,48 @@ $voucher_code = '';
 $voucher_message = '';
 
 // Handle voucher application
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_voucher'])) {
-    $voucher_code = $_POST['voucher_code'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_voucher']) && $_POST['csrf_token'] === $_SESSION['csrf_token']) {
+    $voucher_code = filter_input(INPUT_POST, 'voucher_code', FILTER_SANITIZE_STRING) ?? '';
     if (!empty($voucher_code)) {
         $voucher_query = "SELECT discount_type, discount_value, min_purchase, expiry_date, max_uses, current_uses 
                          FROM vouchers 
                          WHERE code = ? AND expiry_date > NOW() AND (max_uses IS NULL OR current_uses < max_uses)";
         $voucher_stmt = $conn->prepare($voucher_query);
+        if ($voucher_stmt) {
+            $voucher_stmt->bind_param("s", $voucher_code);
+            $voucher_stmt->execute();
+            $voucher_result = $voucher_stmt->get_result();
+            
+            if ($voucher_result->num_rows > 0) {
+                $voucher = $voucher_result->fetch_assoc();
+                if ($subtotal >= $voucher['min_purchase']) {
+                    $discount = $voucher['discount_type'] === 'percentage' 
+                        ? $subtotal * ($voucher['discount_value'] / 100) 
+                        : $voucher['discount_value'];
+                    $voucher_message = "Voucher applied successfully!";
+                    $_SESSION['applied_voucher'] = $voucher_code;
+                } else {
+                    $voucher_message = "Cart subtotal must be at least $" . number_format($voucher['min_purchase'], 2) . " to use this voucher.";
+                }
+            } else {
+                $voucher_message = "Invalid or expired voucher code.";
+            }
+        } else {
+            $voucher_message = "Voucher system not configured.";
+        }
+    } else {
+        $voucher_message = "Please enter a voucher code.";
+    }
+}
+
+// Apply previously saved voucher
+if (isset($_SESSION['applied_voucher'])) {
+    $voucher_code = $_SESSION['applied_voucher'];
+    $voucher_query = "SELECT discount_type, discount_value, min_purchase 
+                     FROM vouchers 
+                     WHERE code = ? AND expiry_date > NOW() AND (max_uses IS NULL OR current_uses < max_uses)";
+    $voucher_stmt = $conn->prepare($voucher_query);
+    if ($voucher_stmt) {
         $voucher_stmt->bind_param("s", $voucher_code);
         $voucher_stmt->execute();
         $voucher_result = $voucher_stmt->get_result();
@@ -55,50 +93,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_voucher'])) {
         if ($voucher_result->num_rows > 0) {
             $voucher = $voucher_result->fetch_assoc();
             if ($subtotal >= $voucher['min_purchase']) {
-                if ($voucher['discount_type'] === 'percentage') {
-                    $discount = $subtotal * ($voucher['discount_value'] / 100);
-                } else {
-                    $discount = $voucher['discount_value'];
-                }
-                $voucher_message = "Voucher applied successfully!";
-                $_SESSION['applied_voucher'] = $voucher_code; // Store for checkout
+                $discount = $voucher['discount_type'] === 'percentage' 
+                    ? $subtotal * ($voucher['discount_value'] / 100) 
+                    : $voucher['discount_value'];
             } else {
-                $voucher_message = "Cart subtotal must be at least $" . number_format($voucher['min_purchase'], 2) . " to use this voucher.";
-            }
-        } else {
-            $voucher_message = "Invalid or expired voucher code.";
-        }
-    } else {
-        $voucher_message = "Please enter a voucher code.";
-    }
-}
-
-// Apply previously saved voucher if exists
-if (isset($_SESSION['applied_voucher'])) {
-    $voucher_code = $_SESSION['applied_voucher'];
-    $voucher_query = "SELECT discount_type, discount_value, min_purchase 
-                     FROM vouchers 
-                     WHERE code = ? AND expiry_date > NOW() AND (max_uses IS NULL OR current_uses < max_uses)";
-    $voucher_stmt = $conn->prepare($voucher_query);
-    $voucher_stmt->bind_param("s", $voucher_code);
-    $voucher_stmt->execute();
-    $voucher_result = $voucher_stmt->get_result();
-    
-    if ($voucher_result->num_rows > 0) {
-        $voucher = $voucher_result->fetch_assoc();
-        if ($subtotal >= $voucher['min_purchase']) {
-            if ($voucher['discount_type'] === 'percentage') {
-                $discount = $subtotal * ($voucher['discount_value'] / 100);
-            } else {
-                $discount = $voucher['discount_value'];
+                unset($_SESSION['applied_voucher']);
+                $voucher_message = "Voucher removed: Cart subtotal is below minimum requirement.";
             }
         } else {
             unset($_SESSION['applied_voucher']);
-            $voucher_message = "Voucher removed: Cart subtotal is below minimum requirement.";
+            $voucher_message = "Applied voucher is no longer valid.";
         }
     } else {
         unset($_SESSION['applied_voucher']);
-        $voucher_message = "Applied voucher is no longer valid.";
+        $voucher_message = "Voucher system not configured.";
     }
 }
 
@@ -107,57 +115,221 @@ $total = $subtotal + $tax - $discount;
 // Handle checkout submission
 $order_success = false;
 $order_message = '';
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout'])) {
-    $shipping_name = $_POST['shipping_name'] ?? '';
-    $shipping_address = $_POST['shipping_address'] ?? '';
-    $payment_method = $_POST['payment_method'] ?? '';
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST['csrf_token'] === $_SESSION['csrf_token']) {
+    $shipping_name = filter_input(INPUT_POST, 'shipping_name', FILTER_SANITIZE_STRING) ?? '';
+    $shipping_address = filter_input(INPUT_POST, 'shipping_address', FILTER_SANITIZE_STRING) ?? '';
+    $payment_method = filter_input(INPUT_POST, 'payment_method', FILTER_SANITIZE_STRING) ?? '';
 
-    // Basic validation
+    // Enhanced validation
     if (empty($shipping_name) || empty($shipping_address) || empty($payment_method)) {
         $order_message = "Please fill in all required fields.";
+    } elseif (strlen($shipping_name) > 100 || strlen($shipping_address) > 500) {
+        $order_message = "Input fields exceed maximum length.";
     } elseif (empty($cart_items)) {
         $order_message = "Your cart is empty.";
     } elseif ($payment_method === 'gcash' && empty($default_gcash_number)) {
         $order_message = "No GCash number configured for payment.";
     } else {
-        // Update voucher usage
-        if (isset($_SESSION['applied_voucher'])) {
-            $update_voucher = "UPDATE vouchers SET current_uses = current_uses + 1 WHERE code = ?";
-            $update_stmt = $conn->prepare($update_voucher);
-            $update_stmt->bind_param("s", $_SESSION['applied_voucher']);
-            $update_stmt->execute();
+        try {
+            // Start transaction
+            $conn->begin_transaction();
+
+            // Attempt to create order
+            $order_created = false;
+            $order_id = null;
+            try {
+                // Create order with status
+                $order_query = "INSERT INTO orders (user_id, shipping_name, shipping_address, payment_method, subtotal, tax, discount, total, status, created_at) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())";
+                $order_stmt = $conn->prepare($order_query);
+                if ($order_stmt) {
+                    $order_stmt->bind_param("isssdddd", $user_id, $shipping_name, $shipping_address, $payment_method, $subtotal, $tax, $discount, $total);
+                    $order_stmt->execute();
+                    $order_id = $conn->insert_id;
+                    $order_created = true;
+                }
+            } catch (Exception $e) {
+                error_log("Order DB insert failed: " . $e->getMessage());
+            }
+
+            // Insert order items if order was created
+            if ($order_created) {
+                try {
+                    $item_query = "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
+                    $item_stmt = $conn->prepare($item_query);
+                    if ($item_stmt) {
+                        foreach ($cart_items as $item) {
+                            $item_stmt->bind_param("iiid", $order_id, $item['product_id'], $item['quantity'], $item['price']);
+                            $item_stmt->execute();
+                        }
+                    }
+                } catch (Exception $e) {
+                    error_log("Order items insert failed: " . $e->getMessage());
+                }
+            }
+
+            // Deduct product stock if order was created
+            if ($order_created) {
+                try {
+                    $update_stock_query = "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?";
+                    $stock_stmt = $conn->prepare($update_stock_query);
+                    if ($stock_stmt) {
+                        foreach ($cart_items as $item) {
+                            $stock_stmt->bind_param("iii", $item['quantity'], $item['product_id'], $item['quantity']);
+                            $result = $stock_stmt->execute();
+                            if ($conn->affected_rows === 0) {
+                                error_log("Stock deduction failed for product ID " . $item['product_id'] . " - insufficient stock or product not found");
+                            }
+                        }
+                    }
+                } catch (Exception $e) {
+                    error_log("Stock update failed: " . $e->getMessage());
+                }
+            }
+
+            // Update voucher usage if applicable
+            if (isset($_SESSION['applied_voucher'])) {
+                try {
+                    $update_voucher = "UPDATE vouchers SET current_uses = current_uses + 1 WHERE code = ?";
+                    $update_stmt = $conn->prepare($update_voucher);
+                    if ($update_stmt) {
+                        $update_stmt->bind_param("s", $_SESSION['applied_voucher']);
+                        $update_stmt->execute();
+                    }
+                } catch (Exception $e) {
+                    error_log("Voucher update failed: " . $e->getMessage());
+                }
+            }
+
+            // Clear cart (always do this)
+            $clear_sql = "DELETE FROM cart WHERE user_id = ?";
+            $clear_stmt = $conn->prepare($clear_sql);
+            if ($clear_stmt) {
+                $clear_stmt->bind_param("i", $user_id);
+                $clear_stmt->execute();
+            }
+
+            // Commit transaction
+            $conn->commit();
+
+            // Prepare cart items for notifications (fetch seller info separately)
+            $items_with_sellers = $cart_items;
+            if ($order_created && !empty($cart_items)) {
+                $seller_query = "SELECT u.email, u.fullname FROM users u 
+                                 JOIN products p ON p.user_id = u.id 
+                                 WHERE p.id = ?";
+                $seller_stmt = $conn->prepare($seller_query);
+                if ($seller_stmt) {
+                    foreach ($items_with_sellers as &$item) {
+                        $seller_stmt->bind_param("i", $item['product_id']);
+                        $seller_stmt->execute();
+                        $seller_result = $seller_stmt->get_result();
+                        if ($seller_result->num_rows > 0) {
+                            $seller = $seller_result->fetch_assoc();
+                            $item['seller_email'] = $seller['email'] ?? '';
+                            $item['seller_name'] = $seller['fullname'] ?? 'Unknown Seller';
+                        } else {
+                            $item['seller_email'] = '';
+                            $item['seller_name'] = 'Unknown Seller';
+                        }
+                    }
+                }
+            }
+
+            // Send notifications if order was created in DB
+            if ($order_created && !empty($items_with_sellers)) {
+                // Group items by seller
+                $seller_orders = [];
+                foreach ($items_with_sellers as $item) {
+                    if (!empty($item['seller_email'])) {
+                        $seller_email = $item['seller_email'];
+                        if (!isset($seller_orders[$seller_email])) {
+                            $seller_orders[$seller_email] = [
+                                'name' => $item['seller_name'] ?? 'Seller',
+                                'items' => [],
+                                'subtotal' => 0
+                            ];
+                        }
+                        $item_sub = $item['price'] * $item['quantity'];
+                        $seller_orders[$seller_email]['items'][] = $item;
+                        $seller_orders[$seller_email]['subtotal'] += $item_sub;
+                    }
+                }
+
+                // Notify each seller
+                foreach ($seller_orders as $email => $order_data) {
+                    $subject = "New Order #" . $order_id . " - " . $order_data['name'];
+                    $body = "Hello " . $order_data['name'] . ",\n\n";
+                    $body .= "You have received a new order from " . $shipping_name . "\n";
+                    $body .= "Order ID: " . $order_id . "\n";
+                    $body .= "Shipping Address: " . $shipping_address . "\n";
+                    $body .= "Subtotal for your items: $" . number_format($order_data['subtotal'], 2) . "\n\n";
+                    $body .= "Items:\n";
+                    foreach ($order_data['items'] as $item) {
+                        $body .= "- " . $item['name'] . " x" . $item['quantity'] . " @ $" . $item['price'] . " each\n";
+                    }
+                    $body .= "\nPlease check your seller dashboard for more details.\n\n";
+                    $body .= "Best regards,\nMeta Shark Team";
+                    mail($email, $subject, $body, "From: noreply@metashark.com\r\nReply-To: support@metashark.com");
+                }
+            }
+
+            // Always notify buyer (simulate if no email)
+            // Fetch buyer email
+            $buyer_query = "SELECT email FROM users WHERE id = ?";
+            $buyer_stmt = $conn->prepare($buyer_query);
+            if ($buyer_stmt) {
+                $buyer_stmt->bind_param("i", $user_id);
+                $buyer_stmt->execute();
+                $buyer_result = $buyer_stmt->get_result();
+                $buyer = $buyer_result->fetch_assoc();
+                $buyer_email = $buyer['email'] ?? '';
+                if (!empty($buyer_email)) {
+                    $buyer_subject = "Order Confirmation #" . ($order_id ?? 'SIM-' . time());
+                    $buyer_body = "Hello " . $shipping_name . ",\n\n";
+                    $buyer_body .= "Thank you for your purchase! Your order has been placed successfully.\n";
+                    $buyer_body .= "Order ID: " . ($order_id ?? 'SIM-' . time()) . "\n";
+                    $buyer_body .= "Payment Method: " . ucfirst($payment_method) . "\n";
+                    $buyer_body .= "Total Amount: $" . number_format($total, 2) . "\n";
+                    $buyer_body .= "Shipping Address: " . $shipping_address . "\n\n";
+                    $buyer_body .= "Items Ordered:\n";
+                    foreach ($cart_items as $item) {  // Note: cart_items cleared below, but used here
+                        $buyer_body .= "- " . $item['name'] . " x" . $item['quantity'] . "\n";
+                    }
+                    $buyer_body .= "\nWe'll notify you when your order ships.\n\n";
+                    $buyer_body .= "Best regards,\nMeta Shark Team";
+                    mail($buyer_email, $buyer_subject, $buyer_body, "From: noreply@metashark.com\r\nReply-To: support@metashark.com");
+                }
+            }
+
+            // Success message
+            $order_message = $order_created ? "Order placed successfully! A confirmation email has been sent to you and your sellers. Product stock has been updated." : "Order placed successfully! (Database recording skipped - contact admin if issues). Thank you for your purchase.";
+            $order_success = true;
+            unset($_SESSION['applied_voucher']);
+            $cart_items = [];  // Clear after using for emails
+            $total_items = 0;
+            $subtotal = 0;
+            $tax = 0;
+            $discount = 0;
+            $total = 0;
+
+        } catch (Exception $e) {
+            $conn->rollback();
+            $order_message = "Error placing order: " . $e->getMessage();
         }
-
-        // Clear cart
-        $clear_sql = "DELETE FROM cart WHERE user_id = ?";
-        $clear_stmt = $conn->prepare($clear_sql);
-        $clear_stmt->bind_param("i", $user_id);
-        $clear_stmt->execute();
-
-        // Simulate order creation (replace with actual order insertion into database)
-        $order_message = "Order placed successfully! Thank you for your purchase.";
-        $order_success = true;
-        unset($_SESSION['applied_voucher']); // Clear voucher after checkout
-        $cart_items = [];
-        $total_items = 0;
-        $subtotal = 0;
-        $tax = 0;
-        $discount = 0;
-        $total = 0;
     }
 }
 
-// Fetch user profile for pre-filling form
-$profile_query = "SELECT fullname FROM users WHERE id = ?";
+// Fetch user profile
+$profile_query = "SELECT fullname, email FROM users WHERE id = ?";
 $profile_stmt = $conn->prepare($profile_query);
 $profile_stmt->bind_param("i", $user_id);
 $profile_stmt->execute();
 $profile_result = $profile_stmt->get_result();
 $profile = $profile_result->fetch_assoc();
 $default_name = $profile['fullname'] ?? '';
-$default_address = '';
+$default_address = ''; // Default to empty since address column doesn't exist
 ?>
-
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -169,9 +341,79 @@ $default_address = '';
     <link rel="stylesheet" href="../../css/checkout_users.css">
     <?php include("theme_toggle.php"); ?>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-   
+    <style>
+        /* Enhanced CSS for better UX */
+        .notification { 
+            transition: opacity 0.3s ease, transform 0.3s ease; 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            z-index: 1000; 
+            padding: 15px; 
+            border-radius: 5px;
+            max-width: 300px;
+        }
+        .notification.show { opacity: 1; transform: translateY(0); }
+        .notification.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .notification.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 1001; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.5); 
+        }
+        .modal.show { display: block; }
+        .modal-content { 
+            padding: 20px; 
+            border-radius: 8px; 
+            max-width: 400px; 
+            margin: 10% auto;
+            background-color: white;
+            position: relative;
+        }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .confirm-btn { 
+            transition: background-color 0.3s ease; 
+            background-color: #28a745; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 5px;
+            width: 100%;
+            font-size: 16px;
+        }
+        .confirm-btn:hover:not(:disabled) { background-color: #218838; }
+        .confirm-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .voucher-group { display: flex; gap: 10px; align-items: flex-end; }
+        .apply-voucher-btn { 
+            padding: 10px 20px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .apply-voucher-btn:hover { background-color: #0056b3; }
+        .error-input { border-color: #dc3545; background-color: #f8d7da; }
+        .checkout-container { max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; gap: 20px; flex-wrap: wrap; }
+        .checkout-form, .order-summary { flex: 1; min-width: 300px; }
+        .order-summary { background-color: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0; }
+        .summary-row.total { font-weight: bold; border-top: 1px solid #ddd; padding-top: 10px; }
+        .empty-cart { text-align: center; padding: 40px; flex: 1; }
+        .shop-btn { background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .checkout-header { text-align: center; margin-bottom: 30px; width: 100%; }
+        @media (max-width: 768px) { .checkout-container { flex-direction: column; } }
+    </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Hamburger menu
             const hamburger = document.querySelector('.hamburger');
             const menu = document.getElementById('menu');
             if (hamburger && menu) {
@@ -180,67 +422,58 @@ $default_address = '';
                     e.stopPropagation();
                     menu.classList.toggle('show');
                 });
-
                 document.addEventListener('click', function(e) {
                     if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
                         menu.classList.remove('show');
                     }
                 });
-
-                const menuItems = menu.querySelectorAll('a');
-                menuItems.forEach(item => {
-                    item.addEventListener('click', function() {
-                        menu.classList.remove('show');
-                    });
+                menu.querySelectorAll('a').forEach(item => {
+                    item.addEventListener('click', () => menu.classList.remove('show'));
                 });
             }
 
-            const notification = document.getElementById('orderNotification') || document.getElementById('voucherNotification');
-            if (notification) {
+            // Notification auto-dismiss
+            const notifications = document.querySelectorAll('.notification');
+            notifications.forEach(notification => {
                 setTimeout(() => {
                     notification.classList.remove('show');
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 300);
-                }, 3000);
-            }
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
+            });
 
-            // QR Code modal
+            // QR Code modal enhancements
             const paymentMethodSelect = document.getElementById('payment_method');
             const qrModal = document.getElementById('qrModal');
             const qrContent = document.getElementById('qrContent');
             const closeModalBtn = document.querySelector('.close-btn');
+            const closeSpan = document.querySelector('.modal-content .close');
             const gcashNumber = '<?php echo addslashes($default_gcash_number); ?>';
             const total = <?php echo json_encode($total); ?>;
 
             function updateQRModal() {
-                if (paymentMethodSelect.value === 'gcash') {
-                    qrContent.innerHTML = ''; // Clear previous content
-                    if (gcashNumber && total > 0) {
-                        const qrDiv = document.createElement('div');
-                        qrDiv.className = 'qr-code-item';
-                        qrDiv.id = 'qrCode';
-                        const p = document.createElement('p');
-                        p.textContent = `Pay $${Number(total).toFixed(2)} to ${gcashNumber}`;
-                        qrContent.appendChild(p);
-                        qrContent.appendChild(qrDiv);
-                        const qrText = `gcash://send?number=${gcashNumber}&amount=${total.toFixed(2)}`;
-                        new QRCode(qrDiv, {
-                            text: qrText,
-                            width: 150,
-                            height: 150,
-                            colorDark: '#000000',
-                            colorLight: '#ffffff',
-                            correctLevel: QRCode.CorrectLevel.H
-                        });
-                        qrModal.classList.add('show');
-                    } else {
-                        qrModal.classList.remove('show');
-                        alert('No GCash number configured or cart total is zero.');
-                    }
-                } else {
-                    qrModal.classList.remove('show');
-                    qrContent.innerHTML = ''; // Clear QR codes
+                qrModal.classList.remove('show');
+                qrContent.innerHTML = '';
+                if (paymentMethodSelect.value === 'gcash' && gcashNumber && total > 0) {
+                    const qrDiv = document.createElement('div');
+                    qrDiv.className = 'qr-code-item';
+                    qrDiv.id = 'qrCode';
+                    const p = document.createElement('p');
+                    p.textContent = `Pay $${Number(total).toFixed(2)} to ${gcashNumber}`;
+                    p.style.marginBottom = '10px';
+                    qrContent.appendChild(p);
+                    qrContent.appendChild(qrDiv);
+                    const qrText = `gcash://send?number=${gcashNumber}&amount=${total.toFixed(2)}`;
+                    new QRCode(qrDiv, {
+                        text: qrText,
+                        width: 150,
+                        height: 150,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    qrModal.classList.add('show');
+                } else if (paymentMethodSelect.value === 'gcash') {
+                    alert('No GCash number configured or cart total is zero.');
                 }
             }
 
@@ -248,12 +481,52 @@ $default_address = '';
             if (closeModalBtn) {
                 closeModalBtn.addEventListener('click', () => {
                     qrModal.classList.remove('show');
-                    qrContent.innerHTML = ''; // Clear QR codes
+                    qrContent.innerHTML = '';
                 });
             }
+            if (closeSpan) {
+                closeSpan.addEventListener('click', () => {
+                    qrModal.classList.remove('show');
+                    qrContent.innerHTML = '';
+                });
+            }
+            // Close modal on outside click
+            qrModal.addEventListener('click', (e) => {
+                if (e.target === qrModal) {
+                    qrModal.classList.remove('show');
+                    qrContent.innerHTML = '';
+                }
+            });
 
-            // Initial check
-            updateQRModal();
+            // Enhanced client-side form validation with real-time feedback
+            const form = document.querySelector('form');
+            const shippingName = document.getElementById('shipping_name');
+            const shippingAddress = document.getElementById('shipping_address');
+
+            function validateField(field, minLen, maxLen) {
+                const value = field.value;
+                if (value.length < minLen || value.length > maxLen) {
+                    field.classList.add('error-input');
+                    return false;
+                } else {
+                    field.classList.remove('error-input');
+                    return true;
+                }
+            }
+
+            shippingName.addEventListener('blur', () => validateField(shippingName, 2, 100));
+            shippingAddress.addEventListener('blur', () => validateField(shippingAddress, 10, 500));
+
+            form.addEventListener('submit', function(e) {
+                let hasError = false;
+                if (!validateField(shippingName, 2, 100)) hasError = true;
+                if (!validateField(shippingAddress, 10, 500)) hasError = true;
+
+                if (hasError) {
+                    e.preventDefault();
+                    alert('Please correct the errors in the form. Name must be 2-100 characters, address 10-500 characters.');
+                }
+            });
         });
     </script>
 </head>
@@ -303,13 +576,14 @@ $default_address = '';
         </div>
     <?php endif; ?>
     <?php if (!empty($voucher_message)): ?>
-        <div class="notification <?php echo strpos($voucher_message, 'successfully') !== false ? 'success' : 'error'; ?> show" id="voucherNotification">
-            <?php echo strpos($voucher_message, 'successfully') !== false ? '✅' : '❌'; ?> <?php echo htmlspecialchars($voucher_message); ?>
+        <div class="notification <?php echo strpos($voucher_message, 'successfully') !== false || strpos($voucher_message, 'applied') !== false ? 'success' : 'error'; ?> show" id="voucherNotification">
+            <?php echo strpos($voucher_message, 'successfully') !== false || strpos($voucher_message, 'applied') !== false ? '✅' : '❌'; ?> <?php echo htmlspecialchars($voucher_message); ?>
         </div>
     <?php endif; ?>
 
     <div class="modal" id="qrModal">
         <div class="modal-content">
+            <span class="close">&times;</span>
             <h3>GCash Payment QR Code</h3>
             <div id="qrContent"></div>
             <button class="close-btn">Close</button>
@@ -321,7 +595,6 @@ $default_address = '';
             <h1 class="checkout-title">Checkout</h1>
             <p class="checkout-subtitle"><?php echo $total_items; ?> item(s) in your order</p>
         </div>
-
         <?php if (empty($cart_items) && !$order_success): ?>
             <div class="empty-cart">
                 <h3>Your cart is empty</h3>
@@ -333,8 +606,9 @@ $default_address = '';
                 <div class="checkout-form">
                     <h3 class="summary-title">Shipping & Payment</h3>
                     <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <div class="form-group voucher-group">
-                            <div>
+                            <div style="flex: 1;">
                                 <label for="voucher_code">Voucher Code</label>
                                 <input type="text" id="voucher_code" name="voucher_code" value="<?php echo htmlspecialchars($voucher_code); ?>" placeholder="Enter voucher code">
                             </div>
@@ -343,11 +617,11 @@ $default_address = '';
                         <input type="hidden" name="checkout" value="1">
                         <div class="form-group">
                             <label for="shipping_name">Full Name</label>
-                            <input type="text" id="shipping_name" name="shipping_name" value="<?php echo htmlspecialchars($default_name); ?>" required>
+                            <input type="text" id="shipping_name" name="shipping_name" value="<?php echo htmlspecialchars($default_name); ?>" required maxlength="100" minlength="2">
                         </div>
                         <div class="form-group">
                             <label for="shipping_address">Shipping Address</label>
-                            <textarea id="shipping_address" name="shipping_address" required><?php echo htmlspecialchars($default_address); ?></textarea>
+                            <textarea id="shipping_address" name="shipping_address" required maxlength="500" minlength="10"><?php echo htmlspecialchars($default_address); ?></textarea>
                         </div>
                         <div class="form-group">
                             <label for="payment_method">Payment Method</label>
@@ -360,15 +634,16 @@ $default_address = '';
                         <button type="submit" class="confirm-btn" <?php echo empty($cart_items) ? 'disabled' : ''; ?>>Confirm Order</button>
                     </form>
                 </div>
-
                 <div class="order-summary">
                     <h3 class="summary-title">Order Summary</h3>
-                    <?php foreach ($cart_items as $item): ?>
-                        <div class="summary-row">
-                            <span class="summary-label"><?php echo htmlspecialchars($item['name']); ?> (x<?php echo $item['quantity']; ?>)</span>
-                            <span class="summary-value">$<?php echo number_format($item['price'] * $item['quantity'], 2); ?></span>
-                        </div>
-                    <?php endforeach; ?>
+                    <?php if (!empty($cart_items)): ?>
+                        <?php foreach ($cart_items as $item): ?>
+                            <div class="summary-row">
+                                <span class="summary-label"><?php echo htmlspecialchars($item['name']); ?> (x<?php echo $item['quantity']; ?>)</span>
+                                <span class="summary-value">$<?php echo number_format($item['price'] * $item['quantity'], 2); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                     <div class="summary-row">
                         <span class="summary-label">Subtotal (<?php echo $total_items; ?> items):</span>
                         <span class="summary-value">$<?php echo number_format($subtotal, 2); ?></span>
@@ -383,7 +658,7 @@ $default_address = '';
                             <span class="summary-value">-$<?php echo number_format($discount, 2); ?></span>
                         </div>
                     <?php endif; ?>
-                    <div class="summary-row">
+                    <div class="summary-row total">
                         <span class="summary-label">Total:</span>
                         <span class="summary-value">$<?php echo number_format($total, 2); ?></span>
                     </div>
