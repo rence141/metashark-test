@@ -64,7 +64,7 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
         $message = 'A new code has been generated.';
     }
     if (!empty($_SESSION['pending_verification_email'])) {
-        $subject = 'Your new SaysonCo verification code';
+        $subject = 'Your new Meta Shark verification code';
         $body = "Hello,\n\nYour new verification code is: $code\nThis code expires in 15 minutes.";
         @send_email($_SESSION['pending_verification_email'], $subject, $body);
     }

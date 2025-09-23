@@ -81,7 +81,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION["fullname"] = $fullname;
         $success = "Profile updated successfully!";
         
-        // Debug: Log the update
+        // Log update
         if ($profile_image) {
             $success .= " Profile image updated to: " . $profile_image;
         }
@@ -192,7 +192,7 @@ $user = $result->fetch_assoc();
 </head>
 <body>
     <div class="navbar">
-        <a href="shop.php" class="logo">SaysonCo</a>
+        <a href="shop.php" class="logo">Meta Shark</a>
         <a href="logout.php">Logout</a>
     </div>
 
