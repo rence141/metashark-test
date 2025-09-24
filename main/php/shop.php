@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Video Banner -->
 <div class="banner video-banner">
   <video autoplay muted loop playsinline preload="auto">
-    <source src="mp4/bateo.mp4" type="video/mp4">
+    <source src="../../mp4/bateo.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
     <img src="uploads/logo1.png" alt="Meta Shark Logo" class="video-logo">
