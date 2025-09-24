@@ -31,7 +31,7 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    background-image: url('../main/php/uploads/logo1.png');
+    background-image: url('/main/php/uploads/logo1.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
@@ -52,7 +52,7 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    background-image: url('../main/php/uploads/logo1.png');
+    background-image: url('/main/php/uploads/logo1.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
@@ -1157,10 +1157,10 @@ a .profile-icon {
 }
 
 /* Assign images */
-.feature-card-1::after { background-image: url('../main/php/uploads/PioloTheOnlyOne.jpg'); }
-.feature-card-2::after { background-image: url('../main/php/uploads/feature2.png'); }
-.feature-card-3::after { background-image: url('../main/php/uploads/feature3.jpg'); }
-.feature-card-4::after { background-image: url('../main/php/uploads/feature4.jpg'); }
+.feature-card-1::after { background-image: url('main/php/uploads/PioloTheOnlyOne.jpg'); }
+.feature-card-2::after { background-image: url('main/php/uploads/feature2.png'); }
+.feature-card-3::after { background-image: url('main/php/uploads/feature3.jpg'); }
+.feature-card-4::after { background-image: url('main/php/uploads/feature4.jpg'); }
 
 /* Dark overlay */
 .feature-card-1::before,
@@ -1457,7 +1457,7 @@ a .profile-icon {
     animation: fadeIn 1s ease-out;
   }
   .product.bg1 {
-    background: url('../main/php/uploads/5vv1uf4kn1xvorsl-4_0_desktop_0_2X.jpeg') no-repeat center center;
+    background: url('main/php/uploads/5vv1uf4kn1xvorsl-4_0_desktop_0_2X.jpeg') no-repeat center center;
     background-size: cover;
     margin-bottom: 0.10cm;
   }
@@ -1525,23 +1525,23 @@ a .profile-icon {
 
 /* Specific slide backgrounds */
 .carousel-slide:nth-child(1) {
-  background: url('../main/php/Uploads/GameLobby.png') no-repeat center center;
+  background: url('main/php/Uploads/GameLobby.png') no-repeat center center;
   background-size: 100% 100%;
 }
 
 /* Placeholder for additional slides */
 .carousel-slide:nth-child(2) {
-  background: url('../main/php/Uploads/carousel2.png') no-repeat center center;
+  background: url('main/php/Uploads/carousel2.png') no-repeat center center;
   background-size: 100% 100%;
 }
 
 .carousel-slide:nth-child(3) {
-  background: url('../main/php/Uploads/carousel3.png') no-repeat center center;
+  background: url('main/php/Uploads/carousel3.png') no-repeat center center;
   background-size: 100% 100%;
 }
 
 .carousel-slide:nth-child(4) {
-  background: url('../main/php/Uploads/carousel4.jpeg') no-repeat center center;
+  background: url('main/php/Uploads/carousel4.jpeg') no-repeat center center;
   background-size: 100% 100%;
 }
 /* Navigation buttons */
@@ -1592,7 +1592,7 @@ a .profile-icon {
   }
   /* Accessories Category Card */
   .category-card[data-category="accessories"] {
-      background: url('../main/php/Uploads/headphones_jbl.png') no-repeat center center;
+      background: url('main/php/Uploads/headphones_jbl.png') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
@@ -1600,7 +1600,7 @@ a .profile-icon {
   }
   /* Phones Category Card */
   .category-card[data-category="phones"] {
-      background: url('../main/php/Uploads/Rog_asus.png') no-repeat center center;
+      background: url('main/php/Uploads/Rog_asus.png') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
@@ -1608,7 +1608,7 @@ a .profile-icon {
   }
     /*Tablet Category Card */
   .category-card[data-category="tablet"] {
-      background: url('../main/php/uploads/tablet.jpeg') no-repeat center center;
+      background: url('main/php/uploads/tablet.jpeg') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
@@ -1617,7 +1617,7 @@ a .profile-icon {
 
   /*Laptop Category Card */
   .category-card[data-category="laptop"] {
-      background: url('../main/php/Uploads/laptop-scaled.jpg') no-repeat center center;
+      background: url('main/php/Uploads/laptop-scaled.jpg') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden; 
@@ -1625,7 +1625,7 @@ a .profile-icon {
   }
   /*Gaming Category Card */
   .category-card[data-category="gaming"] {
-      background: url('../main/php/Uploads/gaming.jpeg') no-repeat center center;
+      background: url('main/php/Uploads/gaming.jpeg') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
@@ -1634,7 +1634,7 @@ a .profile-icon {
 
   /*Other Category Card */
   .category-card[data-category="other"] {
-      background: url('../main/php/Uploads/Others.png') no-repeat center center;
+      background: url('main/php/Uploads/Others.png') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden;
@@ -1680,7 +1680,7 @@ a .profile-icon {
   }
   /* Category icon with 3D image, hidden by default */
   .category-card[data-category="accessories"] .category-icon {
-      background: url('../main/php/Uploads/3D_Headphones.png') no-repeat center center;
+      background: url('main/php/Uploads/3D_Headphones.png') no-repeat center center;
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1689,7 +1689,7 @@ a .profile-icon {
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
   .category-card[data-category="phones"] .category-icon {
-      background: url('../main/php/Uploads/phone_left.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('main/php/Uploads/phone_left.png') no-repeat center center; /* Replace with actual 3D image */
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1698,7 +1698,7 @@ a .profile-icon {
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
   .category-card[data-category="tablet"] .category-icon {
-      background: url('../main/php/Uploads/3D_Tablet.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('main/php/Uploads/3D_Tablet.png') no-repeat center center; /* Replace with actual 3D image */
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1707,7 +1707,7 @@ a .profile-icon {
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
   .category-card[data-category="laptop"] .category-icon {
-      background: url('../main/php/uploads/3D-Laptop.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('main/php/uploads/3D-Laptop.png') no-repeat center center; /* Replace with actual 3D image */
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1716,7 +1716,7 @@ a .profile-icon {
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
   .category-card[data-category="gaming"] .category-icon {
-      background: url('../main/php/Uploads/PS5.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('main/php/Uploads/PS5.png') no-repeat center center; /* Replace with actual 3D image */
       background-size: contain;
       width: 150px;
       height: 150px;
@@ -1725,7 +1725,7 @@ a .profile-icon {
       transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   }
   .category-card[data-category="other"] .category-icon {
-      background: url('../main/php/Uploads/Others2.png') no-repeat center center; /* Replace with actual 3D image */
+      background: url('main/php/Uploads/Others2.png') no-repeat center center; /* Replace with actual 3D image */
       background-size: contain;
       width: 150px;
       height: 150px;
