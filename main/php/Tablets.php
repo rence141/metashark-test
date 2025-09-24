@@ -50,10 +50,10 @@ if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
       <ul class="nav-links">
         <li><a href="../../index.html">Home</a></li>
         <li><a href="phone.php">Phones</a></li>
-        <li><a href="tablets.php">Tablets</a></li>
+        <li><a href="Tablets.php">Tablets</a></li>
         <li><a href="accessories.php">Accessories</a></li>
         <li><a href="laptop.php">Laptops</a></li>
-        <li><a href="Gaming.php">Gaming</a></li>
+        <li><a href="gaming.php">Gaming</a></li>
       </ul>
     </div>
   </nav>
