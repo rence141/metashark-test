@@ -1131,7 +1131,7 @@ a .profile-icon {
   padding: 30px 20px;
   text-align: center;
   min-height: 250px;
-  width: 350px;
+  width: 300px;
   position: relative;
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
