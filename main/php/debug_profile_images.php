@@ -107,11 +107,11 @@ if ($result && $result->num_rows > 0) {
             }
             echo "</ul>";
         } else {
-            echo "<div class='success'>✅ No orphaned files found.</div>";
+            echo "<div class='success'> No orphaned files found.</div>";
         }
         
     } else {
-        echo "<div class='error'>❌ Uploads directory does not exist.</div>";
+        echo "<div class='error'> Uploads directory does not exist.</div>";
     }
     
     // Test filename generation

@@ -46,7 +46,7 @@ if ($os) { $os->bind_param("i", $userId); $os->execute(); $rs = $os->get_result(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Updates</title>
   <link rel="stylesheet" href="fonts/fonts.css">
-  <link rel="icon" type="image/png" href="Uploads/logo1.png">
+  <link rel="icon" type="image/png" href="uploads/logo1.png">
   <?php include('theme_toggle.php'); ?>
   <style>
     body {

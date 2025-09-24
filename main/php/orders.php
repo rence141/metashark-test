@@ -33,7 +33,7 @@ if (!empty($orders)) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Orders</title>
   <link rel="stylesheet" href="fonts/fonts.css">
-  <link rel="icon" type="image/png" href="Uploads/logo1.png">
+  <link rel="icon" type="image/png" href="uploads/logo1.png">
   <?php include('theme_toggle.php'); ?>
   <style>
     body { background: var(--bg-primary); color: var(--text-primary); font-family: Arial, sans-serif; }

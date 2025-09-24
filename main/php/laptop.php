@@ -39,7 +39,7 @@ if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
 <title>Tech Haven - Laptops</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="../../css/laptop.css">
-<link rel="icon" type="image/png" href="Uploads/logo1.png">
+<link rel="icon" type="image/png" href="uploads/logo1.png">
 
 <style>
 /* Button animation when item is added */

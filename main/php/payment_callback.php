@@ -106,5 +106,3 @@ unset($_SESSION['pending_payment_order_id'], $_SESSION['pending_payment_total'],
 header("Location: checkout_users.php?payment_failed=1");
 exit();
 ?>
-
-

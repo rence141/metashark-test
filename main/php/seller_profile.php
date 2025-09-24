@@ -96,7 +96,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['verify_otp'])) {
     } else {
         // Handle image upload
         if (!empty($_FILES["profile_image"]["name"])) {
-            $targetDir = "Uploads/";
+            $targetDir = "uploads/";
             if (!is_dir($targetDir)) {
                 mkdir($targetDir, 0777, true);
             }
@@ -192,7 +192,7 @@ $stats = $stats_result->fetch_assoc();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($user["seller_name"] ?: $user["fullname"]); ?> - Seller Profile</title>
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="icon" type="image/png" href="Uploads/logo1.png">
+    <link rel="icon" type="image/png" href="uploads/logo1.png">
     <link rel="stylesheet" href="../../css/seller_profile.css">
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -220,10 +220,10 @@ $stats = $stats_result->fetch_assoc();
                 $current_profile = $profile_result->fetch_assoc();
                 $current_profile_image = $current_profile['profile_image'] ?? null;
                 ?>
-                <?php if(!empty($current_profile_image) && file_exists('Uploads/' . $current_profile_image)): ?>
-                    <img src="Uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
+                <?php if(!empty($current_profile_image) && file_exists('uploads/' . $current_profile_image)): ?>
+                    <img src="uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
                 <?php else: ?>
-                    <img src="Uploads/default-avatar.svg" alt="Profile" class="profile-icon">
+                    <img src="uploads/default-avatar.svg" alt="Profile" class="profile-icon">
                 <?php endif; ?>
             </a>
             <a href="seller_dashboard.php" style="color: #44D62C; text-decoration: none; font-weight: bold;">Dashboard</a>
@@ -249,9 +249,9 @@ $stats = $stats_result->fetch_assoc();
             <div class="seller-info">
                 <div>
                     <?php if (!empty($user["profile_image"])): ?>
-                        <img src="Uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Seller Avatar" class="seller-avatar">
+                        <img src="uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Seller Avatar" class="seller-avatar">
                     <?php else: ?>
-                        <img src="Uploads/default-avatar.svg" alt="Default Avatar" class="seller-avatar">
+                        <img src="uploads/default-avatar.svg" alt="Default Avatar" class="seller-avatar">
                     <?php endif; ?>
                 </div>
                 <div class="seller-details">

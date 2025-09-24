@@ -30,7 +30,7 @@ if (isset($_POST['add_to_cart'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meta Shark - Gaming</title>
   <link rel="stylesheet" href="fonts/fonts.css">
-  <link rel="icon" type="image/png" href="Uploads/logo1.png">
+  <link rel="icon" type="image/png" href="uploads/logo1.png">
   <link rel="stylesheet" href="../../css/gaming.css">
   <style>
     .cart-notification {

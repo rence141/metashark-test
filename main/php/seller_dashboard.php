@@ -99,7 +99,7 @@ if (isset($_SESSION['user_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seller Dashboard - MetaAccessories</title>
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="icon" type="image/png" href="Uploads/logo1.png">
+    <link rel="icon" type="image/png" href="uploads/logo1.png">
     <link rel="stylesheet" href="../../css/seller_dashboard.css">
     <?php include('theme_toggle.php'); ?>
     <script>
@@ -165,10 +165,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
                 $current_profile = $profile_result->fetch_assoc();
                 $current_profile_image = $current_profile['profile_image'] ?? null;
                 ?>
-                <?php if(!empty($current_profile_image) && file_exists('Uploads/' . $current_profile_image)): ?>
-                    <img src="Uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
+                <?php if(!empty($current_profile_image) && file_exists('uploads/' . $current_profile_image)): ?>
+                    <img src="uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
                 <?php else: ?>
-                    <img src="Uploads/default-avatar.svg" alt="Profile" class="profile-icon">
+                    <img src="uploads/default-avatar.svg" alt="Profile" class="profile-icon">
                 <?php endif; ?>
             </a>
             <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">

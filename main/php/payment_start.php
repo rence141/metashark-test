@@ -32,5 +32,3 @@ $_SESSION['pending_payment_total'] = $order['total'];
 header("Location: payment_mock.php");
 exit();
 ?>
-
-
