@@ -1617,7 +1617,7 @@ a .profile-icon {
 
   /*Laptop Category Card */
   .category-card[data-category="laptop"] {
-      background: url('../main/php/uploads/laptop-scaled.jpg') no-repeat center center;
+      background: url('../main/php/uploads/Laptop-scaled.jpg') no-repeat center center;
       background-size: cover;
       position: relative;
       overflow: hidden; 
