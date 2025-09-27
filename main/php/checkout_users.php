@@ -29,6 +29,18 @@ include("db.php");
 include_once("email.php");
 $user_id = $_SESSION['user_id'];
 
+// Fetch available vouchers for dropdown
+$available_vouchers = [];
+$voucher_list_query = "SELECT code FROM vouchers WHERE expiry_date > NOW() AND (max_uses IS NULL OR current_uses < max_uses) ORDER BY code";
+$voucher_list_stmt = $conn->prepare($voucher_list_query);
+if ($voucher_list_stmt) {
+    $voucher_list_stmt->execute();
+    $voucher_list_result = $voucher_list_stmt->get_result();
+    while ($v = $voucher_list_result->fetch_assoc()) {
+        $available_vouchers[] = $v['code'];
+    }
+}
+
 // Fetch user's contact number dynamically (use phone if available)
 $default_gcash_number = '';
 $gcq = $conn->prepare("SELECT phone FROM users WHERE id = ?");
@@ -112,7 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['apply_voucher']) && $_
             $voucher_message = "Voucher system not configured.";
         }
     } else {
-        $voucher_message = "Please enter a voucher code.";
+        $voucher_message = "Please select a voucher code.";
     }
 }
 
@@ -271,26 +283,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
             // Commit creation of paid order + items
             $conn->commit();
 
-            // Deduct product stock_quantity
-            if ($order_created) {
-                try {
-                    $update_stock_query = "UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?";
-                    $stock_stmt = $conn->prepare($update_stock_query);
-                    if ($stock_stmt) {
-                        foreach ($latest_items as $li) {
-                            $q = (int)$li['quantity'];
-                            $pid = (int)$li['product_id'];
-                            $stock_stmt->bind_param("iii", $q, $pid, $q);
-                            $result = $stock_stmt->execute();
-                            if ($conn->affected_rows === 0) {
-                                error_log("Stock deduction failed for product ID " . $pid . " - insufficient stock or product not found");
-                            }
-                        }
-                    }
-                } catch (Exception $e) {
-                    error_log("Stock update failed: " . $e->getMessage());
-                }
-            }
+            // Stock deduction moved to order_status.php when status updated to 'delivered'
 
             // Update voucher usage if applicable
             if (isset($_SESSION['applied_voucher'])) {
@@ -405,7 +398,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
             }
 
             // Success message
-            $order_message = $order_created ? "Order placed successfully! A confirmation email has been sent to you and your sellers. Product stock has been updated." : "Order placed successfully! (Database recording skipped - contact admin if issues). Thank you for your purchase.";
+            $order_message = $order_created ? "Order placed successfully! A confirmation email has been sent to you and your sellers. Stock will be deducted upon delivery." : "Order placed successfully! (Database recording skipped - contact admin if issues). Thank you for your purchase.";
             $order_success = true;
             unset($_SESSION['applied_voucher']);
             $cart_items = [];  // Clear after using for emails
@@ -443,76 +436,7 @@ $default_address = ''; // Default to empty since address column doesn't exist
     <link rel="stylesheet" href="../../css/checkout_users.css">
     <?php include("theme_toggle.php"); ?>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        /* Enhanced CSS for better UX */
-        .notification { 
-            transition: opacity 0.3s ease, transform 0.3s ease; 
-            position: fixed; 
-            top: 20px; 
-            right: 20px; 
-            z-index: 1000; 
-            padding: 15px; 
-            border-radius: 5px;
-            max-width: 300px;
-        }
-        .notification.show { opacity: 1; transform: translateY(0); }
-        .notification.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .notification.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .modal { 
-            display: none; 
-            position: fixed; 
-            z-index: 1001; 
-            left: 0; 
-            top: 0; 
-            width: 100%; 
-            height: 100%; 
-            background-color: rgba(0,0,0,0.5); 
-        }
-        .modal.show { display: block; }
-        .modal-content { 
-            padding: 20px; 
-            border-radius: 8px; 
-            max-width: 400px; 
-            margin: 10% auto;
-            background-color: white;
-            position: relative;
-        }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        .confirm-btn { 
-            transition: background-color 0.3s ease; 
-            background-color: #28a745; 
-            color: white; 
-            padding: 12px 24px; 
-            border: none; 
-            border-radius: 5px;
-            width: 100%;
-            font-size: 16px;
-        }
-        .confirm-btn:hover:not(:disabled) { background-color: #218838; }
-        .confirm-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
-        .voucher-group { display: flex; gap: 10px; align-items: flex-end; }
-        .apply-voucher-btn { 
-            padding: 10px 20px; 
-            background-color: #007bff; 
-            color: white; 
-            border: none; 
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .apply-voucher-btn:hover { background-color: #0056b3; }
-        .error-input { border-color: #dc3545; background-color: #f8d7da; }
-        .checkout-container { max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; gap: 20px; flex-wrap: wrap; }
-        .checkout-form, .order-summary { flex: 1; min-width: 300px; }
-        .order-summary { background-color: #f8f9fa; padding: 20px; border-radius: 8px; }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0; }
-        .summary-row.total { font-weight: bold; border-top: 1px solid #ddd; padding-top: 10px; }
-        .empty-cart { text-align: center; padding: 40px; flex: 1; }
-        .shop-btn { background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
-        .checkout-header { text-align: center; margin-bottom: 30px; width: 100%; }
-        @media (max-width: 768px) { .checkout-container { flex-direction: column; } }
-    </style>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Hamburger menu
@@ -712,8 +636,13 @@ $default_address = ''; // Default to empty since address column doesn't exist
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <div class="form-group voucher-group">
                             <div style="flex: 1;">
-                                <label for="voucher_code">Voucher Code</label>
-                                <input type="text" id="voucher_code" name="voucher_code" value="<?php echo htmlspecialchars($voucher_code); ?>" placeholder="Enter voucher code">
+                                <label for="voucher_code">Select Voucher</label>
+                                <select id="voucher_code" name="voucher_code">
+                                    <option value="">-- Choose a voucher --</option>
+                                    <?php foreach ($available_vouchers as $vcode): ?>
+                                        <option value="<?php echo htmlspecialchars($vcode); ?>" <?php echo ($vcode === $voucher_code) ? 'selected' : ''; ?>><?php echo htmlspecialchars($vcode); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <button type="submit" name="apply_voucher" class="apply-voucher-btn">Apply</button>
                         </div>

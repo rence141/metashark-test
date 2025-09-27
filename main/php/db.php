@@ -1,15 +1,17 @@
 <?php
-$host = getenv('DB_HOST') ?: 'dpg-d39duls9c44c73ar309g-a.singapore-postgres.render.com';
-$port = getenv('DB_PORT') ?: '5432';
-$dbname = getenv('DB_NAME') ?: 'metaaccesories';
-$user = getenv('DB_USER') ?: 'metaaccesories_user';
-$pass = getenv('DB_PASS') ?: '8rE5tiPpHHWkLbfvxZbUoBwdWZ9ZfjBs';
+// Database configuration
+$host = "localhost";
+$user = "root";       // change if you set a MySQL user
+$pass = "003421.!";           // change if you set a MySQL password
+$dbname = "MetaAccesories";
+$port = 3307;
 
-try {
-    $conn = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $pass);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // echo "Connected successfully";
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Create connection
+$conn = new mysqli($host, $user, $pass, $dbname, $port);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
+// echo "Connected successfully";
 ?>

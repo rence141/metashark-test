@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -215,7 +214,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
             <a href="carts_users.php" class="btn btn-secondary">My Cart</a>
             <a href="seller_profile.php" class="btn btn-secondary">Profile</a>
             <a href="seller_vouchers.php" class="btn btn-secondary">Vouchers</a>
-            <a href="seller_order_updates.php" class="btn btn-secondary">Order Updates</a>
+            <a href="order_status.php" class="btn btn-secondary">Order Status</a>
         </div>
 
         <!-- PRODUCTS SECTION -->
