@@ -554,10 +554,6 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="container">
     <h2 class="section-title">Shop by Category</h2>
     <div class="categories-grid">
-      <a href="accessories.php" class="category-card" data-category="accessories">
-        <div class="category-icon"></div>
-        <h3>Accessories</h3>
-      </a>
       <a href="phone.php" class="category-card" data-category="phones">
         <div class="category-icon"></div>
         <h3>Phones</h3>
@@ -565,6 +561,10 @@ document.addEventListener('DOMContentLoaded', function() {
       <a href="Tablets.php" class="category-card" data-category="tablet">
         <div class="category-icon"></div>
         <h3>Tablets</h3>
+      </a>
+      <a href="accessories.php" class="category-card" data-category="accessories">
+        <div class="category-icon"></div>
+        <h3>Accessories</h3>
       </a>
       <a href="laptop.php" class="category-card" data-category="laptop">
         <div class="category-icon"></div>

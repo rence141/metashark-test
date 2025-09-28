@@ -79,14 +79,14 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
     <link rel="stylesheet" href="fonts/fonts.css">
     <link rel="icon" type="image/png" href="uploads/logo1.png">
     <style>
-        body { font-family: Arial, sans-serif; background: #0a0a0a; color: #fff; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-        .card { background:#111; border:1px solid #333; border-radius:10px; padding:30px; width:100%; max-width:400px; }
+        body { font-family: Arial, sans-serif; background: #918f8fff; color: #fff; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+        .card { background: #fff; border:1px solid #faf1f1ff; border-radius:10px; padding:30px; width:100%; max-width:400px; }
         h1 { color:#44D62C; margin:0 0 10px; }
         p { color:#aaa; }
-        input { width:100%; padding:12px; border-radius:8px; border:1px solid #44D62C; background:#1a1a1a; color:#fff; margin:10px 0 20px; }
-        .btn { width:100%; padding:12px; background:#44D62C; color:#000; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
+        input { width:100%; padding:12px; border-radius:8px; border:1px solid #44D62C; background: #fff; color: #000; margin:10px 0 20px; }
+        .btn { width:100%; padding:12px; background:#44D62C; color: #fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
         .link { color:#44D62C; text-decoration:none; }
-        .msg { margin-top:10px; color:#ff7676; }
+        .msg { margin-top:10px; color: #44D62C; }
     </style>
     </head>
 <body>
