@@ -287,6 +287,18 @@ document.addEventListener('DOMContentLoaded', function() {
   addToCartForms.forEach(form => {
     form.addEventListener('submit', function(e) {
       e.preventDefault();
+      
+      // Check if user is logged in
+      const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+      if (!isLoggedIn) {
+        // Redirect to login page
+        showNotification('Please login to add items to cart', 'info');
+        setTimeout(() => {
+          window.location.href = 'login_users.php';
+        }, 1000);
+        return;
+      }
+      
       const button = form.querySelector('.add-to-cart-btn');
       const productName = button.getAttribute('data-product-name');
       button.classList.add('loading');
@@ -413,6 +425,26 @@ document.addEventListener('DOMContentLoaded', function() {
     <?php include('theme_toggle.php'); ?>
   </div>
   <div class="nav-right">
+  <?php
+  // Get unread notification count
+  $notif_count = 0;
+  if(isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+    $notif_sql = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND `read` = 0";
+    $notif_stmt = $conn->prepare($notif_sql);
+    $notif_stmt->bind_param("i", $user_id);
+    $notif_stmt->execute();
+    $notif_result = $notif_stmt->get_result();
+    if ($notif_result->num_rows > 0) {
+      $notif_data = $notif_result->fetch_assoc();
+      $notif_count = $notif_data['count'];
+    }
+  }
+  ?>
+  <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+    <span style="font-size:18px;">🔔</span>
+    <span><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
+  </a>
   <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
                 <span style="font-size:18px;">🛒</span>
                 <span>(<?php echo (int)$cart_count; ?>)</span>

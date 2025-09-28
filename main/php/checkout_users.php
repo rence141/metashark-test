@@ -306,6 +306,53 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                 $clear_stmt->bind_param("i", $user_id);
                 $clear_stmt->execute();
             }
+            
+            // Add notification for buyer
+            // Create product list for notification
+            $product_list = "";
+            foreach ($latest_items as $item) {
+                $product_id = (int)$item['product_id'];
+                $quantity = (int)$item['quantity'];
+                $product_list .= "Product #$product_id ($quantity), ";
+            }
+            $product_list = rtrim($product_list, ", ");
+            
+            $buyer_message = "Order #$order_id  $product_list successfully placed!. You will be notified when your items ship.";
+            $notification_type = "order";
+            $insert_notification = "INSERT INTO notifications (user_id, message, type, created_at, `read`) VALUES (?, ?, ?, NOW(), 0)";
+            $notif_stmt = $conn->prepare($insert_notification);
+            if ($notif_stmt) {
+                $notif_stmt->bind_param("iss", $user_id, $buyer_message, $notification_type);
+                $notif_stmt->execute();
+            }
+            
+            // For each product, notify the seller directly
+            foreach ($latest_items as $li) {
+                $product_id = (int)$li['product_id'];
+                $quantity = (int)$li['quantity'];
+                
+                // Get seller ID for this product
+                $seller_query = "SELECT p.seller_id, p.name, u.email FROM products p JOIN users u ON p.seller_id = u.id WHERE p.id = ?";
+                $seller_stmt = $conn->prepare($seller_query);
+                if ($seller_stmt) {
+                    $seller_stmt->bind_param("i", $product_id);
+                    $seller_stmt->execute();
+                    $seller_result = $seller_stmt->get_result();
+                    if ($seller_row = $seller_result->fetch_assoc()) {
+                        $seller_id = (int)$seller_row['seller_id'];
+                        $product_name = $seller_row['name'];
+                        
+                        // Add notification for seller
+                        $seller_message = "New order #$order_id received for $quantity item(s) of '$product_name'. Please prepare for shipment.";
+                        $seller_notification_sql = "INSERT INTO notifications (user_id, message, type, created_at, `read`) VALUES (?, ?, 'order', NOW(), 0)";
+                        $seller_notification_stmt = $conn->prepare($seller_notification_sql);
+                        if ($seller_notification_stmt) {
+                            $seller_notification_stmt->bind_param("is", $seller_id, $seller_message);
+                            $seller_notification_stmt->execute();
+                        }
+                    }
+                }
+            }
 
             // Prepare cart items for notifications (fetch seller info separately)
             $items_with_sellers = $cart_items;
@@ -366,6 +413,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                     $body .= "\nPlease check your seller dashboard for more details.\n\n";
                     $body .= "Best regards,\nMeta Shark Team";
                     @send_email($email, $subject, $body);
+                    
+                    // Add in-app notification for seller
+                    $seller_id = 0;
+                    $seller_query = "SELECT id FROM users WHERE email = ?";
+                    $seller_stmt = $conn->prepare($seller_query);
+                    if ($seller_stmt) {
+                        $seller_stmt->bind_param("s", $email);
+                        $seller_stmt->execute();
+                        $seller_result = $seller_stmt->get_result();
+                        if ($seller_result->num_rows > 0) {
+                            $seller = $seller_result->fetch_assoc();
+                            $seller_id = $seller['id'];
+                        }
+                    }
+                    
+                    if ($seller_id > 0) {
+                        $notification_message = "New order #" . $order_id . " requires shipment. " . count($order_data['items']) . " item(s) ordered.";
+                        $notification_type = "order";
+                        $insert_notification = "INSERT INTO notifications (user_id, message, type, created_at, `read`) VALUES (?, ?, ?, NOW(), 0)";
+                        $notif_stmt = $conn->prepare($insert_notification);
+                        if ($notif_stmt) {
+                            $notif_stmt->bind_param("iss", $seller_id, $notification_message, $notification_type);
+                            $notif_stmt->execute();
+                        }
+                    }
                 }
             }
 

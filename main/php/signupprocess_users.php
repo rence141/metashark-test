@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION["email"] = $email;
         
         // Redirect to main page (user is now logged in)
-        header("Location: shop.php");
+        header("Location: login_users.php");
         exit();
     } else {
         die("<p style='color:red;'>Error: Could not register user. <a href='signup_users.php'>Try again</a></p>");
