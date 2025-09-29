@@ -93,14 +93,14 @@ if (isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
   <style>
-    .chat-widget {
+  .chat-widget {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: #050505ff; /* Bootstrap blue */
+  background: #050505ff;
   border-radius: 50%;
-  width: 70px;   /* large bubble */
-  height: 70px;  /* large bubble */
+  width: 70px;
+  height: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,6 +108,7 @@ if (isset($_SESSION['user_id'])) {
   transition: transform 0.2s ease-in-out, background 0.2s;
   z-index: 1000;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .chat-widget:hover {
@@ -116,13 +117,13 @@ if (isset($_SESSION['user_id'])) {
 }
 
 .chat-icon {
-  font-size: 36px;  /* big icon */
-  color: white;     /* white icon */
+  font-size: 36px;
+  color: white;
 }
 
 /* AI Chatbot bubble (above the main chat) */
 .chat-widget.ai {
-  bottom: 100px; /* pushes it above the normal chat bubble */
+  bottom: 100px;
   background: #000000ff;
 }
 .chat-widget.ai:hover {
@@ -134,8 +135,8 @@ if (isset($_SESSION['user_id'])) {
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: 320px;
-  height: 420px;
+  width: 400px; /* Increased from 320px */
+  height: 500px; /* Increased from 420px */
   background: #fff;
   border: 1px solid #ccc;
   border-radius: 10px;
@@ -144,6 +145,12 @@ if (isset($_SESSION['user_id'])) {
   flex-direction: column;
   overflow: hidden;
   z-index: 1100;
+  visibility: hidden; /* Extra for safety */
+}
+
+.ai-chat-modal.show {
+  display: flex;
+  visibility: visible;
 }
 
 /* Header */
@@ -175,6 +182,7 @@ if (isset($_SESSION['user_id'])) {
   padding: 8px 12px;
   border-radius: 6px;
   max-width: 80%;
+  word-wrap: break-word;
 }
 .ai-chat-messages .message.bot {
   background: #e2e6ea;
@@ -196,6 +204,7 @@ if (isset($_SESSION['user_id'])) {
   flex: 1;
   padding: 10px;
   border: none;
+  outline: none;
 }
 .ai-chat-form button {
   background: #48f514ff;
@@ -207,295 +216,315 @@ if (isset($_SESSION['user_id'])) {
 .ai-chat-form button:hover {
   background: #13e60fff;
 }
-
-  </style>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const carousel = document.querySelector('.carousel-slides');
-  const prevBtn = document.querySelector('.carousel-prev');
-  const nextBtn = document.querySelector('.carousel-next');
-  let currentIndex = 0;
-  const slides = document.querySelectorAll('.carousel-slide');
-  const totalSlides = slides.length;
-
-  function showSlide(index) {
-    if (index >= totalSlides) {
-      currentIndex = 0;
-    } else if (index < 0) {
-      currentIndex = totalSlides - 1;
-    } else {
-      currentIndex = index;
+    /* Notification styles (if not in CSS) */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      border-radius: 5px;
+      color: white;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
     }
-    carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
-  }
+    .notification.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .notification.success { background: #28a745; }
+    .notification.error { background: #dc3545; }
+    .notification.info { background: #17a2b8; }
+  </style>
+  <script src="https://js.puter.com/v2/"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const carousel = document.querySelector('.carousel-slides');
+      const prevBtn = document.querySelector('.carousel-prev');
+      const nextBtn = document.querySelector('.carousel-next');
+      let currentIndex = 0;
+      const slides = document.querySelectorAll('.carousel-slide');
+      const totalSlides = slides.length;
 
-  prevBtn.addEventListener('click', () => {
-    showSlide(currentIndex - 1);
-  });
-
-  nextBtn.addEventListener('click', () => {
-    showSlide(currentIndex + 1);
-  });
-
-  // Optional: Auto-slide every 5 seconds
-  setInterval(() => {
-    showSlide(currentIndex + 1);
-  }, 5000);
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-  // Theme toggle functionality
-  const theme = '<?php echo $theme; ?>';
-  document.documentElement.setAttribute('data-theme', theme);
-  updateThemeToggleButton();
-  // Handle loading screen
-  const loadingScreen = document.querySelector('.loading-screen');
-  if (loadingScreen.classList.contains('active')) {
-    setTimeout(() => {
-      loadingScreen.classList.remove('active');
-    }, 2000);
-  }
-  // Toggle Hamburger Menu
-  const hamburger = document.querySelector('.hamburger');
-  const menu = document.getElementById('menu');
-  if (hamburger && menu) {
-    hamburger.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      menu.classList.toggle('show');
-    });
-    document.addEventListener('click', function(e) {
-      if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
-        menu.classList.remove('show');
-      }
-    });
-    const menuItems = menu.querySelectorAll('a');
-    menuItems.forEach(item => {
-      item.addEventListener('click', function() {
-        menu.classList.remove('show');
-      });
-    });
-  }
-  // Search & Filter
-  const searchInput = document.getElementById('searchInput');
-  const categorySelect = document.getElementById('categorySelect');
-  const productCards = document.querySelectorAll('.product-card');
-  function filterProducts() {
-    const searchText = searchInput.value.toLowerCase();
-    const category = categorySelect.value;
-    productCards.forEach(card => {
-      const title = card.querySelector('h3').textContent.toLowerCase();
-      const matchesSearch = title.includes(searchText);
-      const matchesCategory = category === 'all' || card.dataset.category === category;
-      card.style.display = matchesSearch && matchesCategory ? 'block' : 'none';
-    });
-  }
-  if (searchInput) {
-    searchInput.addEventListener('input', filterProducts);
-  }
-  if (categorySelect) {
-    categorySelect.addEventListener('change', filterProducts);
-  }
-  // Category card click functionality
-  const categoryCards = document.querySelectorAll('.category-card');
-  categoryCards.forEach(card => {
-    card.addEventListener('click', function(e) {
-      e.preventDefault();
-      const category = this.dataset.category;
-      if (categorySelect) {
-        categorySelect.value = category;
-        filterProducts();
-        window.location.href = this.href;
-      }
-    });
-  });
-  // Product Popup Advertisement
-  const productPopup = document.getElementById('productPopup');
-  const popupOverlay = document.getElementById('popupOverlay');
-  const popupClose = document.getElementById('popupClose');
-  const popupImage = document.getElementById('popupImage');
-  const popupName = document.getElementById('popupName');
-  const popupPrice = document.getElementById('popupPrice');
-  const popupDescription = document.getElementById('popupDescription');
-  const popupViewBtn = document.getElementById('popupViewBtn');
-  const popupAddBtn = document.getElementById('popupAddBtn');
-  function getAllProducts() {
-    const products = [];
-    productCards.forEach(card => {
-      const product = {
-        name: card.querySelector('h3').textContent,
-        price: card.querySelector('.price').textContent,
-        image: card.querySelector('img').src,
-        category: card.dataset.category,
-        productId: card.querySelector('.add-to-cart-form') ?
-                  card.querySelector('.add-to-cart-form').dataset.productId : null
-      };
-      products.push(product);
-    });
-    return products;
-  }
-  function getRandomProduct() {
-    const products = getAllProducts();
-    if (products.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * products.length);
-    return products[randomIndex];
-  }
-  function showProductPopup(product) {
-    if (!product) return;
-    popupImage.src = product.image;
-    popupName.textContent = product.name;
-    popupPrice.textContent = product.price;
-    popupViewBtn.onclick = function() {
-      productCards.forEach(card => {
-        if (card.querySelector('h3').textContent === product.name) {
-          card.scrollIntoView({ behavior: 'smooth' });
-          closePopup();
-        }
-      });
-    };
-    popupAddBtn.onclick = function() {
-      if (product.productId) {
-        const form = document.querySelector(`.add-to-cart-form[data-product-id="${product.productId}"]`);
-        if (form) {
-          form.submit();
-          closePopup();
+      function showSlide(index) {
+        if (index >= totalSlides) {
+          currentIndex = 0;
+        } else if (index < 0) {
+          currentIndex = totalSlides - 1;
         } else {
-          alert('Please login to add items to cart!');
-          closePopup();
+          currentIndex = index;
         }
-      } else {
-        alert('Please login to add items to cart!');
-        closePopup();
+        carousel.style.transform = `translateX(-${currentIndex * 100}%)`;
       }
-    };
-    popupOverlay.classList.add('show');
-    productPopup.classList.add('show');
-  }
-  function closePopup() {
-    popupOverlay.classList.remove('show');
-    productPopup.classList.remove('show');
-  }
-  if (popupClose) {
-    popupClose.addEventListener('click', closePopup);
-  }
-  if (popupOverlay) {
-    popupOverlay.addEventListener('click', closePopup);
-  }
-  function showRandomProductPopup() {
-    const randomProduct = getRandomProduct();
-    if (randomProduct) {
-      const lastPopupTime = sessionStorage.getItem('lastPopupTime');
-      const currentTime = new Date().getTime();
-      if (!lastPopupTime || (currentTime - parseInt(lastPopupTime)) > 30 * 60 * 1000) {
+
+      prevBtn.addEventListener('click', () => {
+        showSlide(currentIndex - 1);
+      });
+
+      nextBtn.addEventListener('click', () => {
+        showSlide(currentIndex + 1);
+      });
+
+      // Optional: Auto-slide every 5 seconds
+      setInterval(() => {
+        showSlide(currentIndex + 1);
+      }, 5000);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Theme toggle functionality
+      const theme = '<?php echo $theme; ?>';
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeToggleButton();
+      // Handle loading screen
+      const loadingScreen = document.querySelector('.loading-screen');
+      if (loadingScreen && loadingScreen.classList.contains('active')) {
         setTimeout(() => {
-          showProductPopup(randomProduct);
-          sessionStorage.setItem('lastPopupTime', currentTime.toString());
+          loadingScreen.classList.remove('active');
+        }, 2000);
+      }
+      // Toggle Hamburger Menu
+      const hamburger = document.querySelector('.hamburger');
+      const menu = document.getElementById('menu');
+      if (hamburger && menu) {
+        hamburger.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          menu.classList.toggle('show');
+        });
+        document.addEventListener('click', function(e) {
+          if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.remove('show');
+          }
+        });
+        const menuItems = menu.querySelectorAll('a');
+        menuItems.forEach(item => {
+          item.addEventListener('click', function() {
+            menu.classList.remove('show');
+          });
+        });
+      }
+      // Search & Filter
+      const searchInput = document.getElementById('searchInput');
+      const categorySelect = document.getElementById('categorySelect');
+      const productCards = document.querySelectorAll('.product-card');
+      function filterProducts() {
+        const searchText = searchInput ? searchInput.value.toLowerCase() : '';
+        const category = categorySelect ? categorySelect.value : 'all';
+        productCards.forEach(card => {
+          const title = card.querySelector('h3').textContent.toLowerCase();
+          const matchesSearch = title.includes(searchText);
+          const matchesCategory = category === 'all' || card.dataset.category === category;
+          card.style.display = matchesSearch && matchesCategory ? 'block' : 'none';
+        });
+      }
+      if (searchInput) {
+        searchInput.addEventListener('input', filterProducts);
+      }
+      if (categorySelect) {
+        categorySelect.addEventListener('change', filterProducts);
+      }
+      // Category card click functionality
+      const categoryCards = document.querySelectorAll('.category-card');
+      categoryCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+          e.preventDefault();
+          const category = this.dataset.category;
+          if (categorySelect) {
+            categorySelect.value = category;
+            filterProducts();
+            window.location.href = this.href;
+          }
+        });
+      });
+      // Product Popup Advertisement
+      const productPopup = document.getElementById('productPopup');
+      const popupOverlay = document.getElementById('popupOverlay');
+      const popupClose = document.getElementById('popupClose');
+      const popupImage = document.getElementById('popupImage');
+      const popupName = document.getElementById('popupName');
+      const popupPrice = document.getElementById('popupPrice');
+      const popupDescription = document.getElementById('popupDescription');
+      const popupViewBtn = document.getElementById('popupViewBtn');
+      const popupAddBtn = document.getElementById('popupAddBtn');
+      function getAllProducts() {
+        const products = [];
+        productCards.forEach(card => {
+          const product = {
+            name: card.querySelector('h3').textContent,
+            price: card.querySelector('.price').textContent,
+            image: card.querySelector('img').src,
+            category: card.dataset.category,
+            productId: card.querySelector('.add-to-cart-form') ?
+                      card.querySelector('.add-to-cart-form').dataset.productId : null
+          };
+          products.push(product);
+        });
+        return products;
+      }
+      function getRandomProduct() {
+        const products = getAllProducts();
+        if (products.length === 0) return null;
+        const randomIndex = Math.floor(Math.random() * products.length);
+        return products[randomIndex];
+      }
+      function showProductPopup(product) {
+        if (!product) return;
+        popupImage.src = product.image;
+        popupName.textContent = product.name;
+        popupPrice.textContent = product.price;
+        popupViewBtn.onclick = function() {
+          productCards.forEach(card => {
+            if (card.querySelector('h3').textContent === product.name) {
+              card.scrollIntoView({ behavior: 'smooth' });
+              closePopup();
+            }
+          });
+        };
+        popupAddBtn.onclick = function() {
+          if (product.productId) {
+            const form = document.querySelector(`.add-to-cart-form[data-product-id="${product.productId}"]`);
+            if (form) {
+              form.submit();
+              closePopup();
+            } else {
+              alert('Please login to add items to cart!');
+              closePopup();
+            }
+          } else {
+            alert('Please login to add items to cart!');
+            closePopup();
+          }
+        };
+        popupOverlay.classList.add('show');
+        productPopup.classList.add('show');
+      }
+      function closePopup() {
+        popupOverlay.classList.remove('show');
+        productPopup.classList.remove('show');
+      }
+      if (popupClose) {
+        popupClose.addEventListener('click', closePopup);
+      }
+      if (popupOverlay) {
+        popupOverlay.addEventListener('click', closePopup);
+      }
+      function showRandomProductPopup() {
+        const randomProduct = getRandomProduct();
+        if (randomProduct) {
+          const lastPopupTime = sessionStorage.getItem('lastPopupTime');
+          const currentTime = new Date().getTime();
+          if (!lastPopupTime || (currentTime - parseInt(lastPopupTime)) > 30 * 60 * 1000) {
+            setTimeout(() => {
+              showProductPopup(randomProduct);
+              sessionStorage.setItem('lastPopupTime', currentTime.toString());
+            }, 3000);
+          }
+        }
+      }
+      <?php if (isset($just_logged_in) && $just_logged_in): ?>
+        setTimeout(() => {
+          showRandomProductPopup();
+        }, 3500);
+      <?php else: ?>
+        showRandomProductPopup();
+      <?php endif; ?>
+      // Enhanced Add to Cart functionality
+      const addToCartForms = document.querySelectorAll('.add-to-cart-form');
+      addToCartForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          // Check if user is logged in
+          const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+          if (!isLoggedIn) {
+            // Redirect to login page
+            showNotification('Please login to add items to cart', 'info');
+            setTimeout(() => {
+              window.location.href = 'login_users.php';
+            }, 1000);
+            return;
+          }
+          
+          const button = form.querySelector('.add-to-cart-btn');
+          const productName = button.getAttribute('data-product-name');
+          button.classList.add('loading');
+          button.disabled = true;
+          showNotification(`Adding ${productName} to cart...`, 'info');
+          // Submit form via AJAX
+          const formData = new FormData(form);
+          fetch(form.action, {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.text())
+          .then(() => {
+            button.classList.remove('loading');
+            button.disabled = false;
+            showNotification(`${productName} added to cart!`, 'success');
+            // Update cart count
+            const cartCount = document.getElementById('cartCount');
+            if (cartCount) {
+              const currentCount = parseInt(cartCount.textContent) || 0;
+              cartCount.textContent = currentCount + 1;
+              cartCount.classList.add('updated');
+              setTimeout(() => {
+                cartCount.classList.remove('updated');
+              }, 600);
+            }
+          })
+          .catch(() => {
+            button.classList.remove('loading');
+            button.disabled = false;
+            showNotification('Failed to add to cart. Please try again.', 'error');
+          });
+        });
+      });
+      // Notification function
+      function showNotification(message, type = 'success') {
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notif => notif.remove());
+        const notification = document.createElement('div');
+        notification.className = `notification ${type} show`;
+        notification.innerHTML = `${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}`;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+          notification.classList.remove('show');
+          setTimeout(() => {
+            notification.remove();
+          }, 300);
         }, 3000);
       }
-    }
-  }
-  <?php if (isset($just_logged_in) && $just_logged_in): ?>
-    setTimeout(() => {
-      showRandomProductPopup();
-    }, 3500);
-  <?php else: ?>
-    showRandomProductPopup();
-  <?php endif; ?>
-  // Enhanced Add to Cart functionality
-  const addToCartForms = document.querySelectorAll('.add-to-cart-form');
-  addToCartForms.forEach(form => {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      // Check if user is logged in
-      const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
-      if (!isLoggedIn) {
-        // Redirect to login page
-        showNotification('Please login to add items to cart', 'info');
+      // Auto-hide existing notification
+      const notification = document.getElementById('cartNotification');
+      if (notification) {
         setTimeout(() => {
-          window.location.href = 'login_users.php';
-        }, 1000);
-        return;
-      }
-      
-      const button = form.querySelector('.add-to-cart-btn');
-      const productName = button.getAttribute('data-product-name');
-      button.classList.add('loading');
-      button.disabled = true;
-      showNotification(`Adding ${productName} to cart...`, 'info');
-      // Submit form via AJAX
-      const formData = new FormData(form);
-      fetch(form.action, {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.text())
-      .then(() => {
-        button.classList.remove('loading');
-        button.disabled = false;
-        showNotification(`${productName} added to cart!`, 'success');
-        // Update cart count
-        const cartCount = document.getElementById('cartCount');
-        if (cartCount) {
-          const currentCount = parseInt(cartCount.textContent) || 0;
-          cartCount.textContent = currentCount + 1;
-          cartCount.classList.add('updated');
+          notification.classList.remove('show');
           setTimeout(() => {
-            cartCount.classList.remove('updated');
-          }, 600);
+            notification.remove();
+          }, 300);
+        }, 3000);
+      }
+      // Theme toggle functionality
+      function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        updateThemeToggleButton();
+        fetch(`?theme=${newTheme}`);
+      }
+      function updateThemeToggleButton() {
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        if (themeIcon && themeText) {
+          themeIcon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+          themeText.textContent = currentTheme === 'light' ? 'Dark' : 'Light';
         }
-      })
-      .catch(() => {
-        button.classList.remove('loading');
-        button.disabled = false;
-        showNotification('Failed to add to cart. Please try again.', 'error');
-      });
+      }
     });
-  });
-  // Notification function
-  function showNotification(message, type = 'success') {
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notif => notif.remove());
-    const notification = document.createElement('div');
-    notification.className = `notification ${type} show`;
-    notification.innerHTML = `${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}`;
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      notification.classList.remove('show');
-      setTimeout(() => {
-        notification.remove();
-      }, 300);
-    }, 3000);
-  }
-  // Auto-hide existing notification
-  const notification = document.getElementById('cartNotification');
-  if (notification) {
-    setTimeout(() => {
-      notification.classList.remove('show');
-      setTimeout(() => {
-        notification.remove();
-      }, 300);
-    }, 3000);
-  }
-  // Theme toggle functionality
-  function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    updateThemeToggleButton();
-    fetch(`?theme=${newTheme}`);
-  }
-  function updateThemeToggleButton() {
-    const themeIcon = document.getElementById('themeIcon');
-    const themeText = document.getElementById('themeText');
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    if (themeIcon && themeText) {
-      themeIcon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
-      themeText.textContent = currentTheme === 'light' ? 'Dark' : 'Light';
-    }
-  }
-});
-</script>
+  </script>
 </head>
 <body>
 <!-- Loading Screen -->
@@ -532,42 +561,43 @@ document.addEventListener('DOMContentLoaded', function() {
     <img src="uploads/logo1.png" alt="Meta Shark Logo" class="logo">
     <h2>Meta Shark</h2>
     <div class="theme-toggle" id="themeToggle">
-    <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
         <span class="theme-icon" id="themeIcon">
-            <?php echo $theme === 'light' ? '🌙' : '☀️'; ?>
+          <?php echo $theme === 'light' ? '🌙' : '☀️'; ?>
         </span>
         <span class="theme-text" id="themeText">
-            <?php echo $theme === 'light' ? 'Dark' : 'Light'; ?>
+          <?php echo $theme === 'light' ? 'Dark' : 'Light'; ?>
         </span>
-    </button>
-</div>
+      </button>
+    </div>
     <?php include('theme_toggle.php'); ?>
   </div>
   <div class="nav-right">
-  <?php
-  // Get unread notification count
-  $notif_count = 0;
-  if(isset($_SESSION['user_id'])) {
-    $user_id = $_SESSION['user_id'];
-    $notif_sql = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND `read` = 0";
-    $notif_stmt = $conn->prepare($notif_sql);
-    $notif_stmt->bind_param("i", $user_id);
-    $notif_stmt->execute();
-    $notif_result = $notif_stmt->get_result();
-    if ($notif_result->num_rows > 0) {
-      $notif_data = $notif_result->fetch_assoc();
-      $notif_count = $notif_data['count'];
+    <?php
+    // Get unread notification count
+    $notif_count = 0;
+    if(isset($_SESSION['user_id'])) {
+      include("db.php");
+      $user_id = $_SESSION['user_id'];
+      $notif_sql = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND `read` = 0";
+      $notif_stmt = $conn->prepare($notif_sql);
+      $notif_stmt->bind_param("i", $user_id);
+      $notif_stmt->execute();
+      $notif_result = $notif_stmt->get_result();
+      if ($notif_result->num_rows > 0) {
+        $notif_data = $notif_result->fetch_assoc();
+        $notif_count = $notif_data['count'];
+      }
     }
-  }
-  ?>
-  <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-    <span style="font-size:18px;">🔔</span>
-    <span><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
-  </a>
-  <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-                <span style="font-size:18px;">🛒</span>
-                <span>(<?php echo (int)$cart_count; ?>)</span>
-            </a>
+    ?>
+    <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+      <span style="font-size:18px;">🔔</span>
+      <span><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
+    </a>
+    <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+      <span style="font-size:18px;">🛒</span>
+      <span>(<?php echo (int)$cart_count; ?>)</span>
+    </a>
     <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
       <?php
       $user_role = $_SESSION['role'] ?? 'buyer';
@@ -630,11 +660,10 @@ document.addEventListener('DOMContentLoaded', function() {
     <source src="../../mp4/bateo.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
-    <img src="uploads/logo1.png" alt="Meta Shark Logo" class="video-logo">
-  </a>
+  <img src="uploads/logo1.png" alt="Meta Shark Logo" class="video-logo">
 </div>
 <!-- Features Section -->
-</div><div class="features-section">
+<div class="features-section">
   <div class="container">
     <h2 class="section-title">Why Choose Meta Shark?</h2>
     <div class="features-grid">
@@ -703,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="carousel-slide"></div>
       <div class="carousel-slide"></div>
       <div class="carousel-slide"></div>
-        <div class="carousel-slide"></div>
+      <div class="carousel-slide"></div>
     </div>
     <div class="carousel-nav">
       <button class="carousel-prev">&#10094;</button>
@@ -835,9 +864,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 </script>
-  </div>
-</div>
-
 
 <!-- AI Chatbot Widget -->
 <a href="javascript:void(0)" onclick="openAiChat()" class="chat-widget ai" title="Chat with AI">
@@ -849,7 +875,7 @@ document.addEventListener("DOMContentLoaded", () => {
     <button onclick="closeAiChat()">×</button>
   </div>
   <div class="ai-chat-messages" id="aiChatMessages">
-    <div class="message bot">Hello! How can I help you today?</div>
+    <div class="message bot">Hello I'm metashark Staff how can I help you?</div>
   </div>
   <form id="aiChatForm" class="ai-chat-form">
     <input type="text" id="aiChatInput" placeholder="Type your question..." required>
@@ -865,17 +891,31 @@ document.addEventListener("DOMContentLoaded", () => {
 let currentUserId = <?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0; ?>; // PHP-injected user ID
 
 function openAiChat() {
-  document.getElementById("aiChatModal").style.display = "flex";
-  loadChatHistory(); // Fetch and display history
+  console.log('Opening AI Chat...'); // Debug log
+  const modal = document.getElementById("aiChatModal");
+  if (modal) {
+    modal.classList.add('show');
+    console.log('Modal opened'); // Debug log
+    loadChatHistory(); // Load history (non-blocking now)
+  } else {
+    console.error('Modal element not found!'); // Debug log
+  }
 }
 
 function closeAiChat() {
-  document.getElementById("aiChatModal").style.display = "none";
+  console.log('Closing AI Chat...'); // Debug log
+  const modal = document.getElementById("aiChatModal");
+  if (modal) {
+    modal.classList.remove('show');
+  }
 }
 
-// Load history from server
+// Load history from server (non-blocking)
 async function loadChatHistory() {
-  if (!currentUserId) return; // No user, no history
+  if (!currentUserId) {
+    console.log('No user ID, skipping history load'); // Debug
+    return;
+  }
 
   try {
     const response = await fetch("ai_chat_handler.php", {
@@ -884,84 +924,95 @@ async function loadChatHistory() {
       body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 20 })
     });
     const data = await response.json();
+    console.log('History loaded:', data); // Debug
 
     const messagesDiv = document.getElementById("aiChatMessages");
-    messagesDiv.innerHTML = ""; // Clear
+    if (messagesDiv) {
+      messagesDiv.innerHTML = ""; // Clear
 
-    if (data.history && data.history.length > 0) {
-      data.history.forEach(msg => {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = `message ${msg.role}`;
-        msgDiv.textContent = (msg.role === 'ai' ? ' ' : '') + msg.message;
-        messagesDiv.appendChild(msgDiv);
-      });
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    } else {
-      const welcome = document.createElement("div");
-      welcome.className = "message bot";
-      welcome.textContent = "Hello! How can I help you today?";
-      messagesDiv.appendChild(welcome);
+      if (data.history && data.history.length > 0) {
+        data.history.forEach(msg => {
+          const msgDiv = document.createElement("div");
+          msgDiv.className = `message ${msg.role}`;
+          msgDiv.textContent = (msg.role === 'ai' ? ' ' : '') + msg.message;
+          messagesDiv.appendChild(msgDiv);
+        });
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      } else {
+        const welcome = document.createElement("div");
+        welcome.className = "message bot";
+        welcome.textContent = "Hello I'm metashark Staff how can I help you?";
+        messagesDiv.appendChild(welcome);
+      }
     }
   } catch (error) {
     console.error("Load History Error:", error);
-    // Fallback to welcome message
+    // Fallback to welcome message without failing modal
     const messagesDiv = document.getElementById("aiChatMessages");
-    messagesDiv.innerHTML = '<div class="message bot">Hello! How can I help you today?</div>';
+    if (messagesDiv) {
+      messagesDiv.innerHTML = '<div class="message bot">Hello I`m metashark Staff how can I help you?</div>';
+    }
   }
 }
 
 // Handle sending messages
-document.getElementById("aiChatForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  
-  if (!currentUserId) {
-    alert("Please log in to chat.");
-    return;
-  }
+document.addEventListener('DOMContentLoaded', function() {
+  const aiChatForm = document.getElementById("aiChatForm");
+  if (aiChatForm) {
+    aiChatForm.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      
+      if (!currentUserId) {
+        alert("Please log in to chat.");
+        return;
+      }
 
-  const input = document.getElementById("aiChatInput");
-  const message = input.value.trim();
-  if (!message) return;
+      const input = document.getElementById("aiChatInput");
+      const message = input.value.trim();
+      if (!message) return;
 
-  const messagesDiv = document.getElementById("aiChatMessages");
+      const messagesDiv = document.getElementById("aiChatMessages");
 
-  // Add user message to UI and save to DB
-  const userMsg = document.createElement("div");
-  userMsg.className = "message user";
-  userMsg.textContent = message;
-  messagesDiv.appendChild(userMsg);
-  input.value = "";
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      // Add user message to UI and save to DB
+      const userMsg = document.createElement("div");
+      userMsg.className = "message user";
+      userMsg.textContent = message;
+      messagesDiv.appendChild(userMsg);
+      input.value = "";
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-  saveMessage(currentUserId, 'user', message); // Save user msg
+      saveMessage(currentUserId, 'user', message); // Save user msg
 
-  // Add temporary "thinking" message
-  const botMsg = document.createElement("div");
-  botMsg.className = "message bot";
-  botMsg.textContent = "Thinking...";
-  messagesDiv.appendChild(botMsg);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      // Add temporary "thinking" message
+      const botMsg = document.createElement("div");
+      botMsg.className = "message bot";
+      botMsg.textContent = "Thinking...";
+      messagesDiv.appendChild(botMsg);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-  try {
-    // Get AI response (your existing aiChat-bot.php)
-    const aiResponse = await fetch("aiChat-bot.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: message })
+      try {
+        // System prompt
+        const systemPrompt = "You are a professional staff member of Meta Shark. Keep responses concise, informative, and relevant to shopping, gaming, or site queries. Do not use emojis.";
+        const fullPrompt = `${systemPrompt}\n\nUser: ${message}`;
+
+        // Use Puter.js for AI response (DeepSeek Chat)
+        const aiResponse = await puter.ai.chat(fullPrompt, {
+          model: 'deepseek-chat'
+        });
+
+        // Update UI with AI reply
+        botMsg.textContent = " " + (aiResponse.message?.content || "Sorry, I couldn’t understand that.");
+
+        // Save AI response to DB
+        saveMessage(currentUserId, 'ai', aiResponse.message?.content || "No response received.");
+      } catch (error) {
+        botMsg.textContent = " Error connecting to AI. Please try again.";
+        console.error("AI Chat Error:", error);
+      }
+
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
-    const aiData = await aiResponse.json();
-
-    // Update UI with AI reply
-    botMsg.textContent = " " + (aiData.reply || "Sorry, I couldn’t understand that.");
-
-    // Save AI response to DB
-    saveMessage(currentUserId, 'ai', aiData.reply);
-  } catch (error) {
-    botMsg.textContent = " Error connecting to AI.";
-    console.error("AI Chat Error:", error);
   }
-
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 });
 
 // Save single message to server
@@ -972,17 +1023,16 @@ async function saveMessage(userId, role, message) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "save_message", user_id: userId, role: role, message: message })
     });
+    console.log('Message saved:', role); // Debug
   } catch (error) {
     console.error("Save Message Error:", error);
   }
 }
 </script>
 
-
 <footer>
-    <div class="footer-bottom">
-      <p>&copy; <?php echo date("Y"); ?> Meta Shark. All rights reserved.</p>
-    </div>
+  <div class="footer-bottom">
+    <p>&copy; <?php echo date("Y"); ?> Meta Shark. All rights reserved.</p>
   </div>
 </footer>
 
