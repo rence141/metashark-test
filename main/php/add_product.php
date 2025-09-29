@@ -98,6 +98,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                 }
 
+                // Insert optional specs
+                if (!empty($_POST['spec_name']) && !empty($_POST['spec_value'])) {
+                    $spec_names = $_POST['spec_name'];
+                    $spec_values = $_POST['spec_value'];
+                    
+                    for ($i = 0; $i < count($spec_names); $i++) {
+                        $spec_name = trim($spec_names[$i]);
+                        $spec_value = trim($spec_values[$i]);
+                        if (!empty($spec_name) && !empty($spec_value)) {
+                            $spec_stmt = $conn->prepare("INSERT INTO product_specs (product_id, spec_name, spec_value) VALUES (?, ?, ?)");
+                            $spec_stmt->bind_param("iss", $product_id, $spec_name, $spec_value);
+                            $spec_stmt->execute();
+                        }
+                    }
+                }
+
                 $success = "Product added successfully!";
                 $name = $description = $sku = $image_url = "";
                 $price = $stock_quantity = 0;
@@ -120,38 +136,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <link rel="icon" type="image/png" href="uploads/logo1.png">
 <?php include('theme_toggle.php'); ?>
 <style>
-    <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'ASUS ROG', Arial, sans-serif; background:#0A0A0A; color:#fff; min-height:100vh; }
-    .navbar { background:#000; padding:15px 20px; color:#44D62C; display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #44D62C; }
-    .navbar h2 { margin:0; }
-    .nav-right { display:flex; align-items:center; gap:15px; }
-    .profile-icon { width:35px; height:35px; border-radius:50%; background:#222; display:flex; align-items:center; justify-content:center; color:#44D62C; font-size:20px; cursor:pointer; transition:all 0.3s ease; object-fit:cover; border:2px solid #44D62C; box-shadow:0 0 10px rgba(68,214,44,0.5); }
-    .container { max-width:800px; margin:40px auto; padding:0 20px; }
-    .form-container { background:#111; border-radius:10px; padding:40px; border:1px solid #333; }
-    .form-title { text-align:center; font-size:2rem; color:#44D62C; margin-bottom:30px; text-transform:uppercase; letter-spacing:2px; }
-    .form-group { margin-bottom:25px; }
-    .form-group label { display:block; margin-bottom:8px; color:#44D62C; font-weight:bold; }
-    .form-group input, .form-group select, .form-group textarea { width:100%; padding:12px; border:1px solid #44D62C; border-radius:8px; background:#1a1a1a; color:#fff; font-size:1rem; transition:all 0.3s ease; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; box-shadow:0 0 10px rgba(68,214,44,0.3); border-color:#36b020; }
-    .form-group textarea { height:120px; resize:vertical; }
-    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-    .required { color:#ff4444; }
-    .btn { padding:15px 30px; border:none; border-radius:8px; font-size:1.1rem; font-weight:bold; cursor:pointer; transition:all 0.3s ease; text-decoration:none; display:inline-block; text-align:center; }
-    .btn-primary { background:#44D62C; color:#000; width:100%; }
-    .btn-primary:hover { background:#36b020; transform:translateY(-2px); box-shadow:0 5px 15px rgba(68,214,44,0.3); }
-    .btn-secondary { background:#333; color:#fff; border:1px solid #44D62C; margin-right:15px; }
-    .btn-secondary:hover { background:#44D62C; color:#000; }
-    .message { padding:15px; border-radius:8px; margin-bottom:20px; text-align:center; font-weight:bold; }
-    .success { background: rgba(68,214,44,0.2); color:#44D62C; border:1px solid #44D62C; }
-    .error { background: rgba(255,68,68,0.2); color:#ff4444; border:1px solid #ff4444; }
-    .form-actions { display:flex; gap:15px; margin-top:30px; }
-    .help-text { font-size:0.9rem; color:#888; margin-top:5px; }
-    @media (max-width:768px) {
-        .form-row { grid-template-columns:1fr; }
-        .form-actions { flex-direction:column; }
-    }
-</style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'ASUS ROG', Arial, sans-serif; background:#0A0A0A; color:#fff; min-height:100vh; }
+.navbar { background:#000; padding:15px 20px; color:#44D62C; display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #44D62C; }
+.navbar h2 { margin:0; }
+.nav-right { display:flex; align-items:center; gap:15px; }
+.profile-icon { width:35px; height:35px; border-radius:50%; background:#222; display:flex; align-items:center; justify-content:center; color:#44D62C; font-size:20px; cursor:pointer; transition:all 0.3s ease; object-fit:cover; border:2px solid #44D62C; box-shadow:0 0 10px rgba(68,214,44,0.5); }
+.container { max-width:800px; margin:40px auto; padding:0 20px; }
+.form-container { background:#111; border-radius:10px; padding:40px; border:1px solid #333; }
+.form-title { text-align:center; font-size:2rem; color:#44D62C; margin-bottom:30px; text-transform:uppercase; letter-spacing:2px; }
+.form-group { margin-bottom:25px; }
+.form-group label { display:block; margin-bottom:8px; color:#44D62C; font-weight:bold; }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:12px; border:1px solid #44D62C; border-radius:8px; background:#1a1a1a; color:#fff; font-size:1rem; transition:all 0.3s ease; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline:none; box-shadow:0 0 10px rgba(68,214,44,0.3); border-color:#36b020; }
+.form-group textarea { height:120px; resize:vertical; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.required { color:#ff4444; }
+.btn { padding:10px 20px; border:none; border-radius:8px; font-size:1rem; font-weight:bold; cursor:pointer; transition:all 0.3s ease; text-decoration:none; display:inline-block; text-align:center; }
+.btn-primary { background:#44D62C; color:#000; }
+.btn-primary:hover { background:#36b020; transform:translateY(-2px); box-shadow:0 5px 15px rgba(68,214,44,0.3); }
+.btn-secondary { background:#333; color:#fff; border:1px solid #44D62C; margin-right:10px; }
+.btn-secondary:hover { background:#44D62C; color:#000; }
+.message { padding:15px; border-radius:8px; margin-bottom:20px; text-align:center; font-weight:bold; }
+.success { background: rgba(68,214,44,0.2); color:#44D62C; border:1px solid #44D62C; }
+.error { background: rgba(255,68,68,0.2); color:#ff4444; border:1px solid #ff4444; }
+.form-actions { display:flex; gap:15px; margin-top:30px; }
+.help-text { font-size:0.9rem; color:#888; margin-top:5px; }
+@media (max-width:768px) { .form-row { grid-template-columns:1fr; } .form-actions { flex-direction:column; } }
+.spec-row input { flex:1; }
+.spec-row button { flex:none; }
 </style>
 </head>
 <body>
@@ -241,6 +254,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <input type="file" name="image_file" accept="image/*">
             </div>
 
+            <div class="form-group">
+                <label>Optional Specs</label>
+                <div id="specs-container">
+                    <div class="spec-row" style="display:flex; gap:10px; margin-bottom:5px;">
+                        <input type="text" name="spec_name[]" placeholder="Spec Name (e.g., GB)">
+                        <input type="text" name="spec_value[]" placeholder="Spec Value (e.g., 128GB)">
+                        <button type="button" class="btn btn-secondary" onclick="removeSpec(this)">Remove</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="addSpec()">Add Spec</button>
+            </div>
+
             <div class="form-actions">
                 <a href="seller_dashboard.php" class="btn btn-secondary">Cancel</a>
                 <button type="submit" class="btn btn-primary">Add Product</button>
@@ -248,5 +273,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </form>
     </div>
 </div>
+
+<script>
+function addSpec() {
+    const container = document.getElementById('specs-container');
+    const div = document.createElement('div');
+    div.className = 'spec-row';
+    div.style.display = 'flex';
+    div.style.gap = '10px';
+    div.style.marginBottom = '5px';
+    div.innerHTML = `
+        <input type="text" name="spec_name[]" placeholder="Spec Name">
+        <input type="text" name="spec_value[]" placeholder="Spec Value">
+        <button type="button" class="btn btn-secondary" onclick="removeSpec(this)">Remove</button>
+    `;
+    container.appendChild(div);
+}
+
+function removeSpec(button) {
+    button.parentElement.remove();
+}
+</script>
+
 </body>
 </html>

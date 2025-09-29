@@ -90,6 +90,125 @@ if (isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="icon" type="image/png" href="uploads/logo1.png">
   <link rel="stylesheet" href="../../css/shop.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+  <style>
+    .chat-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #050505ff; /* Bootstrap blue */
+  border-radius: 50%;
+  width: 70px;   /* large bubble */
+  height: 70px;  /* large bubble */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+  transition: transform 0.2s ease-in-out, background 0.2s;
+  z-index: 1000;
+  cursor: pointer;
+}
+
+.chat-widget:hover {
+  transform: scale(1.1);
+  background: #27ed15ff;
+}
+
+.chat-icon {
+  font-size: 36px;  /* big icon */
+  color: white;     /* white icon */
+}
+
+/* AI Chatbot bubble (above the main chat) */
+.chat-widget.ai {
+  bottom: 100px; /* pushes it above the normal chat bubble */
+  background: #000000ff;
+}
+.chat-widget.ai:hover {
+  background: #11df18ff;
+}
+
+/* AI Chatbot modal */
+.ai-chat-modal {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 320px;
+  height: 420px;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1100;
+}
+
+/* Header */
+.ai-chat-header {
+  background: #3deb26ff;
+  color: white;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ai-chat-header button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* Messages */
+.ai-chat-messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  background: #f9f9f9;
+}
+.ai-chat-messages .message {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  max-width: 80%;
+}
+.ai-chat-messages .message.bot {
+  background: #e2e6ea;
+  align-self: flex-start;
+  color: black;
+}
+.ai-chat-messages .message.user {
+  background: #38f61fff;
+  color: white;
+  align-self: flex-end;
+}
+
+/* Form */
+.ai-chat-form {
+  display: flex;
+  border-top: 1px solid #ddd;
+}
+.ai-chat-form input {
+  flex: 1;
+  padding: 10px;
+  border: none;
+}
+.ai-chat-form button {
+  background: #48f514ff;
+  color: white;
+  border: none;
+  padding: 0 15px;
+  cursor: pointer;
+}
+.ai-chat-form button:hover {
+  background: #13e60fff;
+}
+
+  </style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const carousel = document.querySelector('.carousel-slides');
@@ -546,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <section class="product bg1">
   <h2>Unleash Your Capabilities</h2>
   <p>Guaranteed 0% Interest.</p>
-  <a href="shop.php" class="cta-button">Learn More</a>
+  <a href="laptop.php" class="cta-button">Learn More</a>
 </section>
 
 <!-- Categories Section -->
@@ -633,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if ($products_result && $products_result->num_rows > 0) {
         while ($product = $products_result->fetch_assoc()) {
-          echo '<div class="product-card" data-category="' . htmlspecialchars(strtolower($product['categories'])) . '">';
+          echo '<div class="product-card" data-category="' . htmlspecialchars(strtolower($product['categories'])) . '" data-product-id="' . $product['id'] . '">';
           echo '<img src="' . htmlspecialchars($product['image']) . '" alt="' . htmlspecialchars($product['name']) . '">';
           echo '<div class="product-info">';
           echo '<h3>' . htmlspecialchars($product['name']) . '</h3>';
@@ -701,12 +820,164 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (searchInput) searchInput.addEventListener("input", filterProducts);
   if (categorySelect) categorySelect.addEventListener("change", filterProducts);
+
+  // Product card click handler
+  productCards.forEach(card => {
+    card.addEventListener('click', function(e) {
+      if (e.target.tagName.toLowerCase() === 'img' || e.target.closest('.product-actions')) {
+        return;
+      }
+      const productId = this.dataset.productId;
+      if (productId) {
+        window.location.href = `product-details.php?id=${productId}`;
+      }
+    });
+  });
 });
 </script>
-
-
   </div>
 </div>
+
+
+<!-- AI Chatbot Widget -->
+<a href="javascript:void(0)" onclick="openAiChat()" class="chat-widget ai" title="Chat with AI">
+  <i class="bi bi-robot chat-icon"></i>
+</a>
+<div id="aiChatModal" class="ai-chat-modal">
+  <div class="ai-chat-header">
+    <span> AI Chatbot</span>
+    <button onclick="closeAiChat()">×</button>
+  </div>
+  <div class="ai-chat-messages" id="aiChatMessages">
+    <div class="message bot">Hello! How can I help you today?</div>
+  </div>
+  <form id="aiChatForm" class="ai-chat-form">
+    <input type="text" id="aiChatInput" placeholder="Type your question..." required>
+    <button type="submit">Send</button>
+  </form>
+</div>
+<!-- Chat Widget -->
+<a href="chat.php" class="chat-widget" title="Chat with us">
+  <i class="bi bi-chat-dots-fill chat-icon"></i>
+</a>
+
+<script>
+let currentUserId = <?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0; ?>; // PHP-injected user ID
+
+function openAiChat() {
+  document.getElementById("aiChatModal").style.display = "flex";
+  loadChatHistory(); // Fetch and display history
+}
+
+function closeAiChat() {
+  document.getElementById("aiChatModal").style.display = "none";
+}
+
+// Load history from server
+async function loadChatHistory() {
+  if (!currentUserId) return; // No user, no history
+
+  try {
+    const response = await fetch("ai_chat_handler.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 20 })
+    });
+    const data = await response.json();
+
+    const messagesDiv = document.getElementById("aiChatMessages");
+    messagesDiv.innerHTML = ""; // Clear
+
+    if (data.history && data.history.length > 0) {
+      data.history.forEach(msg => {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `message ${msg.role}`;
+        msgDiv.textContent = (msg.role === 'ai' ? ' ' : '') + msg.message;
+        messagesDiv.appendChild(msgDiv);
+      });
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    } else {
+      const welcome = document.createElement("div");
+      welcome.className = "message bot";
+      welcome.textContent = "Hello! How can I help you today?";
+      messagesDiv.appendChild(welcome);
+    }
+  } catch (error) {
+    console.error("Load History Error:", error);
+    // Fallback to welcome message
+    const messagesDiv = document.getElementById("aiChatMessages");
+    messagesDiv.innerHTML = '<div class="message bot">Hello! How can I help you today?</div>';
+  }
+}
+
+// Handle sending messages
+document.getElementById("aiChatForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  
+  if (!currentUserId) {
+    alert("Please log in to chat.");
+    return;
+  }
+
+  const input = document.getElementById("aiChatInput");
+  const message = input.value.trim();
+  if (!message) return;
+
+  const messagesDiv = document.getElementById("aiChatMessages");
+
+  // Add user message to UI and save to DB
+  const userMsg = document.createElement("div");
+  userMsg.className = "message user";
+  userMsg.textContent = message;
+  messagesDiv.appendChild(userMsg);
+  input.value = "";
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  saveMessage(currentUserId, 'user', message); // Save user msg
+
+  // Add temporary "thinking" message
+  const botMsg = document.createElement("div");
+  botMsg.className = "message bot";
+  botMsg.textContent = "Thinking...";
+  messagesDiv.appendChild(botMsg);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+  try {
+    // Get AI response (your existing aiChat-bot.php)
+    const aiResponse = await fetch("aiChat-bot.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: message })
+    });
+    const aiData = await aiResponse.json();
+
+    // Update UI with AI reply
+    botMsg.textContent = " " + (aiData.reply || "Sorry, I couldn’t understand that.");
+
+    // Save AI response to DB
+    saveMessage(currentUserId, 'ai', aiData.reply);
+  } catch (error) {
+    botMsg.textContent = " Error connecting to AI.";
+    console.error("AI Chat Error:", error);
+  }
+
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
+// Save single message to server
+async function saveMessage(userId, role, message) {
+  try {
+    await fetch("ai_chat_handler.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "save_message", user_id: userId, role: role, message: message })
+    });
+  } catch (error) {
+    console.error("Save Message Error:", error);
+  }
+}
+</script>
+
 
 <footer>
     <div class="footer-bottom">
