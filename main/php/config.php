@@ -1,20 +1,18 @@
 <?php
-// Email/SMTP configuration. Fill these with your Gmail details.
+// config.php - SMTP Settings (keep secure; .gitignore this in version control)
+// Note: This is your provided config—ensure the app password is correct (no spaces).
 
-// Gmail SMTP
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587); // 587 (TLS) or 465 (SSL)
-define('SMTP_SECURE', 'tls'); // 'tls' or 'ssl'
-
-// Your Gmail address and App Password (NOT your normal password)
-define('SMTP_USERNAME', 'lorenzezz0987@gmail.com');
-define('SMTP_PASSWORD', 'qatygundsjzbkmnf');
-
-// From headers
-define('SMTP_FROM', 'lorenzezz0987@gmail.com');
-define('SMTP_FROM_NAME', 'Meta Shark');
-
-// Toggle to force SMTP usage (if PHPMailer available)
+// Enable SMTP mode
 define('SMTP_ENABLED', true);
 
+// Gmail SMTP (your details)
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_PORT', 587); // 587 for STARTTLS (recommended), 465 for SSL
+define('SMTP_SECURE', 'tls'); // 'tls' or 'ssl'
+define('SMTP_USERNAME', 'lorenzezz0987@gmail.com'); // Your full Gmail address
+define('SMTP_PASSWORD', 'wvenyuojjtcvgqhh'); // Your 16-char app password
 
+// From address (must match Username for Gmail)
+define('SMTP_FROM', 'lorenzezz0987@gmail.com');
+define('SMTP_FROM_NAME', 'Meta Shark');
+?>

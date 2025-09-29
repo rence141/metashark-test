@@ -1,6 +1,6 @@
 <?php
-// SMTP-aware mail sender. Uses PHPMailer if available; otherwise falls back to mail().
-// Configure credentials in config.php (Gmail App Password recommended).
+// email.php - SMTP-aware mail sender. Uses PHPMailer if available; otherwise falls back to mail().
+// Assumes Composer: Run `composer require phpmailer/phpmailer` in project root for vendor/autoload.php
 
 require_once __DIR__ . '/config.php';
 
@@ -39,12 +39,15 @@ function send_email($to, $subject, $body, $from = null, $fromName = null) {
                 $mail->send();
                 return true;
             } catch (Exception $e) {
-                // fall through to mail()
+                error_log("PHPMailer Error: " . $mail->ErrorInfo);
+                // Fall through to mail() on failure
             }
+        } else {
+            error_log("PHPMailer class not found. Install via Composer: composer require phpmailer/phpmailer");
         }
     }
 
-    // Fallback: PHP mail()
+    // Fallback: PHP mail() (unreliable on XAMPP—avoid if possible)
     $headers = [];
     $headers[] = 'From: ' . $from;
     $headers[] = 'MIME-Version: 1.0';
@@ -52,5 +55,4 @@ function send_email($to, $subject, $body, $from = null, $fromName = null) {
     $headersStr = implode("\r\n", $headers);
     return @mail($to, $subject, $body, $headersStr);
 }
-
-
+?>

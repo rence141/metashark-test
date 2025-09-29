@@ -65,9 +65,23 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
     }
     if (!empty($_SESSION['pending_verification_email'])) {
         $subject = 'Your new Meta Shark verification code';
-        $body = "Hello,\n\nYour new verification code is: $code\nThis code expires in 15 minutes.";
-        @send_email($_SESSION['pending_verification_email'], $subject, $body);
+        $body = "Hello,\n\nYour new verification code is: " . htmlspecialchars($code) . "\nThis code expires in 15 minutes.";
+        
+        // Debug: Log before sending
+        error_log("DEBUG: Attempting to resend email to: " . $_SESSION['pending_verification_email'] . " with code: " . $code);
+        
+        $emailSent = send_email($_SESSION['pending_verification_email'], $subject, $body);
+        
+        if ($emailSent) {
+            $message .= ' Check your email (including spam).';
+            error_log("DEBUG: Email resend SUCCESS for: " . $_SESSION['pending_verification_email']);
+        } else {
+            $message .= ' But email delivery failed. Check XAMPP error log or SMTP config.';
+            error_log("DEBUG: Email resend FAILED for: " . $_SESSION['pending_verification_email'] . ". Check full error log for details.");
+        }
     }
+} elseif (isset($_GET['resend'])) {
+    $message = 'No pending verification found. Please register/login again.';
 }
 ?>
 <!DOCTYPE html>
@@ -87,13 +101,17 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
         .btn { width:100%; padding:12px; background:#44D62C; color: #fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
         .link { color:#44D62C; text-decoration:none; }
         .msg { margin-top:10px; color: #44D62C; }
+        .error-msg { color: #ff0000 !important; }
     </style>
-    </head>
+</head>
 <body>
     <div class="card">
         <h1>Verify your account</h1>
         <p>We sent a 6-digit code to <?php echo htmlspecialchars($email); ?>. Enter it below.</p>
-        <?php if (!empty($message)) { echo '<div class="msg">' . htmlspecialchars($message) . '</div>'; } ?>
+        <?php if (!empty($message)) { 
+            $class = (strpos($message, 'failed') !== false || strpos($message, 'error') !== false) ? 'error-msg' : 'msg'; 
+            echo '<div class="' . $class . '">' . htmlspecialchars($message) . '</div>'; 
+        } ?>
         <form method="POST">
             <input type="text" name="code" placeholder="Enter 6-digit code" pattern="[0-9]{6}" maxlength="6" inputmode="numeric" autocomplete="one-time-code" required>
             <button type="submit" class="btn">Verify</button>
@@ -104,5 +122,3 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
     </div>
 </body>
 </html>
-
-
