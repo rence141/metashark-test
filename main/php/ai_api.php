@@ -6,7 +6,7 @@ ini_set("display_errors", 1);
 $input = json_decode(file_get_contents("php://input"), true);
 $userMessage = $input["message"] ?? "";
 
-$apiKey = "YOUR_NEW_OPENROUTER_API_KEY_HERE"; // Get a new one: https://openrouter.ai/keys
+$apiKey = "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"; // Get a new one: https://openrouter.ai/keys
 
 if (empty($userMessage)) {
     echo json_encode(["reply" => "⚠️ No message received."]);
