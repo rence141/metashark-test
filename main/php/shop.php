@@ -93,6 +93,11 @@ if (isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
   <style>
+  .navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
   .chat-widget {
   position: fixed;
   bottom: 20px;
@@ -818,11 +823,11 @@ if (isset($_SESSION['user_id'])) {
     }
     ?>
     <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-      <span style="font-size:18px;">🔔</span>
+      <i class="bi bi-bell" style="font-size:18px;"></i>
       <span><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
     </a>
     <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-      <span style="font-size:18px;">🛒</span>
+      <i class="bi bi-cart" style="font-size:18px;"></i>
       <span>(<?php echo (int)$cart_count; ?>)</span>
     </a>
     <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>

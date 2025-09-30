@@ -100,6 +100,7 @@ if (isset($_SESSION['user_id'])) {
     <link rel="stylesheet" href="fonts/fonts.css">
     <link rel="icon" type="image/png" href="uploads/logo1.png">
     <link rel="stylesheet" href="../../css/seller_dashboard.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <?php include('theme_toggle.php'); ?>
     <script>
         // Handle loading screen
@@ -171,11 +172,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
                 <?php endif; ?>
             </a>
             <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-                <span style="font-size:18px;">🛒</span>
+                <i class="bi bi-cart" style="font-size:18px;"></i>
                 <span>(<?php echo (int)$cart_count; ?>)</span>
             </a>
             <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-                <span style="font-size:18px;">🔔</span>
+                <i class="bi bi-bell" style="font-size:18px;"></i>
             </a>
         </div>
     </div>
@@ -188,7 +189,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["toggle_theme"])) {
         </div>
 
         <?php if ($success): ?>
-            <div class="alert alert-success">✅ <?php echo $success; ?></div>
+            <div class="alert alert-success"><i class="bi bi-check-circle"></i> <?php echo $success; ?></div>
         <?php endif; ?>
 
         <!-- STATS GRID -->

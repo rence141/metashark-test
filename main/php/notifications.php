@@ -46,10 +46,19 @@ $profile_src = !empty($current_profile_image) && file_exists('uploads/' . $curre
   <link rel="icon" type="image/png" href="uploads/logo1.png">
   <?php include('theme_toggle.php'); ?>
   <style>
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
     body { background: var(--bg-primary); color: var(--text-primary); font-family: Arial, sans-serif; margin: 0; padding: 0; }
     .navbar { background: var(--bg-secondary); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
     .nav-left h2 { margin: 0; color: #44D62C; }
     .nav-right { display: flex; gap: 10px; align-items: center; }
+    .nav-right ul { list-style: none; margin: 0; padding: 0; }
+    .nav-right ul li { display: inline-block; }
+    .nav-right ul li a { background: #44D62C; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; transition: background 0.3s, transform 0.2s; font-weight: bold; border: 1px solid #44D62C; }
+    .nav-right ul li a:hover { background: #3ab826; transform: translateY(-1px); }
     .nav-right a { text-decoration: none; color: var(--text-primary); }
     .profile-icon { 
       width: 40px; 
@@ -87,13 +96,9 @@ $profile_src = !empty($current_profile_image) && file_exists('uploads/' . $curre
       <h2>Meta Shark</h2>
     </div>
     <div class="nav-right">
-      <a href="profile.php">
-        <img src="<?php echo $profile_src; ?>" alt="Profile" class="profile-icon">
-      </a>
-      <a href="notifications.php" class="notification-link">
-        🔔 <?php if ($unread_count > 0): ?><span class="unread-badge"><?php echo $unread_count; ?></span><?php endif; ?>
-      </a>
-      <button class="hamburger" onclick="toggleMenu()">☰</button>
+      <ul>
+         <li><a href="javascript:history.back()">Back</a></li>
+      </ul>
     </div>
     <ul class="menu" id="menu">
       <li><a href="shop.php">Home</a></li>
