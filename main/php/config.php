@@ -9,10 +9,10 @@ define('SMTP_ENABLED', true);
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587); // 587 for STARTTLS (recommended), 465 for SSL
 define('SMTP_SECURE', 'tls'); // 'tls' or 'ssl'
-define('SMTP_USERNAME', 'lorenzezz0987@gmail.com'); // Your full Gmail address
-define('SMTP_PASSWORD', 'wvenyuojjtcvgqhh'); // Your 16-char app password
+define('SMTP_USERNAME', 'PrepotenteLorenze@gmail.com'); // Your full Gmail address
+define('SMTP_PASSWORD', 'igezkbwubaihyhti'); // Your 16-char app password
 
 // From address (must match Username for Gmail)
-define('SMTP_FROM', 'lorenzezz0987@gmail.com');
+define('SMTP_FROM', 'PrepotenteLorenze@gmail.com');
 define('SMTP_FROM_NAME', 'Meta Shark');
 ?>
