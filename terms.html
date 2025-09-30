@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service - Meta Shark</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="icon" type="image/png" href="../SaysonCo/main/php/uploads/logo1.png">
+  <link rel="stylesheet" href="css/terms.css">
+  <link rel="stylesheet" href="terms.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="nav-left">
+      <img src="../SaysonCo/main/php/uploads/logo1.png" alt="Meta Shark Logo" class="logo">
+      <h2>Meta Shark</h2>
+    </div>
+    <ul class="menu" id="menu">
+      <li><a href="javascript:history.back()">Back</a></li>
+        <li><a href="about.php">About</a></li>
+        <li><a href="contact.php">Contact</a></li>
+        <li><a href="privacy.php">Privacy Policy</a></li>
+    </ul>
+  </div>
+
+  <div class="terms-container">
+    <div class="terms-header">
+      <img src="../SaysonCo/main/php/uploads/logo1.png" alt="Meta Shark Logo" style="height: 60px; width: auto; margin-bottom: 20px;">
+      <h1>Terms of Service</h1>
+      <p>Last updated: September 30, 2025</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>1. Introduction</h2>
+      <p>Welcome to Meta Shark ("we," "our," or "us"). These Terms of Service ("Terms") govern your use of our website and services (collectively, the "Service"). By accessing or using the Service, you agree to be bound by these Terms. If you do not agree, please do not use the Service.</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>2. User Eligibility</h2>
+      <p>You must be at least 18 years old to use the Service. By using the Service, you represent that you meet this requirement.</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>3. Account Registration</h2>
+      <ul>
+        <li>To access certain features, you may need to create an account.</li>
+        <li>You agree to provide accurate information and keep it updated.</li>
+        <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
+      </ul>
+    </div>
+
+    <div class="terms-section">
+      <h2>4. User Conduct</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Use the Service for illegal purposes.</li>
+        <li>Post harmful, obscene, or infringing content.</li>
+        <li>Interfere with the Service or other users.</li>
+        <li>Attempt to gain unauthorized access to any part of the Service.</li>
+      </ul>
+    </div>
+
+    <div class="terms-section">
+      <h2>5. Intellectual Property</h2>
+      <p>All content on the Service, including text, graphics, logos, and images, is owned by us or our licensors and protected by copyright laws.</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>6. Purchases and Payments</h2>
+      <p>All purchases are final. We reserve the right to refuse or cancel orders at any time.</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>7. Limitation of Liability</h2>
+      <p>To the fullest extent permitted by law, we shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Service.</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>8. Termination</h2>
+      <p>We may terminate or suspend your access to the Service at our discretion, without notice.</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>9. Governing Law</h2>
+      <p>These Terms are governed by the laws of [Your Jurisdiction].</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>10. Changes to Terms</h2>
+      <p>We may update these Terms from time to time. Continued use of the Service after changes constitutes acceptance.</p>
+    </div>
+
+    <div class="terms-section">
+      <h2>11. Contact Us</h2>
+      <p>If you have questions about these Terms, contact us at support@metashark.com.</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-top">
+        <div class="footer-logo">
+          <img src="../SaysonCo/main/php/uploads/logo1.png" alt="Meta Shark Logo">
+          <h3>Meta Shark</h3>
+        </div>
+        <ul class="footer-links">
+          <li><a href="javascript:history.back()">Back</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="contact.php">Contact</a></li>
+          <li><a href="privacy_policy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+        </ul>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Meta Shark. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Simple theme toggle for terms page
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      themeIcon.textContent = newTheme === 'light' ? '🌙' : '☀️';
+      themeText.textContent = newTheme === 'light' ? 'Dark' : 'Light';
+    }
+
+    // Hamburger menu toggle
+    document.addEventListener('DOMContentLoaded', function() {
+      const hamburger = document.querySelector('.hamburger');
+      const menu = document.getElementById('menu');
+      if (hamburger && menu) {
+        hamburger.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          menu.classList.toggle('show');
+        });
+        document.addEventListener('click', function(e) {
+          if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.remove('show');
+          }
+        });
+        const menuItems = menu.querySelectorAll('a');
+        menuItems.forEach(item => {
+          item.addEventListener('click', function() {
+            menu.classList.remove('show');
+          });
+        });
+      }
+    });
+  </script>
+</body>
+</html>

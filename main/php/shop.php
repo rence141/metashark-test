@@ -97,7 +97,6 @@ if (isset($_SESSION['user_id'])) {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  background: #050505ff;
   border-radius: 50%;
   width: 70px;
   height: 70px;
@@ -111,23 +110,45 @@ if (isset($_SESSION['user_id'])) {
   text-decoration: none;
 }
 
+[data-theme="light"] .chat-widget {
+  background: #5bf431ff;
+  color: #353434ff;
+}
+
+[data-theme="dark"] .chat-widget {
+  background: #363636ff;
+  color: white;
+}
+
 .chat-widget:hover {
   transform: scale(1.1);
   background: #27ed15ff;
+  color: white;
 }
 
 .chat-icon {
   font-size: 36px;
-  color: white;
+  
 }
 
 /* AI Chatbot bubble (above the main chat) */
 .chat-widget.ai {
   bottom: 100px;
-  background: #000000ff;
 }
+
+[data-theme="light"] .chat-widget.ai {
+  background: #46ff2dff;
+  color: #333;
+}
+
+[data-theme="dark"] .chat-widget.ai {
+  background: #232323ff;
+  color: white;
+}
+
 .chat-widget.ai:hover {
   background: #11df18ff;
+  color: white;
 }
 
 /* AI Chatbot modal */
@@ -135,8 +156,8 @@ if (isset($_SESSION['user_id'])) {
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: 400px; /* Increased from 320px */
-  height: 500px; /* Increased from 420px */
+  width: 800px;
+  height: 600px;
   background: #fff;
   border: 1px solid #ccc;
   border-radius: 10px;
@@ -146,6 +167,21 @@ if (isset($_SESSION['user_id'])) {
   overflow: hidden;
   z-index: 1100;
   visibility: hidden; /* Extra for safety */
+}
+
+[data-theme="dark"] .ai-chat-modal {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  color: #e0e0e0;
+}
+
+.ai-chat-modal.maximized {
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  top: 20px;
+  width: auto;
+  height: auto;
 }
 
 .ai-chat-modal.show {
@@ -162,6 +198,10 @@ if (isset($_SESSION['user_id'])) {
   justify-content: space-between;
   align-items: center;
 }
+.ai-chat-header .header-buttons {
+  display: flex;
+  gap: 10px;
+}
 .ai-chat-header button {
   background: transparent;
   border: none;
@@ -170,12 +210,81 @@ if (isset($_SESSION['user_id'])) {
   cursor: pointer;
 }
 
+/* Chat Container */
+.ai-chat-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.ai-chat-sidebar {
+  width: 250px;
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="dark"] .ai-chat-sidebar {
+  background: #2a2a2a;
+  border-right: 1px solid #444;
+}
+
+#newChatBtn {
+  padding: 10px;
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+#newChatBtn:hover {
+  background: #0056b3;
+}
+#chatHistoryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+#chatHistoryList li {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+[data-theme="dark"] #chatHistoryList li {
+  color: #e0e0e0;
+  border-bottom: 1px solid #444;
+}
+#chatHistoryList li:hover,
+#chatHistoryList li.active {
+  background: #e9ecef;
+}
+[data-theme="dark"] #chatHistoryList li:hover,
+[data-theme="dark"] #chatHistoryList li.active {
+  background: #333;
+}
+
+/* Main */
+.ai-chat-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 /* Messages */
 .ai-chat-messages {
   flex: 1;
   padding: 10px;
   overflow-y: auto;
   background: #f9f9f9;
+}
+[data-theme="dark"] .ai-chat-messages {
+  background: #2a2a2a;
 }
 .ai-chat-messages .message {
   margin: 8px 0;
@@ -189,6 +298,10 @@ if (isset($_SESSION['user_id'])) {
   align-self: flex-start;
   color: black;
 }
+[data-theme="dark"] .ai-chat-messages .message.bot {
+  background: #444;
+  color: #e0e0e0;
+}
 .ai-chat-messages .message.user {
   background: #38f61fff;
   color: white;
@@ -200,11 +313,20 @@ if (isset($_SESSION['user_id'])) {
   display: flex;
   border-top: 1px solid #ddd;
 }
+[data-theme="dark"] .ai-chat-form {
+  border-top: 1px solid #444;
+}
 .ai-chat-form input {
   flex: 1;
   padding: 10px;
   border: none;
   outline: none;
+  background: #fff;
+  color: #333;
+}
+[data-theme="dark"] .ai-chat-form input {
+  background: #333;
+  color: #e0e0e0;
 }
 .ai-chat-form button {
   background: #48f514ff;
@@ -236,6 +358,111 @@ if (isset($_SESSION['user_id'])) {
     .notification.success { background: #28a745; }
     .notification.error { background: #dc3545; }
     .notification.info { background: #17a2b8; }
+
+    /* Footer Styles */
+    footer {
+      background: #f8f9fa;
+      border-top: 1px solid #dee2e6;
+      padding: 40px 0 20px;
+      color: #333;
+      font-size: 14px;
+    }
+
+    [data-theme="dark"] footer {
+      background: #1e1e1e;
+      border-top: 1px solid #333;
+      color: #e0e0e0;
+    }
+
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .footer-logo img {
+      height: 40px;
+      width: auto;
+    }
+
+    .footer-logo h3 {
+      margin: 0;
+      color: #333;
+      font-size: 24px;
+    }
+
+    [data-theme="dark"] .footer-logo h3 {
+      color: #e0e0e0;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 30px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .footer-links li a {
+      text-decoration: none;
+      color: #333;
+      transition: color 0.3s;
+    }
+
+    [data-theme="dark"] .footer-links li a {
+      color: #e0e0e0;
+    }
+
+    .footer-links li a:hover {
+      color: #27ed15;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #dee2e6;
+      margin-top: 20px;
+    }
+
+    [data-theme="dark"] .footer-bottom {
+      border-top: 1px solid #333;
+    }
+
+    .footer-bottom p {
+      margin: 0;
+      color: #666;
+    }
+
+    [data-theme="dark"] .footer-bottom p {
+      color: #aaa;
+    }
+
+    @media (max-width: 768px) {
+      .footer-top {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
   </style>
   <script src="https://js.puter.com/v2/"></script>
   <script>
@@ -871,16 +1098,27 @@ document.addEventListener("DOMContentLoaded", () => {
 </a>
 <div id="aiChatModal" class="ai-chat-modal">
   <div class="ai-chat-header">
-    <span> AI Chatbot</span>
-    <button onclick="closeAiChat()">×</button>
+    <span>AI Chatbot</span>
+    <div class="header-buttons">
+      <button id="maximizeBtn" title="Maximize">□</button>
+      <button onclick="closeAiChat()">×</button>
+    </div>
   </div>
-  <div class="ai-chat-messages" id="aiChatMessages">
-    <div class="message bot">Hello I'm metashark Staff how can I help you?</div>
+  <div class="ai-chat-container">
+    <div class="ai-chat-sidebar">
+      <button id="newChatBtn">+ New Chat</button>
+      <ul id="chatHistoryList"></ul>
+    </div>
+    <div class="ai-chat-main">
+      <div class="ai-chat-messages" id="aiChatMessages">
+        <div class="message bot">Hello I'm metashark Staff how can I help you?</div>
+      </div>
+      <form id="aiChatForm" class="ai-chat-form">
+        <input type="text" id="aiChatInput" placeholder="Type your question..." required>
+        <button type="submit">Send</button>
+      </form>
+    </div>
   </div>
-  <form id="aiChatForm" class="ai-chat-form">
-    <input type="text" id="aiChatInput" placeholder="Type your question..." required>
-    <button type="submit">Send</button>
-  </form>
 </div>
 <!-- Chat Widget -->
 <a href="chat.php" class="chat-widget" title="Chat with us">
@@ -889,6 +1127,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <script>
 let currentUserId = <?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0; ?>; // PHP-injected user ID
+let currentGroup = null;
+let isMaximized = false;
 
 function openAiChat() {
   console.log('Opening AI Chat...'); // Debug log
@@ -910,10 +1150,110 @@ function closeAiChat() {
   }
 }
 
+// Format date
+function formatDate(dateStr) {
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+}
+
+// Show welcome message
+function showWelcome() {
+  const messagesDiv = document.getElementById("aiChatMessages");
+  if (messagesDiv) {
+    messagesDiv.innerHTML = '<div class="message bot">Hello I\'m metashark Staff how can I help you?</div>';
+  }
+}
+
+// Display messages for a group
+function displayMessages(msgs) {
+  const messagesDiv = document.getElementById("aiChatMessages");
+  if (messagesDiv) {
+    messagesDiv.innerHTML = '';
+    if (msgs.length === 0) {
+      showWelcome();
+    } else {
+      msgs.forEach(msg => {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `message ${msg.role}`;
+        msgDiv.textContent = (msg.role === 'ai' ? ' ' : '') + msg.message;
+        messagesDiv.appendChild(msgDiv);
+      });
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  }
+}
+
+// Populate sidebar
+function populateSidebar(dates, groups) {
+  const list = document.getElementById("chatHistoryList");
+  if (!list) return;
+  list.innerHTML = '';
+  dates.forEach(date => {
+    const li = document.createElement("li");
+    li.textContent = formatDate(date) + ` (${groups[date].length} msgs)`;
+    li.dataset.date = date;
+    li.onclick = (e) => {
+      e.stopPropagation();
+      currentGroup = date;
+      displayMessages(groups[date]);
+      document.querySelectorAll("#chatHistoryList li").forEach(l => l.classList.remove("active"));
+      li.classList.add("active");
+    };
+    list.appendChild(li);
+  });
+  // Activate current group if exists
+  const currentLi = document.querySelector(`#chatHistoryList li[data-date="${currentGroup}"]`);
+  if (currentLi) {
+    currentLi.classList.add("active");
+  }
+}
+
+// Refresh chat (sidebar and display)
+async function refreshChat() {
+  if (!currentUserId) return;
+
+  try {
+    const response = await fetch("ai_chat_handler.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 100 })
+    });
+    const data = await response.json();
+
+    const allMessages = data.history || [];
+
+    // Group by date (YYYY-MM-DD)
+    const groups = {};
+    allMessages.forEach(msg => {
+      const msgDate = new Date(msg.timestamp).toISOString().split('T')[0];
+      if (!groups[msgDate]) groups[msgDate] = [];
+      groups[msgDate].push(msg);
+    });
+
+    const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)); // Newest first
+    populateSidebar(sortedDates, groups);
+
+    // Display current group messages
+    if (currentGroup && groups[currentGroup]) {
+      displayMessages(groups[currentGroup]);
+    } else if (sortedDates.length > 0) {
+      // Fallback to latest if no current
+      currentGroup = sortedDates[0];
+      displayMessages(groups[currentGroup]);
+    } else {
+      showWelcome();
+    }
+  } catch (error) {
+    console.error("Refresh Chat Error:", error);
+  }
+}
+
 // Load history from server (non-blocking)
 async function loadChatHistory() {
   if (!currentUserId) {
     console.log('No user ID, skipping history load'); // Debug
+    showWelcome();
+    populateSidebar([], {});
     return;
   }
 
@@ -921,43 +1261,89 @@ async function loadChatHistory() {
     const response = await fetch("ai_chat_handler.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 20 })
+      body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 100 })
     });
     const data = await response.json();
     console.log('History loaded:', data); // Debug
 
-    const messagesDiv = document.getElementById("aiChatMessages");
-    if (messagesDiv) {
-      messagesDiv.innerHTML = ""; // Clear
+    const allMessages = data.history || [];
 
-      if (data.history && data.history.length > 0) {
-        data.history.forEach(msg => {
-          const msgDiv = document.createElement("div");
-          msgDiv.className = `message ${msg.role}`;
-          msgDiv.textContent = (msg.role === 'ai' ? ' ' : '') + msg.message;
-          messagesDiv.appendChild(msgDiv);
-        });
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      } else {
-        const welcome = document.createElement("div");
-        welcome.className = "message bot";
-        welcome.textContent = "Hello I'm metashark Staff how can I help you?";
-        messagesDiv.appendChild(welcome);
-      }
+    if (allMessages.length === 0) {
+      showWelcome();
+      populateSidebar([], {});
+      return;
+    }
+
+    // Group by date (YYYY-MM-DD)
+    const groups = {};
+    allMessages.forEach(msg => {
+      const msgDate = new Date(msg.timestamp).toISOString().split('T')[0];
+      if (!groups[msgDate]) groups[msgDate] = [];
+      groups[msgDate].push(msg);
+    });
+
+    const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)); // Newest first
+    populateSidebar(sortedDates, groups);
+
+    // Check for 24h inactivity or no messages today
+    const lastMsg = allMessages[allMessages.length - 1];
+    const lastTime = new Date(lastMsg.timestamp).getTime();
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const today = new Date().toISOString().split('T')[0];
+
+    if ((now - lastTime > twentyFourHours) || !sortedDates.includes(today)) {
+      // Start new chat
+      currentGroup = today;
+      showWelcome();
+      console.log('Starting new chat due to 24h inactivity'); // Debug
+    } else {
+      // Load latest group
+      currentGroup = sortedDates[0];
+      displayMessages(groups[currentGroup]);
+      console.log('Displaying recent chat history'); // Debug
     }
   } catch (error) {
     console.error("Load History Error:", error);
     // Fallback to welcome message without failing modal
-    const messagesDiv = document.getElementById("aiChatMessages");
-    if (messagesDiv) {
-      messagesDiv.innerHTML = '<div class="message bot">Hello I`m metashark Staff how can I help you?</div>';
-    }
+    showWelcome();
+    populateSidebar([], {});
   }
+}
+
+// New chat
+function newChat() {
+  const today = new Date().toISOString().split('T')[0];
+  currentGroup = today;
+  showWelcome();
+  document.querySelectorAll("#chatHistoryList li").forEach(l => l.classList.remove("active"));
+  refreshChat();
+  console.log('New chat started');
+}
+
+// Maximize toggle
+function toggleMaximize() {
+  const modal = document.getElementById("aiChatModal");
+  const btn = document.getElementById("maximizeBtn");
+  isMaximized = !isMaximized;
+  modal.classList.toggle("maximized", isMaximized);
+  btn.textContent = isMaximized ? "⛶" : "□";
 }
 
 // Handle sending messages
 document.addEventListener('DOMContentLoaded', function() {
   const aiChatForm = document.getElementById("aiChatForm");
+  const newChatBtn = document.getElementById("newChatBtn");
+  const maximizeBtn = document.getElementById("maximizeBtn");
+
+  if (newChatBtn) {
+    newChatBtn.addEventListener("click", newChat);
+  }
+
+  if (maximizeBtn) {
+    maximizeBtn.addEventListener("click", toggleMaximize);
+  }
+
   if (aiChatForm) {
     aiChatForm.addEventListener("submit", async function(e) {
       e.preventDefault();
@@ -971,9 +1357,14 @@ document.addEventListener('DOMContentLoaded', function() {
       const message = input.value.trim();
       if (!message) return;
 
+      // Set current group if not set
+      if (!currentGroup) {
+        currentGroup = new Date().toISOString().split('T')[0];
+      }
+
       const messagesDiv = document.getElementById("aiChatMessages");
 
-      // Add user message to UI and save to DB
+      // Add user message to UI
       const userMsg = document.createElement("div");
       userMsg.className = "message user";
       userMsg.textContent = message;
@@ -981,7 +1372,8 @@ document.addEventListener('DOMContentLoaded', function() {
       input.value = "";
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-      saveMessage(currentUserId, 'user', message); // Save user msg
+      // Save user msg
+      await saveMessage(currentUserId, 'user', message);
 
       // Add temporary "thinking" message
       const botMsg = document.createElement("div");
@@ -1000,14 +1392,21 @@ document.addEventListener('DOMContentLoaded', function() {
           model: 'deepseek-chat'
         });
 
+        const aiContent = aiResponse.message?.content || "Sorry, I couldn’t understand that.";
+
         // Update UI with AI reply
-        botMsg.textContent = " " + (aiResponse.message?.content || "Sorry, I couldn’t understand that.");
+        botMsg.textContent = " " + aiContent;
 
         // Save AI response to DB
-        saveMessage(currentUserId, 'ai', aiResponse.message?.content || "No response received.");
+        await saveMessage(currentUserId, 'ai', aiContent);
+
+        // Refresh chat after messages are saved
+        refreshChat();
       } catch (error) {
         botMsg.textContent = " Error connecting to AI. Please try again.";
         console.error("AI Chat Error:", error);
+        // Still refresh chat
+        refreshChat();
       }
 
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -1031,8 +1430,22 @@ async function saveMessage(userId, role, message) {
 </script>
 
 <footer>
-  <div class="footer-bottom">
-    <p>&copy; <?php echo date("Y"); ?> Meta Shark. All rights reserved.</p>
+  <div class="footer-content">
+    <div class="footer-top">
+      <div class="footer-logo">
+        <img src="uploads/logo1.png" alt="Meta Shark Logo">
+        <h3>Meta Shark</h3>
+      </div>
+      <ul class="footer-links">
+        <li><a href="../../index.html">Landing Page</a></li>
+        <li><a href="../../about.html">About</a></li>
+        <li><a href="../../privacy_policy.html">Privacy Policy</a></li>
+        <li><a href="../../terms.html">Terms of Service</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <?php echo date("Y"); ?> Meta Shark. All rights reserved.</p>
+    </div>
   </div>
 </footer>
 

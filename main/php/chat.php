@@ -35,6 +35,16 @@ $history_stmt->bind_param("iii", $current_user_id, $current_user_id, $current_us
 $history_stmt->execute();
 $chat_histories = $history_stmt->get_result();
 
+// If no specific chat selected, default to most recent chat
+if ($chat_with == 0 && $chat_histories->num_rows > 0) {
+    $chat_histories->data_seek(0);
+    $recent_chat = $chat_histories->fetch_assoc();
+    $chat_with = $recent_chat['id'];
+    // Re-fetch histories after seek
+    $history_stmt->execute();
+    $chat_histories = $history_stmt->get_result();
+}
+
 // Fetch selected chat user info
 $chat_user = null;
 if ($chat_with > 0) {
@@ -134,6 +144,22 @@ if ($chat_user) {
             background: #e2e2e2;
             border-right: 1px solid #ddd;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .back-btn {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: #5fda2a;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            gap: 0.5rem;
+        }
+        .back-btn:hover {
+            background: #4dc21f;
+            color: white;
         }
         .chat-sidebar h2 {
             margin: 0;
@@ -146,6 +172,7 @@ if ($chat_user) {
             list-style: none;
             margin: 0;
             padding: 0;
+            flex: 1;
         }
         .chat-list li {
             display: flex;
@@ -246,48 +273,34 @@ if ($chat_user) {
             margin-bottom: 0.5rem;
         }
 
-        .chat-sidebar {
-    width: 300px;
-    background: #e2e2e2;
-    border-right: 1px solid #ddd;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-}
+        .chat-sidebar-footer {
+            padding: 1rem;
+            background: #d6f8d1;
+            text-align: center;
+            border-top: 1px solid #ccc;
+        }
 
-.chat-list {
-    flex: 1;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
+        .chat-sidebar-footer a {
+            text-decoration: none;
+            color: #0c0c0cff;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
 
-.chat-sidebar-footer {
-    padding: 1rem;
-    background: #d6f8d1;
-    text-align: center;
-    border-top: 1px solid #ccc;
-}
-
-.chat-sidebar-footer a {
-    text-decoration: none;
-    color: #0c0c0cff;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.chat-sidebar-footer a:hover {
-    color: #15b300ff;
-}
-
+        .chat-sidebar-footer a:hover {
+            color: #15b300ff;
+        }
     </style>
 </head>
 <body class="chat-page">
 
 <div class="chat-sidebar">
+    <a href="shop.php" class="back-btn">
+        <i class="bi bi-arrow-left"></i> Back to Shop
+    </a>
     <h2>Chats</h2>
     <ul class="chat-list">
         <?php $chat_histories->data_seek(0); // Reset result pointer

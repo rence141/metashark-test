@@ -1,0 +1,293 @@
+/* Terms Page - Complete Styles */
+
+/* Global Styles */
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  color: #333;
+  background-color: #fff;
+}
+
+[data-theme="dark"] body {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+/* Navbar Styles */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+[data-theme="dark"] .navbar {
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+}
+
+.nav-left h2 {
+  margin: 0;
+  color: #333;
+  font-size: 24px;
+}
+
+[data-theme="dark"] .nav-left h2 {
+  color: #e0e0e0;
+}
+
+.menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 20px;
+}
+
+.menu li a {
+  text-decoration: none;
+  color: #333;
+  padding: 8px 12px;
+  border-radius: 5px;
+  transition: background 0.3s, color 0.3s;
+}
+
+.menu li a:hover {
+  background: #f8f9fa;
+  color: #27ed15;
+}
+
+[data-theme="dark"] .menu li a {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .menu li a:hover {
+  background: #333;
+}
+
+/* Terms Page Styles */
+.terms-container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 0 20px;
+  line-height: 1.6;
+  color: #333;
+}
+
+[data-theme="dark"] .terms-container {
+  color: #e0e0e0;
+}
+
+.terms-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.terms-header img {
+  height: 60px;
+  width: auto;
+  margin-bottom: 20px;
+}
+
+.terms-header h1 {
+  font-size: 2.5em;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+[data-theme="dark"] .terms-header h1 {
+  color: #e0e0e0;
+}
+
+.terms-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+[data-theme="dark"] .terms-header p {
+  color: #aaa;
+}
+
+.terms-section {
+  margin-bottom: 30px;
+}
+
+.terms-section h2 {
+  font-size: 1.8em;
+  color: #333;
+  border-bottom: 2px solid #27ed15;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+[data-theme="dark"] .terms-section h2 {
+  color: #e0e0e0;
+}
+
+.terms-section p {
+  margin-bottom: 15px;
+}
+
+.terms-section ul {
+  margin: 15px 0;
+  padding-left: 20px;
+}
+
+.terms-section li {
+  margin-bottom: 8px;
+}
+
+/* Footer Styles */
+footer {
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  padding: 40px 0 20px;
+  color: #333;
+  font-size: 14px;
+  margin-top: 60px;
+}
+
+[data-theme="dark"] footer {
+  background: #1e1e1e;
+  border-top: 1px solid #333;
+  color: #e0e0e0;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-logo img {
+  height: 40px;
+  width: auto;
+}
+
+.footer-logo h3 {
+  margin: 0;
+  color: #333;
+  font-size: 24px;
+}
+
+[data-theme="dark"] .footer-logo h3 {
+  color: #e0e0e0;
+}
+
+.footer-links {
+  display: flex;
+  gap: 30px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.footer-links li a {
+  text-decoration: none;
+  color: #333;
+  transition: color 0.3s;
+}
+
+[data-theme="dark"] .footer-links li a {
+  color: #e0e0e0;
+}
+
+.footer-links li a:hover {
+  color: #27ed15;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 20px;
+}
+
+[data-theme="dark"] .footer-bottom {
+  border-top: 1px solid #333;
+}
+
+.footer-bottom p {
+  margin: 0;
+  color: #666;
+}
+
+[data-theme="dark"] .footer-bottom p {
+  color: #aaa;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .nav-left {
+    order: 2;
+  }
+
+  .menu {
+    order: 1;
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .terms-container {
+    margin: 20px auto;
+    padding: 0 10px;
+  }
+
+  .terms-header h1 {
+    font-size: 2em;
+  }
+
+  .terms-section h2 {
+    font-size: 1.5em;
+  }
+
+  .footer-top {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .footer-links {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

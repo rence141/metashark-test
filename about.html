@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - Meta Shark</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="icon" type="image/png" href="../SaysonCo/main/php/uploads/logo1.png">
+  <link rel="stylesheet" href="css/about.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="nav-left">
+      <img src="../SaysonCo/main/php/uploads/logo1.png" alt="Meta Shark Logo" class="logo">
+      <h2>Meta Shark</h2>
+    </div>
+    <ul class="menu" id="menu">
+      <li><a href="javascript:history.back()">Back</a></li>
+      <li><a href="privacy_policy.html">Privacy Policy</a></li>
+        <li><a href="terms.html">Terms of Service</a></li>
+    </ul>
+  </div>
+
+  <div class="about-container">
+    <div class="about-header">
+      <img src="../SaysonCo/main/php/uploads/logo1.png" alt="Meta Shark Logo" style="height: 60px; width: auto; margin-bottom: 20px;">
+      <h1>About Meta Shark</h1>
+      <p>Discover our story, mission, and vision.</p>
+    </div>
+
+    <div class="about-section">
+      <h2>Our Story</h2>
+      <p>Meta Shark was founded in 2023 with a simple yet ambitious goal: to create the ultimate online marketplace for tech enthusiasts, gamers, and shoppers seeking quality products at competitive prices. Starting from a small team of passionate developers and e-commerce experts, we've grown into a vibrant community-driven platform that connects buyers and sellers worldwide.</p>
+      <p>What began as a hobby project has evolved into a trusted name in digital commerce, powered by innovative technology and a commitment to customer satisfaction.</p>
+    </div>
+
+    <div class="about-section">
+      <h2>Our Mission</h2>
+      <p>At Meta Shark, our mission is to democratize access to premium technology and gaming products by providing a secure, user-friendly platform that fosters fair trade and exceptional experiences. We believe in bridging the gap between sellers and buyers through transparency, reliability, and innovation.</p>
+    </div>
+
+    <div class="about-section">
+      <h2>Our Vision</h2>
+      <p>We envision a future where online shopping is seamless, personalized, and inclusive. Meta Shark aims to be the go-to destination for anyone looking to explore the latest in gadgets, games, and more, while supporting small businesses and emerging creators in the tech space.</p>
+    </div>
+
+    <div class="about-section">
+      <h2>Our Team</h2>
+      <p>Our dedicated team consists of experts in software development, design, marketing, and customer support. We're a diverse group united by our love for technology and commitment to excellence. From coders crafting intuitive interfaces to support specialists ensuring every query is resolved, we're all here to make your Meta Shark experience unforgettable.</p>
+    </div>
+
+    <div class="about-section">
+      <h2>Why Choose Meta Shark?</h2>
+      <ul>
+        <li><strong>Secure Transactions:</strong> Advanced encryption and verified sellers for peace of mind.</li>
+        <li><strong>Diverse Selection:</strong> From smartphones to gaming gear, find everything in one place.</li>
+        <li><strong>Community Focus:</strong> User reviews, ratings, and forums to help you make informed choices.</li>
+        <li><strong>Innovation Driven:</strong> Regular updates and AI-powered features to enhance your shopping journey.</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-top">
+        <div class="footer-logo">
+          <img src="../SaysonCo/main/php/uploads/logo1.png" alt="Meta Shark Logo">
+          <h3>Meta Shark</h3>
+        </div>
+        <ul class="footer-links">
+          <li><a href="index.html">Landing Page</a></li>
+          <li><a href="about.php">About</a></li>
+          <li><a href="contact.php">Contact</a></li>
+          <li><a href="privacy.php">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+        </ul>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 Meta Shark. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Simple theme toggle for terms page
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      themeIcon.textContent = newTheme === 'light' ? '🌙' : '☀️';
+      themeText.textContent = newTheme === 'light' ? 'Dark' : 'Light';
+    }
+
+    // Hamburger menu toggle
+    document.addEventListener('DOMContentLoaded', function() {
+      const hamburger = document.querySelector('.hamburger');
+      const menu = document.getElementById('menu');
+      if (hamburger && menu) {
+        hamburger.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          menu.classList.toggle('show');
+        });
+        document.addEventListener('click', function(e) {
+          if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.remove('show');
+          }
+        });
+        const menuItems = menu.querySelectorAll('a');
+        menuItems.forEach(item => {
+          item.addEventListener('click', function() {
+            menu.classList.remove('show');
+          });
+        });
+      }
+    });
+  </script>
+</body>
+</html>
