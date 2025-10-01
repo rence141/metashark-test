@@ -106,9 +106,10 @@ $user = $result->fetch_assoc();
     <link rel="stylesheet" href="fonts/fonts.css">
       <link rel="icon" type="image/png" href="uploads/logo1.png">
     <style>
+        
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #0fe70cff, #000000ff);
+            background-image: url('uploads/bg2.jpg');
             margin: 0;
             padding: 0;
         }
@@ -144,7 +145,7 @@ $user = $result->fetch_assoc();
             border-radius: 50%;
             object-fit: cover;
             margin-bottom: 15px;
-            border: 3px solid #007bff;
+            border: 3px solid #000000ff;
         }
 
         form input {
@@ -190,7 +191,7 @@ $user = $result->fetch_assoc();
         }
     </style>
 </head>
-<body>
+<body class="background">
     <div class="navbar">
         <a href="shop.php" class="logo">Meta Shark</a>
         <a href="logout.php">Logout</a>

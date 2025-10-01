@@ -57,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <title>Become a Seller - MetaAccessories</title>
     <link rel="stylesheet" href="fonts/fonts.css">
     <link rel="icon" type="image/png" href="uploads/logo1.png">
-    <link rel="stylesheet" href="../../css/seller_dashboard.css">
+    <link rel="stylesheet" href="../../css/become_seller.css">
 
 </head>
 <body>

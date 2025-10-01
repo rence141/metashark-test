@@ -1523,9 +1523,8 @@ a .profile-icon {
   background-position: center center;
 }
 
-/* Specific slide backgrounds */
 .carousel-slide:nth-child(1) {
-  background: url('../main/php/uploads/GameLobby.png') no-repeat center center;
+  background: url('../main/php/uploads/james.jpg') no-repeat center center;
   background-size: 100% 100%;
 }
 

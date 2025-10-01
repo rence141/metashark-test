@@ -468,6 +468,12 @@ if (isset($_SESSION['user_id'])) {
         gap: 10px;
       }
     }
+    /* d2 ko nilagay yung kay james kasi nag dadrama css*/
+    /* Specific slide backgrounds */
+.carousel-slide:nth-child(1) {
+  background: url('uploads/james.jpg') no-repeat center center;
+  background-size: 100% 100%;
+}
   </style>
   <script src="https://js.puter.com/v2/"></script>
   <script>
@@ -960,7 +966,7 @@ if (isset($_SESSION['user_id'])) {
 
 <section class="product bg2">
   <div class="carousel-container">
-    <div class="carousel-slides">
+      <div class="carousel-slides">
       <div class="carousel-slide"></div>
       <div class="carousel-slide"></div>
       <div class="carousel-slide"></div>
