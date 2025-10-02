@@ -468,12 +468,7 @@ if (isset($_SESSION['user_id'])) {
         gap: 10px;
       }
     }
-    /* d2 ko nilagay yung kay james kasi nag dadrama css*/
-    /* Specific slide backgrounds */
-.carousel-slide:nth-child(1) {
-  background: url('uploads/james.jpg') no-repeat center center;
-  background-size: 100% 100%;
-}
+   
   </style>
   <script src="https://js.puter.com/v2/"></script>
   <script>
@@ -1122,7 +1117,7 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
     <div class="ai-chat-main">
       <div class="ai-chat-messages" id="aiChatMessages">
-        <div class="message bot">Hello I'm metashark Staff how can I help you?</div>
+        <div class="message bot">Hello I'm Verna Meta Shark Atendee and Staff, how can I help you?</div>
       </div>
       <form id="aiChatForm" class="ai-chat-form">
         <input type="text" id="aiChatInput" placeholder="Type your question..." required>
@@ -1171,7 +1166,7 @@ function formatDate(dateStr) {
 function showWelcome() {
   const messagesDiv = document.getElementById("aiChatMessages");
   if (messagesDiv) {
-    messagesDiv.innerHTML = '<div class="message bot">Hello I\'m metashark Staff how can I help you?</div>';
+    messagesDiv.innerHTML = '<div class="message bot">Hello I\'m Verna your Meta Shark Attendee and Staff, how may I help you today?</div>';
   }
 }
 
@@ -1389,13 +1384,26 @@ document.addEventListener('DOMContentLoaded', function() {
       // Add temporary "thinking" message
       const botMsg = document.createElement("div");
       botMsg.className = "message bot";
-      botMsg.textContent = "Thinking...";
+      botMsg.textContent = "decoding...";
       messagesDiv.appendChild(botMsg);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
       try {
         // System prompt
-        const systemPrompt = "You are a professional staff member of Meta Shark. Keep responses concise, informative, and relevant to shopping, gaming, or site queries. Do not use emojis.";
+const systemPrompt = `
+You are Verna, a professional virtual staff assistant and attendee created by a developer named Rence. Your role is to provide users with reliable, efficient, and respectful support, like an experienced office staff member.
+
+- Respond politely, with professionalism and clarity. Keep a warm but businesslike tone. 
+- Handle tasks such as problem solving, answering inquiries, customer support, and giving organized guidance, but only within Meta Shark and for digital goods. Do not broaden the topic.
+- Be resourceful and proactive, anticipating needs when possible. Maintain discretion and professionalism when handling sensitive or confidential information. 
+- When asked about friends or contacts:
+    - Only reveal the specific person relevant to the question.
+    - Do not mention Rence or any other team members unless directly asked.
+    - If asked about Khristine Botin, respond: "Khristine Botin is the Professor of my creator, a highly skilled, professional, and inspiring programmer. She is widely respected for her expertise and dedication."
+- If you encounter a topic outside your expertise, respond: "Sorry, I couldn’t understand that. The topic is not in my area of expertise. Please contact Rence if there is an error in my system."
+- Users must not submit inappropriate content. Any such attempts may trigger enforcement of the company's terms and services.
+- Always respond specifically and concisely to what is questioned.
+`;
         const fullPrompt = `${systemPrompt}\n\nUser: ${message}`;
 
         // Use Puter.js for AI response (DeepSeek Chat)
@@ -1403,7 +1411,7 @@ document.addEventListener('DOMContentLoaded', function() {
           model: 'deepseek-chat'
         });
 
-        const aiContent = aiResponse.message?.content || "Sorry, I couldn’t understand that.";
+        const aiContent = aiResponse.message?.content || "Sorry, I couldn’t understand that. The topic is not in my area of expertise, Please contact Rence if I have an error in my system";
 
         // Update UI with AI reply
         botMsg.textContent = " " + aiContent;

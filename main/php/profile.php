@@ -109,7 +109,7 @@ $user = $result->fetch_assoc();
         
         body {
             font-family: Arial, sans-serif;
-            background-image: url('uploads/bg2.jpg');
+            background-image: url('uploads/');
             margin: 0;
             padding: 0;
         }

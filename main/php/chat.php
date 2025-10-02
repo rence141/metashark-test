@@ -131,18 +131,71 @@ if ($chat_user) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
     <style>
+        :root {
+            --body-bg: #fbf9f9;
+            --text-color: #000;
+            --secondary-text: #444;
+            --opacity-text: #666;
+            --sidebar-bg: #e2e2e2;
+            --border-color: #ddd;
+            --header-bg: #5fda2a;
+            --hover-bg: #d6f8d1;
+            --messages-bg: #fff;
+            --message-me-bg: #5fda2a;
+            --message-me-text: #fff;
+            --message-them-bg: #e9ecef;
+            --message-them-text: #000;
+            --form-bg: #f1f1f1;
+            --input-bg: #fff;
+            --input-border: #ddd;
+            --button-bg: #28a745;
+            --button-hover: #218838;
+            --back-btn-hover: #4dc21f;
+            --footer-bg: #d6f8d1;
+            --footer-border: #ccc;
+            --link-color: #0c0c0c;
+            --link-hover: #15b300;
+        }
+
+        [data-theme="dark"] {
+            --body-bg: #121212;
+            --text-color: #e0e0e0;
+            --secondary-text: #bbb;
+            --opacity-text: #aaa;
+            --sidebar-bg: #1e1e1e;
+            --border-color: #444;
+            --header-bg: #4caf50;
+            --hover-bg: #333;
+            --messages-bg: #1e1e1e;
+            --message-me-bg: #4caf50;
+            --message-me-text: #fff;
+            --message-them-bg: #2a2a2a;
+            --message-them-text: #e0e0e0;
+            --form-bg: #1e1e1e;
+            --input-bg: #2a2a2a;
+            --input-border: #555;
+            --button-bg: #28a745;
+            --button-hover: #218838;
+            --back-btn-hover: #4dc21f;
+            --footer-bg: #2a2a2a;
+            --footer-border: #555;
+            --link-color: #e0e0e0;
+            --link-hover: #15b300;
+        }
+
         body.chat-page {
             margin: 0;
             padding: 0;
-            background: #fbf9f9;
+            background: var(--body-bg);
+            color: var(--text-color);
             font-family: Arial, sans-serif;
             height: 100vh;
             display: flex;
         }
         .chat-sidebar {
             width: 300px;
-            background: #e2e2e2;
-            border-right: 1px solid #ddd;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -151,20 +204,20 @@ if ($chat_user) {
             display: flex;
             align-items: center;
             padding: 1rem;
-            background: #5fda2a;
+            background: var(--header-bg);
             color: white;
             text-decoration: none;
             font-weight: bold;
             gap: 0.5rem;
         }
         .back-btn:hover {
-            background: #4dc21f;
+            background: var(--back-btn-hover);
             color: white;
         }
         .chat-sidebar h2 {
             margin: 0;
             padding: 1rem;
-            background: #5fda2a;
+            background: var(--header-bg);
             color: white;
             font-size: 1.2rem;
         }
@@ -179,11 +232,11 @@ if ($chat_user) {
             align-items: center;
             gap: 0.75rem;
             padding: 0.75rem 1rem;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border-color);
             cursor: pointer;
         }
         .chat-list li:hover {
-            background: #d6f8d1;
+            background: var(--hover-bg);
         }
         .chat-list img {
             width: 40px;
@@ -201,14 +254,14 @@ if ($chat_user) {
             align-items: center;
             gap: 1rem;
             padding: 1rem;
-            background: #5fda2a;
+            background: var(--header-bg);
             color: white;
         }
         .chat-messages {
             flex: 1;
             padding: 1rem;
             overflow-y: auto;
-            background: #fff;
+            background: var(--messages-bg);
         }
         .message {
             margin: 0.5rem 0;
@@ -219,37 +272,39 @@ if ($chat_user) {
             position: relative;
         }
         .message.me {
-            background: #5fda2a;
-            color: #fff;
+            background: var(--message-me-bg);
+            color: var(--message-me-text);
             margin-left: auto;
         }
         .message.them {
-            background: #e9ecef;
-            color: #000;
+            background: var(--message-them-bg);
+            color: var(--message-them-text);
             margin-right: auto;
         }
         .chat-form {
             display: flex;
             gap: 0.5rem;
             padding: 1rem;
-            border-top: 1px solid #ddd;
-            background: #f1f1f1;
+            border-top: 1px solid var(--border-color);
+            background: var(--form-bg);
             align-items: flex-start;
             flex-wrap: wrap;
         }
         .chat-form textarea {
             flex: 1;
             padding: 0.75rem;
-            border: 1px solid #ddd;
+            border: 1px solid var(--input-border);
             border-radius: 4px;
             resize: none;
+            background: var(--input-bg);
+            color: var(--text-color);
         }
         .bi{
             cursor: pointer;
-            color: #444;
+            color: var(--secondary-text);
         }
         .chat-form button {
-            background: #28a745;
+            background: var(--button-bg);
             color: white;
             border: none;
             padding: 0.75rem 1.5rem;
@@ -257,7 +312,7 @@ if ($chat_user) {
             cursor: pointer;
         }
         .chat-form button:hover {
-            background: #218838;
+            background: var(--button-hover);
         }
         #file-preview img, 
         #file-preview video {
@@ -275,14 +330,14 @@ if ($chat_user) {
 
         .chat-sidebar-footer {
             padding: 1rem;
-            background: #d6f8d1;
+            background: var(--footer-bg);
             text-align: center;
-            border-top: 1px solid #ccc;
+            border-top: 1px solid var(--footer-border);
         }
 
         .chat-sidebar-footer a {
             text-decoration: none;
-            color: #0c0c0cff;
+            color: var(--link-color);
             font-weight: bold;
             display: flex;
             align-items: center;
@@ -291,7 +346,7 @@ if ($chat_user) {
         }
 
         .chat-sidebar-footer a:hover {
-            color: #15b300ff;
+            color: var(--link-hover);
         }
     </style>
 </head>
@@ -309,7 +364,7 @@ if ($chat_user) {
                 <img src="<?php echo !empty($row['profile_image']) && file_exists('uploads/' . $row['profile_image']) ? 'uploads/' . htmlspecialchars($row['profile_image']) : 'uploads/default-avatar.svg'; ?>" alt="Avatar">
                 <div>
                     <div><b><?php echo htmlspecialchars($row['seller_name'] ?: $row['fullname']); ?></b></div>
-                    <div style="font-size:0.85rem; color:#444;">
+                    <div style="font-size:0.85rem; color:var(--secondary-text);">
                         <?php 
                         if ($row['file_type'] === 'image') echo "[Image]";
                         elseif ($row['file_type'] === 'video') echo "[Video]";
@@ -322,9 +377,6 @@ if ($chat_user) {
     </ul>
     <!-- Sidebar footer -->
     <div class="chat-sidebar-footer">
-        <a href="aiChat-bot.php">
-            <i class="bi bi-robot"></i> Chat with our AI chatbot
-        </a>
     </div>
 </div>
 
@@ -386,7 +438,7 @@ if ($chat_user) {
             <button type="submit">Send</button>
         </form>
     <?php else: ?>
-        <div style="flex:1; display:flex; justify-content:center; align-items:center; color:#666;">
+        <div style="flex:1; display:flex; justify-content:center; align-items:center; color:var(--opacity-text);">
             <h2>Select a chat from the left</h2>
         </div>
     <?php endif; ?>
