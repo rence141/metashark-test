@@ -88,6 +88,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $chat_user) {
         ");
         $insert_stmt->bind_param("iisss", $current_user_id, $chat_with, $message, $file_path, $file_type);
         $insert_stmt->execute();
+        
+        // Send notification to receiver - get sender info from database
+        $sender_stmt = $conn->prepare("SELECT seller_name, fullname FROM users WHERE id = ?");
+        $sender_stmt->bind_param("i", $current_user_id);
+        $sender_stmt->execute();
+        $sender_result = $sender_stmt->get_result()->fetch_assoc();
+        $sender_name = $sender_result['seller_name'] ?: $sender_result['fullname'];
+        
+        $message_preview = !empty($message) ? $message : ($file_path ? "[Image/File]" : "");
+        
+        // Insert notification (simplified without is_read for now)
+        $notif_stmt = $conn->prepare("
+            INSERT INTO notifications (user_id, message, type, created_at) 
+            VALUES (?, ?, 'message', NOW())
+        ");
+        $notification_message = "New message from " . $sender_name . ": " . $message_preview;
+        $notif_stmt->bind_param("is", $chat_with, $notification_message);
+        $notif_stmt->execute();
     }
 
     header("Location: chat.php?seller_id=" . $chat_with);
@@ -177,7 +195,9 @@ if ($chat_user) {
             <?php if (!empty($row['file_path'])): ?>
                 <?php if ($row['file_type'] === 'image'): ?>
                     <img src="<?php echo htmlspecialchars($row['file_path']); ?>" 
-                         alt="Image" style="max-width: 220px; border-radius:8px; display:block; margin-bottom:6px;">
+                         alt="Image" style="max-width: 220px; border-radius:8px; display:block; margin-bottom:6px; cursor:pointer;" 
+                         onclick="openImagePopup('<?php echo htmlspecialchars($row['file_path']); ?>')"
+                         class="chat-image">
                 <?php elseif ($row['file_type'] === 'video'): ?>
                     <video controls style="max-width: 220px; border-radius:8px; display:block; margin-bottom:6px;">
                         <source src="<?php echo htmlspecialchars($row['file_path']); ?>" type="video/mp4">
@@ -208,7 +228,7 @@ if ($chat_user) {
     <?php endforeach; ?>
 </div>
 
-        <form method="POST" class="chat-form" enctype="multipart/form-data">
+        <form method="POST" class="chat-form" enctype="multipart/form-data" onsubmit="showMessageSentNotification()">
             <label for="file-upload" class="btn btn-primary mb-0">
                 <i class="bi bi-image" style="font-size:1.4rem;"></i>
             </label>
@@ -225,6 +245,27 @@ if ($chat_user) {
         </div>
     <?php endif; ?>
 </div>
+
+<!-- Image Popup Modal -->
+<div id="imagePopupModal" class="image-popup-modal">
+    <div class="image-popup-overlay" onclick="closeImagePopup()"></div>
+    <div class="image-popup-content">
+        <div class="image-popup-header">
+            <h3>Image Preview</h3>
+            <button class="close-btn" onclick="closeImagePopup()">&times;</button>
+        </div>
+        <div class="image-popup-body">
+            <img id="popupImage" src="" alt="Full size image">
+        </div>
+        <div class="image-popup-footer">
+            <button class="btn btn-secondary" onclick="closeImagePopup()">Close</button>
+            <button class="btn btn-primary" onclick="downloadImage()">Download</button>
+        </div>
+    </div>
+</div>
+
+<!-- Notification System -->
+<div id="notificationContainer" class="notification-container"></div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -271,7 +312,93 @@ document.addEventListener("DOMContentLoaded", function () {
         };
         reader.readAsDataURL(file);
     });
+
+    // Auto-refresh messages every 3 seconds
+    setInterval(refreshMessages, 3000);
 });
+
+// Image Popup Functions
+function openImagePopup(imageSrc) {
+    const modal = document.getElementById('imagePopupModal');
+    const img = document.getElementById('popupImage');
+    img.src = imageSrc;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImagePopup() {
+    const modal = document.getElementById('imagePopupModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function downloadImage() {
+    const img = document.getElementById('popupImage');
+    const link = document.createElement('a');
+    link.href = img.src;
+    link.download = 'chat-image-' + Date.now() + '.jpg';
+    link.click();
+}
+
+// Notification Functions
+function showNotification(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="bi bi-${getNotificationIcon(type)}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto remove after duration
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, duration);
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'success': 'check-circle',
+        'error': 'exclamation-triangle',
+        'info': 'info-circle',
+        'warning': 'exclamation-circle'
+    };
+    return icons[type] || 'info-circle';
+}
+
+function closeNotification(button) {
+    button.parentNode.remove();
+}
+
+// Message refresh function for notifications
+function refreshMessages() {
+    if (!window.location.search.includes('seller_id=')) return;
+    
+    fetch('chat_handler.php?action=get_new_messages&seller_id=' + new URLSearchParams(window.location.search).get('seller_id'))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.new_messages > 0) {
+                showNotification(`You have ${data.new_messages} new message(s)`, 'info');
+                // Reload page to show new messages
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        })
+        .catch(error => console.error('Error checking for new messages:', error));
+}
+
+// Show notification when message is sent
+function showMessageSentNotification() {
+    showNotification('Message sent successfully!', 'success', 2000);
+}
 </script>
 
 </body>

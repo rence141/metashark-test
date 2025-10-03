@@ -343,7 +343,7 @@
   position: fixed;
   bottom: 90px;
   right: 20px;
-  width: 900px; /* Increased from 800px to allow longer input */
+  width: 1000px; /* Further increased width to allow longer input */
   height: 600px;
   background: #fff;
   border: 1px solid #ccc;
@@ -390,7 +390,7 @@
 
 .ai-chat-form input {
   flex: 1;
-  padding: 12px 24px; /* Increased horizontal padding for longer appearance */
+  padding: 12px 36px; /* Further increased horizontal padding for longer appearance */
   border: none;
   outline: none;
   background: #fff;

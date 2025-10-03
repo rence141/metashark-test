@@ -215,3 +215,270 @@
         .chat-sidebar-footer a:hover {
             color: var(--link-hover);
         }
+
+        /* Image Popup Modal Styles */
+        .image-popup-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-popup-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            cursor: pointer;
+        }
+
+        .image-popup-content {
+            position: relative;
+            background: var(--messages-bg);
+            border-radius: 10px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 2001;
+        }
+
+        .image-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--header-bg);
+            color: white;
+        }
+
+        .image-popup-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .image-popup-body {
+            padding: 1rem;
+            text-align: center;
+            max-height: 70vh;
+            overflow: auto;
+        }
+
+        .image-popup-body img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-popup-footer {
+            padding: 1rem;
+            background: var(--form-bg);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--button-bg);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--button-hover);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-text);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--opacity-text);
+        }
+
+        /* Chat Image Hover Effect */
+        .chat-image:hover {
+            transform: scale(1.02);
+            transition: transform 0.2s ease;
+        }
+
+        /* Notification System Styles */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1500;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+        }
+
+        .notification {
+            background: var(--messages-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideInRight 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+        }
+
+        .notification-success::before {
+            background: #28a745;
+        }
+
+        .notification-error::before {
+            background: #dc3545;
+        }
+
+        .notification-info::before {
+            background: #17a2b8;
+        }
+
+        .notification-warning::before {
+            background: #ffc107;
+        }
+
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .notification-content i {
+            font-size: 1.2rem;
+        }
+
+        .notification-success .notification-content i {
+            color: #28a745;
+        }
+
+        .notification-error .notification-content i {
+            color: #dc3545;
+        }
+
+        .notification-info .notification-content i {
+            color: #17a2b8;
+        }
+
+        .notification-warning .notification-content i {
+            color: #ffc107;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--secondary-text);
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .notification-close:hover {
+            background: var(--hover-bg);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Dark theme adjustments for notifications */
+        [data-theme="dark"] .notification {
+            background: var(--messages-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        [data-theme="dark"] .notification-close {
+            color: var(--secondary-text);
+        }
+
+        [data-theme="dark"] .notification-close:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .image-popup-content {
+                max-width: 95vw;
+                max-height: 95vh;
+            }
+
+            .notification-container {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            .notification {
+                padding: 0.75rem;
+            }
+        }
