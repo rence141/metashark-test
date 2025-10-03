@@ -7,9 +7,21 @@ $theme = $_SESSION['theme'] ?? 'dark';
 
 // Handle theme toggle
 if (isset($_GET['theme'])) {
-    $new_theme = $_GET['theme'] === 'light' ? 'light' : 'dark';
-    $_SESSION['theme'] = $new_theme;
-    $theme = $new_theme;
+    $new_theme = $_GET['theme'];
+    if ($new_theme === 'light' || $new_theme === 'dark' || $new_theme === 'device') {
+        $_SESSION['theme'] = $new_theme;
+        $theme = $new_theme;
+    } else {
+        $new_theme = 'dark';
+        $_SESSION['theme'] = $new_theme;
+        $theme = $new_theme;
+    }
+    
+    // Handle redirect back to original page
+    if (isset($_GET['redirect'])) {
+        header("Location: " . $_GET['redirect']);
+        exit;
+    }
 }
 ?>
 

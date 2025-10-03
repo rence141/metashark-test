@@ -797,6 +797,8 @@ if (isset($_SESSION['user_id'])) {
   <div class="nav-left">
     <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="logo">
     <h2>Meta Shark</h2>
+  </div>
+  <div class="nav-right">
     <div class="theme-toggle" id="themeToggle">
       <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
         <span class="theme-icon" id="themeIcon">
@@ -808,8 +810,6 @@ if (isset($_SESSION['user_id'])) {
       </button>
     </div>
     <?php include('theme_toggle.php'); ?>
-  </div>
-  <div class="nav-right">
     <?php
     // Get unread notification count
     $notif_count = 0;
