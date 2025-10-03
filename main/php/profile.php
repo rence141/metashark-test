@@ -1,9 +1,12 @@
 <?php
 session_start();
 
+// Debug: Log session data to verify variables
+error_log("Profile.php session data: " . print_r($_SESSION, true));
+
 // If user not logged in, redirect to login
 if (!isset($_SESSION["user_id"])) {
-    header("Location: login.html");
+    header("Location: login_users.php");
     exit();
 }
 
@@ -21,7 +24,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Handle image upload
     if (!empty($_FILES["profile_image"]["name"])) {
-        $targetDir = "uploads/";
+        $targetDir = "Uploads/";
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0777, true);
         }
@@ -38,7 +41,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $targetFilePath = $targetDir . $fileName;
         $fileType = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
 
-        // Allow only jpg, png
+        // Allow only jpg, jpeg, png
         $allowedTypes = ["jpg", "jpeg", "png"];
         if (in_array($fileType, $allowedTypes)) {
             if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $targetFilePath)) {
@@ -48,7 +51,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (!empty($currentImage) && file_exists($targetDir . $currentImage)) {
                     unlink($targetDir . $currentImage);
                 }
+            } else {
+                $error = "Error uploading profile image.";
             }
+        } else {
+            $error = "Only JPG, JPEG, and PNG files are allowed.";
         }
     }
 
@@ -78,7 +85,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if ($stmt->execute()) {
-        $_SESSION["fullname"] = $fullname;
+        $_SESSION["name"] = $fullname; // Update session name to align with shop.php
         $success = "Profile updated successfully!";
         
         // Log update
@@ -97,6 +104,9 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
+
+// Set default profile image path
+$default_profile_image = "Uploads/Logo.png"; // Replace with your image filename
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -104,12 +114,11 @@ $user = $result->fetch_assoc();
     <meta charset="UTF-8">
     <title><?php echo htmlspecialchars($user["fullname"]); ?> - Profile</title>
     <link rel="stylesheet" href="fonts/fonts.css">
-      <link rel="icon" type="image/png" href="uploads/logo1.png">
+    <link rel="icon" type="image/png" href="Uploads/logo1.png">
     <style>
-        
         body {
             font-family: Arial, sans-serif;
-            background-image: url('uploads/');
+            background-image: url('Uploads/');
             margin: 0;
             padding: 0;
         }
@@ -204,10 +213,10 @@ $user = $result->fetch_assoc();
         <?php if (!empty($error)) echo "<div class='message error'>$error</div>"; ?>
 
         <!-- Profile Picture -->
-        <?php if (!empty($user["profile_image"])): ?>
-            <img src="uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile Picture">
+        <?php if (!empty($user["profile_image"]) && file_exists("Uploads/" . $user["profile_image"])): ?>
+            <img src="Uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile Picture">
         <?php else: ?>
-            <img src="uploads/default.png" alt="Default Profile Picture">
+            <img src="<?php echo htmlspecialchars($default_profile_image); ?>" alt="Default Profile Picture">
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">

@@ -1,5 +1,8 @@
 <?php
 session_start();
+// Debug: Log session data to verify variables
+error_log("Shop.php session data: " . print_r($_SESSION, true));
+
 // Check if user just logged in
 $just_logged_in = isset($_SESSION['login_success']) && $_SESSION['login_success'] === true;
 // Clear the login success flag
@@ -88,7 +91,7 @@ if (isset($_SESSION['user_id'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meta Shark</title>
   <link rel="stylesheet" href="fonts/fonts.css">
-  <link rel="icon" type="image/png" href="uploads/logo1.png">
+  <link rel="icon" type="image/png" href="Uploads/logo1.png">
   <link rel="stylesheet" href="../../css/shop.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
@@ -791,7 +794,7 @@ if (isset($_SESSION['user_id'])) {
 <!-- Navbar -->
 <div class="navbar">
   <div class="nav-left">
-    <img src="uploads/logo1.png" alt="Meta Shark Logo" class="logo">
+    <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="logo">
     <h2>Meta Shark</h2>
     <div class="theme-toggle" id="themeToggle">
       <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
@@ -845,10 +848,10 @@ if (isset($_SESSION['user_id'])) {
       $current_profile_image = $current_profile['profile_image'] ?? null;
       ?>
       <a href="<?php echo $profile_page; ?>">
-        <?php if(!empty($current_profile_image) && file_exists('uploads/' . $current_profile_image)): ?>
-          <img src="uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
+        <?php if(!empty($current_profile_image) && file_exists('Uploads/' . $current_profile_image)): ?>
+          <img src="Uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
         <?php else: ?>
-          <img src="uploads/default-avatar.svg" alt="Profile" class="profile-icon">
+          <img src="Uploads/Logo.png" alt="Profile" class="profile-icon">
         <?php endif; ?>
       </a>
     <?php else: ?>
@@ -893,7 +896,7 @@ if (isset($_SESSION['user_id'])) {
     <source src="../../mp4/bateo.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
-  <img src="uploads/logo1.png" alt="Meta Shark Logo" class="video-logo">
+  <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="video-logo">
 </div>
 <!-- Features Section -->
 <div class="features-section">
@@ -1452,7 +1455,7 @@ async function saveMessage(userId, role, message) {
   <div class="footer-content">
     <div class="footer-top">
       <div class="footer-logo">
-        <img src="uploads/logo1.png" alt="Meta Shark Logo">
+        <img src="Uploads/logo1.png" alt="Meta Shark Logo">
         <h3>Meta Shark</h3>
       </div>
       <ul class="footer-links">

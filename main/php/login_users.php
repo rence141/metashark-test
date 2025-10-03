@@ -5,7 +5,6 @@ include("db.php");
 $error = isset($_GET['error']) ? $_GET['error'] : "";
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,19 +63,13 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
       background: rgb(0, 230, 4);
     }
 
-    .form-container p {
-      margin-top: 15px;
-      font-size: 0.9rem;
-    }
-
     .form-container a {
       color: rgb(0, 255, 13);
       text-decoration: none;
     }
 
-    /* Logo Styles */
     .form-container .logo {
-      width: 80px;       /* Adjust size */
+      width: 80px;
       height: auto;
       margin-bottom: 15px;
       display: block;
@@ -84,7 +77,6 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
       margin-right: auto;
     }
 
-    /* Loading Screen Styles */
     .loading-screen {
       position: fixed;
       top: 0;
@@ -150,7 +142,6 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
   </style>
 </head>
 <body>
-<!-- Loading Screen -->
 <div class="loading-screen">
   <div class="worm-container">
     <div class="worm-dot"></div>
@@ -163,7 +154,6 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
 </div>
 
 <div class="form-container">
-  <!-- Logo -->
   <img src="uploads/logo1.png" alt="MyShop Logo" class="logo">
   <h2>Login</h2>
 
@@ -177,6 +167,14 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     <?php if (!empty($error)) echo "<p style='color:red;'>$error</p>"; ?>
   </form>
 
+  <!-- Google Login -->
+  <div style="margin: 20px 0;">
+    <a href="google_login.php" style="display:inline-block; text-decoration:none;">
+      <img src="https://developers.google.com/identity/images/btn_google_signin_dark_normal_web.png" 
+           alt="Sign in with Google">
+    </a>
+  </div>
+
   <p>Don't have an account? <a href="signup_users.php">Sign Up</a></p>
 
   <p style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
@@ -186,14 +184,11 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
 </div>
 
 <script>
-  // Show loading screen when form is submitted
   document.getElementById('loginForm').addEventListener('submit', function() {
     document.querySelector('.loading-screen').classList.add('active');
   });
 
-  // Hide loading screen when page loads
   window.addEventListener('load', function() {
-    // If there's an error message, don't show loading screen
     const errorMessage = document.querySelector('p[style="color:red;"]');
     if (!errorMessage) {
       document.querySelector('.loading-screen').classList.remove('active');
