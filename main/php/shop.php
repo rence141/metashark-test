@@ -1222,7 +1222,7 @@ async function refreshChat() {
   if (!currentUserId) return;
 
   try {
-    const response = await fetch("ai_chat_handler.php", {
+  const response = await fetch("main/php/ai_chat_handler.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 100 })
@@ -1267,7 +1267,7 @@ async function loadChatHistory() {
   }
 
   try {
-    const response = await fetch("ai_chat_handler.php", {
+  const response = await fetch("main/php/ai_chat_handler.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 100 })
@@ -1439,7 +1439,7 @@ You are Verna, a professional virtual staff assistant and attendee created by a 
 // Save single message to server
 async function saveMessage(userId, role, message) {
   try {
-    await fetch("ai_chat_handler.php", {
+  await fetch("main/php/ai_chat_handler.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "save_message", user_id: userId, role: role, message: message })

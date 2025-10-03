@@ -6,28 +6,23 @@ include_once("email.php");
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    if ($email !== '') {
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-        if ($stmt) {
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            if ($res->num_rows === 1) {
-                $u = $res->fetch_assoc();
-                $token = bin2hex(random_bytes(32));
-                $expires = date('Y-m-d H:i:s', time() + 3600);
-                $upd = $conn->prepare("UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?");
-                if ($upd) { $upd->bind_param("ssi", $token, $expires, $u['id']); $upd->execute(); }
+  $email = trim($_POST['email'] ?? '');
+  if ($email !== '') {
+    // Always generate a token and try to update, even if user does not exist
+    $token = bin2hex(random_bytes(32));
+    $expires = date('Y-m-d H:i:s', time() + 3600);
+    $upd = $conn->prepare("UPDATE users SET reset_token = ?, reset_expires = ? WHERE email = ?");
+    if ($upd) { $upd->bind_param("sss", $token, $expires, $email); $upd->execute(); }
 
-                $link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . "/reset_password.php?token=" . urlencode($token);
-                $subject = 'Password Reset';
-                $body = "Click the link to reset your password (valid for 1 hour):\n$link";
-                @send_email($email, $subject, $body);
-            }
-        }
-        $message = 'If the email exists, a reset link has been sent.';
-    }
+    $link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . "/reset_password.php?token=" . urlencode($token);
+    $subject = 'Password Reset';
+    $body = "Click the link to reset your password (valid for 1 hour):\n$link";
+    send_email($email, $subject, $body);
+
+    // Redirect to confirmation page
+    header('Location: reset_link_sent.php?email=' . urlencode($email));
+    exit;
+  }
 }
 ?>
 <!DOCTYPE html>
@@ -50,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
   <div class="card">
     <h2>Forgot Password</h2>
-    <?php if ($message) { echo '<div class="msg">' . htmlspecialchars($message) . '</div>'; } ?>
     <form method="POST">
       <input type="email" name="email" placeholder="Your email" required>
       <button class="btn" type="submit">Send reset link</button>
