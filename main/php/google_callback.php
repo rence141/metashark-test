@@ -4,7 +4,7 @@ include("db.php");
 session_start();
 
 $client = new Google_Client();
-$client->setAuthConfig(__DIR__ . '/credentials.json');
+$client->setAuthConfig('C:/xampp/secure-config/credentials.json');
 $client->setRedirectUri('http://localhost/SaysonCo/main/php/google_callback.php');
 $client->addScope("email");
 $client->addScope("profile");
