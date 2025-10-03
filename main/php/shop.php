@@ -9,14 +9,21 @@ $just_logged_in = isset($_SESSION['login_success']) && $_SESSION['login_success'
 if ($just_logged_in) {
     $_SESSION['login_success'] = false;
 }
+
 // Set theme preference
-$theme = $_SESSION['theme'] ?? 'dark';
-// Handle theme toggle
 if (isset($_GET['theme'])) {
-    $new_theme = $_GET['theme'] === 'light' ? 'light' : 'dark';
+    $new_theme = in_array($_GET['theme'], ['light', 'dark', 'device']) ? $_GET['theme'] : 'device';
     $_SESSION['theme'] = $new_theme;
-    $theme = $new_theme;
+} else {
+    $theme = $_SESSION['theme'] ?? 'device'; // Default to 'device' if no theme is set
 }
+
+// Determine the effective theme for rendering
+$effective_theme = $theme;
+if ($theme === 'device') {
+    $effective_theme = 'dark'; // Fallback; client-side JS will override based on prefers-color-scheme
+}
+
 // Verify user session is valid
 if (isset($_SESSION['user_id'])) {
     include("db.php");
@@ -85,7 +92,7 @@ if (isset($_SESSION['user_id'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?php echo $theme; ?>">
+<html lang="en" data-theme="<?php echo htmlspecialchars($effective_theme); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -95,259 +102,384 @@ if (isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="../../css/shop.css">
   <link rel="stylesheet" href="../../css/ai_chat.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-
-  <style>
-  .navbar {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-  }
-  .chat-widget {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  border-radius: 50%;
-  width: 70px;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-  transition: transform 0.2s ease-in-out, background 0.2s;
-  z-index: 1000;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-[data-theme="light"] .chat-widget {
-  background: #5bf431ff;
-  color: #353434ff;
-}
-
-[data-theme="dark"] .chat-widget {
-  background: #363636ff;
-  color: white;
-}
-
-.chat-widget:hover {
-  transform: scale(1.1);
-  background: #27ed15ff;
-  color: white;
-}
-
-.chat-icon {
-  font-size: 36px;
   
-}
+  <style>
+    :root {
+      --background: #fff;
+      --text-color: #333;
+      --primary-color: #00ff88;
+      --secondary-bg: #f8f9fa;
+      --border-color: #dee2e6;
+    }
 
-/* AI Chatbot bubble (above the main chat) */
-.chat-widget.ai {
-  bottom: 100px;
-}
+    [data-theme="dark"] {
+      --background: #000000ff;
+      --text-color: #e0e0e0;
+      --primary-color: #00ff88;
+      --secondary-bg: #2a2a2a;
+      --border-color: #444;
+    }
 
-[data-theme="light"] .chat-widget.ai {
-  background: #46ff2dff;
-  color: #333;
-}
 
-[data-theme="dark"] .chat-widget.ai {
-  background: #232323ff;
-  color: white;
-}
+    body {
+      background: var(--background);
+      color: var(--text-color);
+    }
 
-.chat-widget.ai:hover {
-  background: #11df18ff;
-  color: white;
-}
+    /* Device select styling to match login button look */
+    .login-btn-select, #deviceSelect {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background: #000;
+      color: #fff;
+      border: 2px solid #00ff88;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 160px;
+      transition: all 0.3s ease;
+    }
+    .login-btn-select:hover, #deviceSelect:hover {
+      background: #00ff88;
+      color: #000;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(1, 235, 28, 0.12);
+    }
+    .device-toggle { position: relative; display: inline-block; }
+    .device-toggle:after {
+      content: '\25BC';
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: #fff;
+    }
 
-/* AI Chatbot modal */
-.ai-chat-modal {
-  position: fixed;
-  bottom: 90px;
-  right: 20px;
-  width: 800px;
-  height: 600px;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 1100;
-  visibility: hidden; /* Extra for safety */
-}
+    .filter-bar .device-toggle .login-btn-select,
+    .filter-bar .device-toggle .device-toggle-btn {
+      background: #000 !important;
+      color: #fff !important;
+      border: 2px solid #00ff88 !important;
+      padding: 12px 16px !important;
+      border-radius: 12px !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      min-width: 160px !important;
+    }
 
-[data-theme="dark"] .ai-chat-modal {
-  background: #1e1e1e;
-  border: 1px solid #333;
-  color: #e0e0e0;
-}
+    .filter-bar .device-toggle .login-btn-select:hover,
+    .filter-bar .device-toggle .device-toggle-btn:hover {
+      background: #00ff88 !important;
+      color: #000 !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 10px 20px rgba(1, 235, 28, 0.12) !important;
+    }
 
-.ai-chat-modal.maximized {
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
-  top: 20px;
-  width: auto;
-  height: auto;
-}
+    .filter-bar .device-toggle .device-menu {
+      background: rgba(255,255,255,0.95) !important;
+      border: 2px solid rgba(0,255,136,0.3) !important;
+      z-index: 2000 !important;
+    }
 
-.ai-chat-modal.show {
-  display: flex;
-  visibility: visible;
-}
+    .device-toggle { position: relative; display: inline-block; }
+    .device-toggle-btn { display: inline-flex; align-items: center; gap: 8px; }
+    .device-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: rgba(255,255,255,0.95);
+      border: 2px solid rgba(0,255,136,0.3);
+      border-radius: 12px;
+      padding: 8px;
+      min-width: 160px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      display: none;
+      z-index: 1000;
+    }
+    .device-toggle.active .device-menu { display: block; }
+    .device-option {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-weight: 600;
+    }
+    .device-option:hover { background: rgba(0,255,136,0.08); color: #00aa55; }
 
-/* Header */
-.ai-chat-header {
-  background: #3deb26ff;
-  color: white;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.ai-chat-header .header-buttons {
-  display: flex;
-  gap: 10px;
-}
-.ai-chat-header button {
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-}
+    /* Theme dropdown styling */
+    .theme-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .theme-btn {
+      appearance: none;
+      background: #333333;
+      color: #fff;
+      border: 2px solid #006400;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 120px;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .theme-btn:hover {
+      background: #006400;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0, 100, 0, 0.2);
+    }
+    .theme-dropdown:after {
+      content: '\25BC';
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: #fff;
+    }
+    .theme-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: rgba(255,255,255,0.95);
+      border: 2px solid rgba(0,255,136,0.3);
+      border-radius: 12px;
+      padding: 8px;
+      min-width: 160px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      display: none;
+      z-index: 1000;
+    }
+    .theme-dropdown.active .theme-menu {
+      display: block;
+    }
+    .theme-option {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+    }
+    [data-theme="dark"] .theme-option {
+      color: #3c3c3cff;
+    }
+    .theme-option:hover {
+      background: rgba(0,255,136,0.08);
+      color: #00aa55;
+    }
 
-/* Chat Container */
-.ai-chat-container {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* Sidebar */
-.ai-chat-sidebar {
-  width: 250px;
-  background: #f8f9fa;
-  border-right: 1px solid #dee2e6;
-  display: flex;
-  flex-direction: column;
-}
-
-[data-theme="dark"] .ai-chat-sidebar {
-  background: #2a2a2a;
-  border-right: 1px solid #444;
-}
-
-#newChatBtn {
-  padding: 10px;
-  background: #007bff;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-}
-#newChatBtn:hover {
-  background: #0056b3;
-}
-#chatHistoryList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex: 1;
-  overflow-y: auto;
-}
-#chatHistoryList li {
-  padding: 10px;
-  cursor: pointer;
-  border-bottom: 1px solid #eee;
-  color: #333;
-}
-[data-theme="dark"] #chatHistoryList li {
-  color: #e0e0e0;
-  border-bottom: 1px solid #444;
-}
-#chatHistoryList li:hover,
-#chatHistoryList li.active {
-  background: #e9ecef;
-}
-[data-theme="dark"] #chatHistoryList li:hover,
-[data-theme="dark"] #chatHistoryList li.active {
-  background: #333;
-}
-
-/* Main */
-.ai-chat-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Messages */
-.ai-chat-messages {
-  flex: 1;
-  padding: 10px;
-  overflow-y: auto;
-  background: #f9f9f9;
-}
-[data-theme="dark"] .ai-chat-messages {
-  background: #2a2a2a;
-}
-.ai-chat-messages .message {
-  margin: 8px 0;
-  padding: 8px 12px;
-  border-radius: 6px;
-  max-width: 80%;
-  word-wrap: break-word;
-}
-.ai-chat-messages .message.bot {
-  background: #e2e6ea;
-  align-self: flex-start;
-  color: black;
-}
-[data-theme="dark"] .ai-chat-messages .message.bot {
-  background: #444;
-  color: #e0e0e0;
-}
-.ai-chat-messages .message.user {
-  background: #38f61fff;
-  color: white;
-  align-self: flex-end;
-}
-
-/* Form */
-.ai-chat-form {
-  display: flex;
-  border-top: 1px solid #ddd;
-}
-[data-theme="dark"] .ai-chat-form {
-  border-top: 1px solid #444;
-}
-.ai-chat-form input {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  outline: none;
-  background: #fff;
-  color: #333;
-}
-[data-theme="dark"] .ai-chat-form input {
-  background: #333;
-  color: #e0e0e0;
-}
-.ai-chat-form button {
-  background: #48f514ff;
-  color: white;
-  border: none;
-  padding: 0 15px;
-  cursor: pointer;
-}
-.ai-chat-form button:hover {
-  background: #13e60fff;
-}
-    /* Notification styles (if not in CSS) */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .chat-widget {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      border-radius: 50%;
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+      transition: transform 0.2s ease-in-out, background 0.2s;
+      z-index: 1000;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    [data-theme="light"] .chat-widget {
+      background: #5bf431ff;
+      color: #353434ff;
+    }
+    [data-theme="dark"] .chat-widget {
+      background: #363636ff;
+      color: white;
+    }
+    .chat-widget:hover {
+      transform: scale(1.1);
+      background: #27ed15ff;
+      color: white;
+    }
+    .chat-icon {
+      font-size: 36px;
+    }
+    .chat-widget.ai {
+      bottom: 100px;
+    }
+    [data-theme="light"] .chat-widget.ai {
+      background: #46ff2dff;
+      color: #333;
+    }
+    [data-theme="dark"] .chat-widget.ai {
+      background: #232323ff;
+      color: white;
+    }
+    .chat-widget.ai:hover {
+      background: #11df18ff;
+      color: white;
+    }
+    .ai-chat-modal {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 800px;
+      height: 600px;
+      background: var(--background);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 1100;
+      visibility: hidden;
+    }
+    .ai-chat-modal.maximized {
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      top: 20px;
+      width: auto;
+      height: auto;
+    }
+    .ai-chat-modal.show {
+      display: flex;
+      visibility: visible;
+    }
+    .ai-chat-header {
+      background: #3deb26ff;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ai-chat-header .header-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .ai-chat-header button {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .ai-chat-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    .ai-chat-sidebar {
+      width: 250px;
+      background: var(--secondary-bg);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+    #newChatBtn {
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #newChatBtn:hover {
+      background: #0056b3;
+    }
+    #chatHistoryList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      flex: 1;
+      overflow-y: auto;
+    }
+    #chatHistoryList li {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+    #chatHistoryList li:hover,
+    #chatHistoryList li.active {
+      background: var(--border-color);
+    }
+    .ai-chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .ai-chat-messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: var(--secondary-bg);
+    }
+    .ai-chat-messages .message {
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-radius: 6px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .ai-chat-messages .message.bot {
+      background: #e2e6ea;
+      align-self: flex-start;
+      color: black;
+    }
+    [data-theme="dark"] .ai-chat-messages .message.bot {
+      background: #444;
+      color: #e0e0e0;
+    }
+    .ai-chat-messages .message.user {
+      background: #38f61fff;
+      color: white;
+      align-self: flex-end;
+    }
+    .ai-chat-form {
+      display: flex;
+      border-top: 1px solid var(--border-color);
+    }
+    .ai-chat-form input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+      background: var(--background);
+      color: var(--text-color);
+    }
+    .ai-chat-form button {
+      background: #48f514ff;
+      color: white;
+      border: none;
+      padding: 0 15px;
+      cursor: pointer;
+    }
+    .ai-chat-form button:hover {
+      background: #13e60fff;
+    }
     .notification {
       position: fixed;
       top: 20px;
@@ -367,28 +499,18 @@ if (isset($_SESSION['user_id'])) {
     .notification.success { background: #28a745; }
     .notification.error { background: #dc3545; }
     .notification.info { background: #17a2b8; }
-
-    /* Footer Styles */
     footer {
-      background: #f8f9fa;
-      border-top: 1px solid #dee2e6;
+      background: var(--secondary-bg);
+      border-top: 1px solid var(--border-color);
       padding: 40px 0 20px;
-      color: #333;
+      color: var(--text-color);
       font-size: 14px;
     }
-
-    [data-theme="dark"] footer {
-      background: #1e1e1e;
-      border-top: 1px solid #333;
-      color: #e0e0e0;
-    }
-
     .footer-content {
       max-width: 1200px;
       margin: 0 auto;
       padding: 0 20px;
     }
-
     .footer-top {
       display: flex;
       justify-content: space-between;
@@ -397,28 +519,20 @@ if (isset($_SESSION['user_id'])) {
       flex-wrap: wrap;
       gap: 20px;
     }
-
     .footer-logo {
       display: flex;
       align-items: center;
       gap: 10px;
     }
-
     .footer-logo img {
       height: 40px;
       width: auto;
     }
-
     .footer-logo h3 {
       margin: 0;
-      color: #333;
+      color: var(--text-color);
       font-size: 24px;
     }
-
-    [data-theme="dark"] .footer-logo h3 {
-      color: #e0e0e0;
-    }
-
     .footer-links {
       display: flex;
       gap: 30px;
@@ -426,57 +540,116 @@ if (isset($_SESSION['user_id'])) {
       margin: 0;
       padding: 0;
     }
-
     .footer-links li a {
       text-decoration: none;
-      color: #333;
+      color: var(--text-color);
       transition: color 0.3s;
     }
-
-    [data-theme="dark"] .footer-links li a {
-      color: #e0e0e0;
-    }
-
     .footer-links li a:hover {
       color: #27ed15;
     }
-
     .footer-bottom {
       text-align: center;
       padding-top: 20px;
-      border-top: 1px solid #dee2e6;
+      border-top: 1px solid var(--border-color);
       margin-top: 20px;
     }
-
-    [data-theme="dark"] .footer-bottom {
-      border-top: 1px solid #333;
-    }
-
     .footer-bottom p {
       margin: 0;
-      color: #666;
+      color: var(--text-color);
     }
-
-    [data-theme="dark"] .footer-bottom p {
-      color: #aaa;
-    }
-
     @media (max-width: 768px) {
       .footer-top {
         flex-direction: column;
         text-align: center;
       }
-
       .footer-links {
         flex-direction: column;
         gap: 10px;
       }
     }
-   
   </style>
   <script src="https://js.puter.com/v2/"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Theme toggle functionality
+  const themeDropdown = document.getElementById('themeDropdown');
+  const themeMenu = document.getElementById('themeMenu');
+  const themeBtn = document.getElementById('themeDropdownBtn');
+  const themeIcon = document.getElementById('themeIcon');
+  const themeText = document.getElementById('themeText');
+  let currentTheme = '<?php echo htmlspecialchars($theme); ?>';
+  
+  // Initialize theme
+  applyTheme(currentTheme);
+
+  // Apply theme based on selection or system preference
+  function applyTheme(theme) {
+    let effectiveTheme = theme;
+    if (theme === 'device') {
+      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', effectiveTheme);
+    updateThemeUI(theme, effectiveTheme);
+    
+    // Save theme to server
+    fetch(`?theme=${theme}`, { method: 'GET' })
+      .catch(error => console.error('Error saving theme:', error));
+  }
+
+  // Update theme button UI
+  function updateThemeUI(theme, effectiveTheme) {
+    if (themeIcon && themeText) {
+      if (theme === 'device') {
+        themeIcon.className = 'bi theme-icon bi-laptop';
+        themeText.textContent = 'Device';
+      } else if (theme === 'dark') {
+        themeIcon.className = 'bi theme-icon bi-moon-fill';
+        themeText.textContent = 'Dark';
+      } else {
+        themeIcon.className = 'bi theme-icon bi-sun-fill';
+        themeText.textContent = 'Light';
+      }
+    }
+  }
+
+  // Theme dropdown toggle
+  if (themeBtn && themeDropdown) {
+    themeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      themeDropdown.classList.toggle('active');
+    });
+  }
+
+  // Theme option selection
+  if (themeMenu) {
+    themeMenu.addEventListener('click', (e) => {
+      const option = e.target.closest('.theme-option');
+      if (!option) return;
+      currentTheme = option.dataset.theme;
+      applyTheme(currentTheme);
+      themeDropdown.classList.remove('active');
+    });
+  }
+
+  // Close theme menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (themeDropdown && !themeDropdown.contains(e.target)) {
+      themeDropdown.classList.remove('active');
+    }
+  });
+
+  // Listen for system theme changes when 'device' is selected
+  if (currentTheme === 'device') {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', (e) => {
+      if (currentTheme === 'device') {
+        applyTheme('device');
+      }
+    });
+  }
+
+      // Carousel functionality
       const carousel = document.querySelector('.carousel-slides');
       const prevBtn = document.querySelector('.carousel-prev');
       const nextBtn = document.querySelector('.carousel-next');
@@ -503,17 +676,11 @@ if (isset($_SESSION['user_id'])) {
         showSlide(currentIndex + 1);
       });
 
-      // Optional: Auto-slide every 5 seconds
+      // Auto-slide every 5 seconds
       setInterval(() => {
         showSlide(currentIndex + 1);
       }, 5000);
-    });
 
-    document.addEventListener('DOMContentLoaded', function() {
-      // Theme toggle functionality
-      const theme = '<?php echo $theme; ?>';
-      document.documentElement.setAttribute('data-theme', theme);
-      updateThemeToggleButton();
       // Handle loading screen
       const loadingScreen = document.querySelector('.loading-screen');
       if (loadingScreen && loadingScreen.classList.contains('active')) {
@@ -521,6 +688,7 @@ if (isset($_SESSION['user_id'])) {
           loadingScreen.classList.remove('active');
         }, 2000);
       }
+
       // Toggle Hamburger Menu
       const hamburger = document.querySelector('.hamburger');
       const menu = document.getElementById('menu');
@@ -542,39 +710,78 @@ if (isset($_SESSION['user_id'])) {
           });
         });
       }
+
       // Search & Filter
       const searchInput = document.getElementById('searchInput');
-      const categorySelect = document.getElementById('categorySelect');
+      const deviceToggle = document.getElementById('deviceToggle');
+      const deviceMenu = document.getElementById('deviceMenu');
+      const deviceLabel = deviceToggle ? deviceToggle.querySelector('.device-label') : null;
       const productCards = document.querySelectorAll('.product-card');
+      let selectedDevice = 'all';
+
       function filterProducts() {
         const searchText = searchInput ? searchInput.value.toLowerCase() : '';
-        const category = categorySelect ? categorySelect.value : 'all';
+        const category = selectedDevice.toLowerCase();
+
         productCards.forEach(card => {
           const title = card.querySelector('h3').textContent.toLowerCase();
+          const categories = card.dataset.category
+            .toLowerCase()
+            .split(',')
+            .map(c => c.trim());
+
           const matchesSearch = title.includes(searchText);
-          const matchesCategory = category === 'all' || card.dataset.category === category;
+          const matchesCategory = category === 'all' || categories.includes(category);
           card.style.display = matchesSearch && matchesCategory ? 'block' : 'none';
         });
       }
+
       if (searchInput) {
         searchInput.addEventListener('input', filterProducts);
       }
-      if (categorySelect) {
-        categorySelect.addEventListener('change', filterProducts);
+
+      // Device toggle button behavior
+      const deviceToggleBtn = document.getElementById('deviceToggleBtn');
+      if (deviceToggleBtn && deviceToggle) {
+        deviceToggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deviceToggle.classList.toggle('active');
+        });
       }
+
+      if (deviceMenu) {
+        deviceMenu.addEventListener('click', (e) => {
+          const opt = e.target.closest('.device-option');
+          if (!opt) return;
+          selectedDevice = opt.dataset.device || 'all';
+          if (deviceLabel) deviceLabel.textContent = opt.textContent;
+          deviceToggle.classList.remove('active');
+          filterProducts();
+        });
+      }
+
+      // Close device menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (deviceToggle && !deviceToggle.contains(e.target)) {
+          deviceToggle.classList.remove('active');
+        }
+      });
+
       // Category card click functionality
       const categoryCards = document.querySelectorAll('.category-card');
       categoryCards.forEach(card => {
         card.addEventListener('click', function(e) {
           e.preventDefault();
           const category = this.dataset.category;
-          if (categorySelect) {
-            categorySelect.value = category;
+          if (deviceLabel) {
+            deviceLabel.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+            selectedDevice = category;
             filterProducts();
             window.location.href = this.href;
           }
         });
       });
+
       // Product Popup Advertisement
       const productPopup = document.getElementById('productPopup');
       const popupOverlay = document.getElementById('popupOverlay');
@@ -585,6 +792,7 @@ if (isset($_SESSION['user_id'])) {
       const popupDescription = document.getElementById('popupDescription');
       const popupViewBtn = document.getElementById('popupViewBtn');
       const popupAddBtn = document.getElementById('popupAddBtn');
+
       function getAllProducts() {
         const products = [];
         productCards.forEach(card => {
@@ -600,12 +808,14 @@ if (isset($_SESSION['user_id'])) {
         });
         return products;
       }
+
       function getRandomProduct() {
         const products = getAllProducts();
         if (products.length === 0) return null;
         const randomIndex = Math.floor(Math.random() * products.length);
         return products[randomIndex];
       }
+
       function showProductPopup(product) {
         if (!product) return;
         popupImage.src = product.image;
@@ -626,27 +836,30 @@ if (isset($_SESSION['user_id'])) {
               form.submit();
               closePopup();
             } else {
-              alert('Please login to add items to cart!');
+              showNotification('Please login to add items to cart!', 'info');
               closePopup();
             }
           } else {
-            alert('Please login to add items to cart!');
+            showNotification('Please login to add items to cart!', 'info');
             closePopup();
           }
         };
         popupOverlay.classList.add('show');
         productPopup.classList.add('show');
       }
+
       function closePopup() {
         popupOverlay.classList.remove('show');
         productPopup.classList.remove('show');
       }
+
       if (popupClose) {
         popupClose.addEventListener('click', closePopup);
       }
       if (popupOverlay) {
         popupOverlay.addEventListener('click', closePopup);
       }
+
       function showRandomProductPopup() {
         const randomProduct = getRandomProduct();
         if (randomProduct) {
@@ -660,6 +873,7 @@ if (isset($_SESSION['user_id'])) {
           }
         }
       }
+
       <?php if (isset($just_logged_in) && $just_logged_in): ?>
         setTimeout(() => {
           showRandomProductPopup();
@@ -667,6 +881,7 @@ if (isset($_SESSION['user_id'])) {
       <?php else: ?>
         showRandomProductPopup();
       <?php endif; ?>
+
       // Enhanced Add to Cart functionality
       const addToCartForms = document.querySelectorAll('.add-to-cart-form');
       addToCartForms.forEach(form => {
@@ -676,7 +891,6 @@ if (isset($_SESSION['user_id'])) {
           // Check if user is logged in
           const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
           if (!isLoggedIn) {
-            // Redirect to login page
             showNotification('Please login to add items to cart', 'info');
             setTimeout(() => {
               window.location.href = 'login_users.php';
@@ -718,6 +932,7 @@ if (isset($_SESSION['user_id'])) {
           });
         });
       });
+
       // Notification function
       function showNotification(message, type = 'success') {
         const existingNotifications = document.querySelectorAll('.notification');
@@ -733,6 +948,7 @@ if (isset($_SESSION['user_id'])) {
           }, 300);
         }, 3000);
       }
+
       // Auto-hide existing notification
       const notification = document.getElementById('cartNotification');
       if (notification) {
@@ -743,23 +959,19 @@ if (isset($_SESSION['user_id'])) {
           }, 300);
         }, 3000);
       }
-      // Theme toggle functionality
-      function toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        updateThemeToggleButton();
-        fetch(`?theme=${newTheme}`);
-      }
-      function updateThemeToggleButton() {
-        const themeIcon = document.getElementById('themeIcon');
-        const themeText = document.getElementById('themeText');
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        if (themeIcon && themeText) {
-          themeIcon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
-          themeText.textContent = currentTheme === 'light' ? 'Dark' : 'Light';
-        }
-      }
+
+      // Product card click handler
+      productCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+          if (e.target.tagName.toLowerCase() === 'img' || e.target.closest('.product-actions')) {
+            return;
+          }
+          const productId = this.dataset.productId;
+          if (productId) {
+            window.location.href = `product-details.php?id=${productId}`;
+          }
+        });
+      });
     });
   </script>
 </head>
@@ -799,17 +1011,18 @@ if (isset($_SESSION['user_id'])) {
     <h2>Meta Shark</h2>
   </div>
   <div class="nav-right">
-    <div class="theme-toggle" id="themeToggle">
-      <button class="theme-btn" onclick="toggleTheme()" title="Toggle Theme">
-        <span class="theme-icon" id="themeIcon">
-          <?php echo $theme === 'light' ? '🌙' : '☀️'; ?>
-        </span>
-        <span class="theme-text" id="themeText">
-          <?php echo $theme === 'light' ? 'Dark' : 'Light'; ?>
-        </span>
+    <!-- Theme dropdown -->
+    <div class="theme-dropdown" id="themeDropdown">
+      <button class="theme-btn login-btn-select" id="themeDropdownBtn" title="Select theme" aria-label="Select theme">
+        <i class="bi theme-icon" id="themeIcon"></i>
+        <span class="theme-text" id="themeText"><?php echo $theme === 'device' ? 'Device' : ($effective_theme === 'light' ? 'Dark' : 'Light'); ?></span>
       </button>
+      <div class="theme-menu" id="themeMenu" aria-hidden="true">
+        <button class="theme-option" data-theme="light">Light</button>
+        <button class="theme-option" data-theme="dark">Dark</button>
+        <button class="theme-option" data-theme="device">Device</button>     
+      </div>
     </div>
-    <?php include('theme_toggle.php'); ?>
     <?php
     // Get unread notification count
     $notif_count = 0;
@@ -868,7 +1081,7 @@ if (isset($_SESSION['user_id'])) {
     <?php endif; ?>
     <button class="hamburger">☰</button>
   </div>
-  <ul class="menu " id="menu">
+  <ul class="menu" id="menu">
     <li><a href="shop.php">Home</a></li>
     <li><a href="carts_users.php">Cart (<span class="cart-count" id="cartCount"><?php echo $cart_count; ?></span>)</a></li>
     <?php if(isset($_SESSION['user_id'])): ?>
@@ -933,7 +1146,6 @@ if (isset($_SESSION['user_id'])) {
   <p>Guaranteed 0% Interest.</p>
   <a href="laptop.php" class="cta-button">Learn More</a>
 </section>
-
 <!-- Categories Section -->
 <div class="categories-section">
   <div class="container">
@@ -962,10 +1174,9 @@ if (isset($_SESSION['user_id'])) {
     </div>
   </div>
 </div>
-
 <section class="product bg2">
   <div class="carousel-container">
-      <div class="carousel-slides">
+    <div class="carousel-slides">
       <div class="carousel-slide"></div>
       <div class="carousel-slide"></div>
       <div class="carousel-slide"></div>
@@ -977,24 +1188,28 @@ if (isset($_SESSION['user_id'])) {
     </div>
   </div>
 </section>
-
-<!-- category section -->
+<!-- Category Section -->
 <div class="shop-container">
   <h2 class="shop-title">Featured Products</h2>
   <div class="filter-bar">
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search products...">
     </div>
-    <div class="category-filter">
-      <select id="categorySelect">
-        <option value="all">All Categories</option>
-        <option value="accessories">Accessories</option>
-        <option value="phone">Phone</option>
-        <option value="tablet">Tablet</option>
-        <option value="laptop">Laptop</option>
-        <option value="gaming">Gaming</option>
-      </select>
-    </div>
+      <div class="device-toggle" id="deviceToggle">
+            <button class="device-toggle-btn login-btn-select" id="deviceToggleBtn" title="Select device">
+              <span class="device-icon"><i class="bi bi-list"></i></span>
+              <span class="device-label">All</span>
+            </button>
+                <div class="device-menu" id="deviceMenu" aria-hidden="true">
+                      <button class="device-option" data-device="all"><i class="bi bi-list"></i> All</button>
+                      <button class="device-option" data-device="phone"><i class="bi bi-phone"></i> Phones</button>
+                      <button class="device-option" data-device="tablet"><i class="bi bi-tablet"></i> Tablets</button>
+                      <button class="device-option" data-device="accessories"><i class="bi bi-usb-plug"></i> Accessories</button>
+                      <button class="device-option" data-device="laptop"><i class="bi bi-laptop"></i> Laptops</button>
+                      <button class="device-option" data-device="gaming"><i class="bi bi-joystick"></i> Gaming</button>
+
+                </div>
+      </div>
   </div>
   <div class="product-grid" id="productGrid">
     <?php
@@ -1059,49 +1274,6 @@ if (isset($_SESSION['user_id'])) {
     ?>
   </div>
 </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const searchInput = document.getElementById("searchInput");
-  const categorySelect = document.getElementById("categorySelect");
-  const productCards = document.querySelectorAll(".product-card");
-
-  function filterProducts() {
-    const searchText = searchInput ? searchInput.value.toLowerCase() : "";
-    const category = categorySelect ? categorySelect.value.toLowerCase() : "all";
-
-    productCards.forEach(card => {
-      const title = card.querySelector("h3").textContent.toLowerCase();
-      const categories = card.dataset.category
-        .toLowerCase()
-        .split(",")
-        .map(c => c.trim());
-
-      const matchesSearch = title.includes(searchText);
-      const matchesCategory = category === "all" || categories.includes(category);
-
-      card.style.display = matchesSearch && matchesCategory ? "block" : "none";
-    });
-  }
-
-  if (searchInput) searchInput.addEventListener("input", filterProducts);
-  if (categorySelect) categorySelect.addEventListener("change", filterProducts);
-
-  // Product card click handler
-  productCards.forEach(card => {
-    card.addEventListener('click', function(e) {
-      if (e.target.tagName.toLowerCase() === 'img' || e.target.closest('.product-actions')) {
-        return;
-      }
-      const productId = this.dataset.productId;
-      if (productId) {
-        window.location.href = `product-details.php?id=${productId}`;
-      }
-    });
-  });
-});
-</script>
-
 <!-- AI Chatbot Widget -->
 <a href="javascript:void(0)" onclick="openAiChat()" class="chat-widget ai" title="Chat with AI">
   <i class="bi bi-robot chat-icon"></i>
@@ -1126,30 +1298,27 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="ai-sidebar-footer">
           <button id="clearChatBtn" class="ai-btn ai-btn-secondary">Clear Chat</button>
         </div>
-    </div>
-    <div class="ai-chat-main">
-      <div class="ai-chat-messages" id="aiChatMessages">
-          <div class="message bot">Hello I'm Verna Meta Shark Attendee and Staff, how can I help you?</div>
       </div>
-      <form id="aiChatForm" class="ai-chat-form">
+      <div class="ai-chat-main">
+        <div class="ai-chat-messages" id="aiChatMessages">
+          <div class="message bot">Hello I'm Verna Meta Shark Attendee and Staff, how can I help you?</div>
+        </div>
+        <form id="aiChatForm" class="ai-chat-form">
           <div class="ai-input-wrapper">
             <input type="text" id="aiChatInput" placeholder="Type your message..." required>
             <button type="submit" class="ai-send-btn" title="Send"><i class="bi bi-send"></i></button>
           </div>
-      </form>
+        </form>
       </div>
     </div>
   </div>
-  
 </div>
 <!-- Chat Widget -->
 <a href="chat.php" class="chat-widget" title="Chat with us">
   <i class="bi bi-chat-dots-fill chat-icon"></i>
 </a>
-
 <script>window.currentUserId = <?php echo isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0; ?>;</script>
 <script src="../js/ai_chat.js"></script>
-
 <footer>
   <div class="footer-content">
     <div class="footer-top">
@@ -1169,6 +1338,5 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
 </footer>
-
 </body>
 </html>

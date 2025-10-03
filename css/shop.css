@@ -132,7 +132,7 @@
     --light-theme-toggle-hover: #f0f0f0;
     --light-theme-shadow: rgba(0, 0, 0, 0.1);
     /* Dark Theme */
-    --dark-bg-primary: #0A0A0A;
+    --dark-bg-primary: #000000;
     --dark-bg-secondary: #111111;
     --dark-bg-tertiary: #1a1a1a;
     --dark-text-primary: #ffffff;
@@ -1455,11 +1455,6 @@ a .profile-icon {
     background: #000000;
     color: #0cef32;
     animation: fadeIn 1s ease-out;
-  }
-  .product.bg1 {
-    background: url('../main/php/uploads/5vv1uf4kn1xvorsl-4_0_desktop_0_2X.jpeg') no-repeat center center;
-    background-size: cover;
-    margin-bottom: 0.10cm;
   }
   /* Carousel for .product.bg2 */
 .product.bg2 {
