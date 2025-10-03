@@ -258,7 +258,7 @@ body::before {
 
   <div class="form-container">
     <img src="uploads/logo1.png" alt="MyShop Logo" class="logo">
-    <h2>Create Account</h2>
+    <h2>Create Meta Shark Account</h2>
 
     <form action="signupprocess_users.php" method="POST">
       <input type="text" name="fullname" placeholder="Full Name" required>
