@@ -93,6 +93,7 @@ if (isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="icon" type="image/png" href="Uploads/logo1.png">
   <link rel="stylesheet" href="../../css/shop.css">
+  <link rel="stylesheet" href="../../css/ai_chat.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
   <style>
@@ -1114,342 +1115,40 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
   <div class="ai-chat-container">
-    <div class="ai-chat-sidebar">
-      <button id="newChatBtn">+ New Chat</button>
-      <ul id="chatHistoryList"></ul>
+    <div class="ai-layout">
+      <div class="ai-sidebar">
+        <div class="ai-brand">
+          <h3>AI Assistant</h3>
+          <div class="ai-subtitle">Chat Support</div>
+        </div>
+        <button id="newChatBtn" class="ai-btn ai-btn-primary">+ New Chat</button>
+        <ul id="chatHistoryList" class="ai-chat-list"></ul>
+        <div class="ai-sidebar-footer">
+          <button id="clearChatBtn" class="ai-btn ai-btn-secondary">Clear Chat</button>
+        </div>
     </div>
     <div class="ai-chat-main">
       <div class="ai-chat-messages" id="aiChatMessages">
-        <div class="message bot">Hello I'm Verna Meta Shark Atendee and Staff, how can I help you?</div>
+          <div class="message bot">Hello I'm Verna Meta Shark Attendee and Staff, how can I help you?</div>
       </div>
       <form id="aiChatForm" class="ai-chat-form">
-        <input type="text" id="aiChatInput" placeholder="Type your question..." required>
-        <button type="submit">Send</button>
+          <div class="ai-input-wrapper">
+            <input type="text" id="aiChatInput" placeholder="Type your message..." required>
+            <button type="submit" class="ai-send-btn" title="Send"><i class="bi bi-send"></i></button>
+          </div>
       </form>
+      </div>
     </div>
   </div>
+  
 </div>
 <!-- Chat Widget -->
 <a href="chat.php" class="chat-widget" title="Chat with us">
   <i class="bi bi-chat-dots-fill chat-icon"></i>
 </a>
 
-<script>
-let currentUserId = <?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 0; ?>; // PHP-injected user ID
-let currentGroup = null;
-let isMaximized = false;
-
-function openAiChat() {
-  console.log('Opening AI Chat...'); // Debug log
-  const modal = document.getElementById("aiChatModal");
-  if (modal) {
-    modal.classList.add('show');
-    console.log('Modal opened'); // Debug log
-    loadChatHistory(); // Load history (non-blocking now)
-  } else {
-    console.error('Modal element not found!'); // Debug log
-  }
-}
-
-function closeAiChat() {
-  console.log('Closing AI Chat...'); // Debug log
-  const modal = document.getElementById("aiChatModal");
-  if (modal) {
-    modal.classList.remove('show');
-  }
-}
-
-// Format date
-function formatDate(dateStr) {
-  const options = { year: 'numeric', month: 'short', day: 'numeric' };
-  return new Date(dateStr).toLocaleDateString(undefined, options);
-}
-
-// Show welcome message
-function showWelcome() {
-  const messagesDiv = document.getElementById("aiChatMessages");
-  if (messagesDiv) {
-    messagesDiv.innerHTML = '<div class="message bot">Hello I\'m Verna your Meta Shark Attendee and Staff, how may I help you today?</div>';
-  }
-}
-
-// Display messages for a group
-function displayMessages(msgs) {
-  const messagesDiv = document.getElementById("aiChatMessages");
-  if (messagesDiv) {
-    messagesDiv.innerHTML = '';
-    if (msgs.length === 0) {
-      showWelcome();
-    } else {
-      msgs.forEach(msg => {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = `message ${msg.role}`;
-        msgDiv.textContent = (msg.role === 'ai' ? ' ' : '') + msg.message;
-        messagesDiv.appendChild(msgDiv);
-      });
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-  }
-}
-
-// Populate sidebar
-function populateSidebar(dates, groups) {
-  const list = document.getElementById("chatHistoryList");
-  if (!list) return;
-  list.innerHTML = '';
-  dates.forEach(date => {
-    const li = document.createElement("li");
-    li.textContent = formatDate(date) + ` (${groups[date].length} msgs)`;
-    li.dataset.date = date;
-    li.onclick = (e) => {
-      e.stopPropagation();
-      currentGroup = date;
-      displayMessages(groups[date]);
-      document.querySelectorAll("#chatHistoryList li").forEach(l => l.classList.remove("active"));
-      li.classList.add("active");
-    };
-    list.appendChild(li);
-  });
-  // Activate current group if exists
-  const currentLi = document.querySelector(`#chatHistoryList li[data-date="${currentGroup}"]`);
-  if (currentLi) {
-    currentLi.classList.add("active");
-  }
-}
-
-// Refresh chat (sidebar and display)
-async function refreshChat() {
-  if (!currentUserId) return;
-
-  try {
-  const response = await fetch("main/php/ai_chat_handler.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 100 })
-    });
-    const data = await response.json();
-
-    const allMessages = data.history || [];
-
-    // Group by date (YYYY-MM-DD)
-    const groups = {};
-    allMessages.forEach(msg => {
-      const msgDate = new Date(msg.timestamp).toISOString().split('T')[0];
-      if (!groups[msgDate]) groups[msgDate] = [];
-      groups[msgDate].push(msg);
-    });
-
-    const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)); // Newest first
-    populateSidebar(sortedDates, groups);
-
-    // Display current group messages
-    if (currentGroup && groups[currentGroup]) {
-      displayMessages(groups[currentGroup]);
-    } else if (sortedDates.length > 0) {
-      // Fallback to latest if no current
-      currentGroup = sortedDates[0];
-      displayMessages(groups[currentGroup]);
-    } else {
-      showWelcome();
-    }
-  } catch (error) {
-    console.error("Refresh Chat Error:", error);
-  }
-}
-
-// Load history from server (non-blocking)
-async function loadChatHistory() {
-  if (!currentUserId) {
-    console.log('No user ID, skipping history load'); // Debug
-    showWelcome();
-    populateSidebar([], {});
-    return;
-  }
-
-  try {
-  const response = await fetch("main/php/ai_chat_handler.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "load_history", user_id: currentUserId, limit: 100 })
-    });
-    const data = await response.json();
-    console.log('History loaded:', data); // Debug
-
-    const allMessages = data.history || [];
-
-    if (allMessages.length === 0) {
-      showWelcome();
-      populateSidebar([], {});
-      return;
-    }
-
-    // Group by date (YYYY-MM-DD)
-    const groups = {};
-    allMessages.forEach(msg => {
-      const msgDate = new Date(msg.timestamp).toISOString().split('T')[0];
-      if (!groups[msgDate]) groups[msgDate] = [];
-      groups[msgDate].push(msg);
-    });
-
-    const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a)); // Newest first
-    populateSidebar(sortedDates, groups);
-
-    // Check for 24h inactivity or no messages today
-    const lastMsg = allMessages[allMessages.length - 1];
-    const lastTime = new Date(lastMsg.timestamp).getTime();
-    const now = Date.now();
-    const twentyFourHours = 24 * 60 * 60 * 1000;
-    const today = new Date().toISOString().split('T')[0];
-
-    if ((now - lastTime > twentyFourHours) || !sortedDates.includes(today)) {
-      // Start new chat
-      currentGroup = today;
-      showWelcome();
-      console.log('Starting new chat due to 24h inactivity'); // Debug
-    } else {
-      // Load latest group
-      currentGroup = sortedDates[0];
-      displayMessages(groups[currentGroup]);
-      console.log('Displaying recent chat history'); // Debug
-    }
-  } catch (error) {
-    console.error("Load History Error:", error);
-    // Fallback to welcome message without failing modal
-    showWelcome();
-    populateSidebar([], {});
-  }
-}
-
-// New chat
-function newChat() {
-  const today = new Date().toISOString().split('T')[0];
-  currentGroup = today;
-  showWelcome();
-  document.querySelectorAll("#chatHistoryList li").forEach(l => l.classList.remove("active"));
-  refreshChat();
-  console.log('New chat started');
-}
-
-// Maximize toggle
-function toggleMaximize() {
-  const modal = document.getElementById("aiChatModal");
-  const btn = document.getElementById("maximizeBtn");
-  isMaximized = !isMaximized;
-  modal.classList.toggle("maximized", isMaximized);
-  btn.textContent = isMaximized ? "⛶" : "□";
-}
-
-// Handle sending messages
-document.addEventListener('DOMContentLoaded', function() {
-  const aiChatForm = document.getElementById("aiChatForm");
-  const newChatBtn = document.getElementById("newChatBtn");
-  const maximizeBtn = document.getElementById("maximizeBtn");
-
-  if (newChatBtn) {
-    newChatBtn.addEventListener("click", newChat);
-  }
-
-  if (maximizeBtn) {
-    maximizeBtn.addEventListener("click", toggleMaximize);
-  }
-
-  if (aiChatForm) {
-    aiChatForm.addEventListener("submit", async function(e) {
-      e.preventDefault();
-      
-      if (!currentUserId) {
-        alert("Please log in to chat.");
-        return;
-      }
-
-      const input = document.getElementById("aiChatInput");
-      const message = input.value.trim();
-      if (!message) return;
-
-      // Set current group if not set
-      if (!currentGroup) {
-        currentGroup = new Date().toISOString().split('T')[0];
-      }
-
-      const messagesDiv = document.getElementById("aiChatMessages");
-
-      // Add user message to UI
-      const userMsg = document.createElement("div");
-      userMsg.className = "message user";
-      userMsg.textContent = message;
-      messagesDiv.appendChild(userMsg);
-      input.value = "";
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      // Save user msg
-      await saveMessage(currentUserId, 'user', message);
-
-      // Add temporary "thinking" message
-      const botMsg = document.createElement("div");
-      botMsg.className = "message bot";
-      botMsg.textContent = "decoding...";
-      messagesDiv.appendChild(botMsg);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      try {
-        // System prompt
-const systemPrompt = `
-You are Verna, a professional virtual staff assistant and attendee created by a developer named Rence. Your role is to provide users with reliable, efficient, and respectful support, like an experienced office staff member.
-
-- Respond politely, with professionalism and clarity. Keep a warm but businesslike tone. 
-- Handle tasks such as problem solving, answering inquiries, customer support, and giving organized guidance, but only within Meta Shark and for digital goods. Do not broaden the topic.
-- Be resourceful and proactive, anticipating needs when possible. Maintain discretion and professionalism when handling sensitive or confidential information. 
-- When asked about friends or contacts:
-    - Only reveal the specific person relevant to the question.
-    - Do not mention Rence or any other team members unless directly asked.
-    - If asked about Khristine Botin, respond: "Khristine Botin is the Professor of my creator, a highly skilled, professional, and inspiring programmer. She is widely respected for her expertise and dedication."
-- If you encounter a topic outside your expertise, respond: "Sorry, I couldn’t understand that. The topic is not in my area of expertise. Please contact Rence if there is an error in my system."
-- Users must not submit inappropriate content. Any such attempts may trigger enforcement of the company's terms and services.
-- Always respond specifically and concisely to what is questioned.
-`;
-        const fullPrompt = `${systemPrompt}\n\nUser: ${message}`;
-
-        // Use Puter.js for AI response (DeepSeek Chat)
-        const aiResponse = await puter.ai.chat(fullPrompt, {
-          model: 'deepseek-chat'
-        });
-
-        const aiContent = aiResponse.message?.content || "Sorry, I couldn’t understand that. The topic is not in my area of expertise, Please contact Rence if I have an error in my system";
-
-        // Update UI with AI reply
-        botMsg.textContent = " " + aiContent;
-
-        // Save AI response to DB
-        await saveMessage(currentUserId, 'ai', aiContent);
-
-        // Refresh chat after messages are saved
-        refreshChat();
-      } catch (error) {
-        botMsg.textContent = " Error connecting to AI. Please try again.";
-        console.error("AI Chat Error:", error);
-        // Still refresh chat
-        refreshChat();
-      }
-
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-  }
-});
-
-// Save single message to server
-async function saveMessage(userId, role, message) {
-  try {
-  await fetch("main/php/ai_chat_handler.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "save_message", user_id: userId, role: role, message: message })
-    });
-    console.log('Message saved:', role); // Debug
-  } catch (error) {
-    console.error("Save Message Error:", error);
-  }
-}
-</script>
+<script>window.currentUserId = <?php echo isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0; ?>;</script>
+<script src="../js/ai_chat.js"></script>
 
 <footer>
   <div class="footer-content">

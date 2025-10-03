@@ -33,7 +33,7 @@ if ($action === 'save_message') {
 
 if ($action === 'load_history') {
     $limit = intval($input['limit'] ?? 100);
-    $stmt = $conn->prepare('SELECT role, message, timestamp FROM ai_chats WHERE user_id = ? ORDER BY timestamp ASC LIMIT ?');
+    $stmt = $conn->prepare('SELECT id, role, message, timestamp FROM ai_chats WHERE user_id = ? ORDER BY timestamp ASC, id ASC LIMIT ?');
     $stmt->bind_param('ii', $user_id, $limit);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -46,5 +46,64 @@ if ($action === 'load_history') {
     exit;
 }
 
-// Default: Proxy to aiChat-bot.php for AI logic
-require_once('aiChat-bot.php');
+if ($action === 'delete_session') {
+    $session_index = intval($input['session_index'] ?? 0); // 1-based
+    if ($session_index <= 0) {
+        echo json_encode(['success' => false, 'error' => 'Invalid session index']);
+        exit;
+    }
+
+    // Load full history for this user (no LIMIT to capture all sessions)
+    $rows = [];
+    if ($stmt = $conn->prepare('SELECT id, role, message, timestamp FROM ai_chats WHERE user_id = ? ORDER BY timestamp ASC, id ASC')) {
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($r = $res->fetch_assoc()) { $rows[] = $r; }
+        $stmt->close();
+    }
+
+    // Split into sessions by marker rows
+    $sessions = [];
+    $current = [];
+    foreach ($rows as $r) {
+        $isMarker = (isset($r['role']) && ($r['role'] === 'marker' || $r['role'] === 'system')) && (trim($r['message'] ?? '') === '__session_break__');
+        if ($isMarker) {
+            if (!empty($current)) { $sessions[] = $current; }
+            $current = [];
+            continue;
+        }
+        $current[] = $r;
+    }
+    // Always push trailing (may be empty)
+    $sessions[] = $current;
+
+    if ($session_index > count($sessions)) {
+        echo json_encode(['success' => false, 'error' => 'Session not found']);
+        exit;
+    }
+
+    $toDelete = $sessions[$session_index - 1];
+    if (empty($toDelete)) {
+        echo json_encode(['success' => true, 'deleted' => 0]);
+        exit;
+    }
+
+    $deleted = 0;
+    if ($del = $conn->prepare('DELETE FROM ai_chats WHERE user_id = ? AND id = ?')) {
+        foreach ($toDelete as $row) {
+            $id = intval($row['id']);
+            $del->bind_param('ii', $user_id, $id);
+            @$del->execute();
+            $deleted += ($del->affected_rows > 0) ? 1 : 0;
+        }
+        $del->close();
+    }
+
+    echo json_encode(['success' => true, 'deleted' => $deleted]);
+    exit;
+}
+
+// Default: No AI proxy. Client uses Puter.js directly.
+echo json_encode(['error' => 'No action specified.']);
+exit;
