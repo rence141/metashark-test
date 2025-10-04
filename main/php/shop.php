@@ -1079,7 +1079,7 @@ if (isset($_SESSION['user_id'])) {
 <!-- Navbar -->
 <div class="navbar">
   <div class="nav-left">
-    <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="logo">
+    <img src="uploads/logo1.png" alt="Meta Shark Logo" class="logo">
     <h2>Meta Shark</h2>
   </div>
   <div class="nav-right">
