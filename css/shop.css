@@ -1074,6 +1074,13 @@ a .profile-icon {
   .empty-products li:last-child {
     border-bottom: none;
   }
+
+  .product-bg1{
+    background-size: cover;
+    padding: 60px 0;
+    position: relative;
+    overflow: hidden;
+  }
   
  /* Features Section */
 .features-section {

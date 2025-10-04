@@ -1141,10 +1141,13 @@ if (isset($_SESSION['user_id'])) {
   </div>
 </div>
 <!-- Product Sections -->
-<section class="product bg1">
+<section class="product bg1" style="background: url('uploads/5vv1uf4kn1xvorsl-4_0_desktop_0_2X.jpeg'); background-size: cover;">
+  <div class="product-bg1">
   <h2>Unleash Your Capabilities</h2>
   <p>Guaranteed 0% Interest.</p>
   <a href="laptop.php" class="cta-button">Learn More</a>
+  </div>
+  
 </section>
 <!-- Categories Section -->
 <div class="categories-section">

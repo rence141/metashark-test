@@ -1,5 +1,4 @@
-// Theme System for Light/Dark/Device Mode
-class ThemeSystem {
+/*class ThemeSystem {  Wala nato kwenta kanina pa akong edit nito hays
     constructor() {
         this.themes = {
             light: 'light',
@@ -59,11 +58,11 @@ class ThemeSystem {
         toggle.innerHTML = `
             <button class="theme-toggle-btn" title="Toggle Theme">
                 <span class="theme-icon">
-                    <i class="bi bi-sun" data-theme="light"></i>
-                    <i class="bi bi-moon" data-theme="dark"></i>
                     <i class="bi bi-laptop" data-theme="device"></i>
+                    <i class="bi bi-sun" data-theme="light" style="display: none;"></i>
+                    <i class="bi bi-moon" data-theme="dark" style="display: none;"></i>
                 </span>
-                <span class="theme-label">Theme</span>
+                <span class="theme-label">Device</span>
             </button>
             <div class="theme-menu">
                 <button class="theme-option" data-theme="light">
@@ -111,12 +110,16 @@ class ThemeSystem {
         const toggle = document.querySelector('.theme-toggle');
         if (!toggle) return;
 
-        const activeIcon = toggle.querySelector('.theme-icon i[data-theme="' + this.currentTheme + '"]');
+        const themeLabel = toggle.querySelector('.theme-label');
         const allIcons = toggle.querySelectorAll('.theme-icon i');
+        const activeIcon = toggle.querySelector(`.theme-icon i[data-theme="${this.currentTheme}"]`);
         
-        // Hide all icons and show active one
+        // Update icon
         allIcons.forEach(icon => icon.style.display = 'none');
         if (activeIcon) activeIcon.style.display = 'block';
+
+        // Update label
+        themeLabel.textContent = this.currentTheme.charAt(0).toUpperCase() + this.currentTheme.slice(1);
 
         // Update active state in menu
         toggle.querySelectorAll('.theme-option').forEach(option => {
@@ -133,14 +136,12 @@ class ThemeSystem {
         });
     }
 
-    // Public method to change theme programmatically
     setTheme(theme) {
         if (this.themes[theme]) {
             this.applyTheme(theme);
         }
     }
 
-    // Get current effective theme (resolves device theme)
     getEffectiveTheme() {
         if (this.currentTheme === 'device') {
             return this.getSystemTheme();
@@ -259,7 +260,7 @@ const themeStyles = `
     text-align: center;
 }
 
-/* Dark theme styles */
+/* Dark theme styles 
 .theme-dark .theme-toggle-btn {
     background: rgba(30, 30, 30, 0.9);
     border-color: rgba(0, 255, 136, 0.3);
@@ -295,7 +296,7 @@ const themeStyles = `
     color: #00ff88;
 }
 
-/* Responsive */
+/* Responsive 
 @media (max-width: 480px) {
     .theme-toggle {
         top: 15px;
@@ -307,7 +308,7 @@ const themeStyles = `
     }
     
     .theme-label {
-        display: none;
+        font-size: 12px;
     }
     
     .theme-menu {
@@ -327,4 +328,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Export for use in other scripts
-window.ThemeSystem = ThemeSystem;
+window.ThemeSystem = ThemeSystem*/

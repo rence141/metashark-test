@@ -263,14 +263,14 @@
 
 #newChatBtn {
   padding: 10px;
-  background: #007bff;
+  background: #00e1ff;
   color: white;
   border: none;
   cursor: pointer;
   font-size: 16px;
 }
 #newChatBtn:hover {
-  background: #0056b3;
+  background: #00b392;
 }
 #chatHistoryList {
   list-style: none;

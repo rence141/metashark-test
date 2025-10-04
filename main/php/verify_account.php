@@ -91,23 +91,78 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Verify Account</title>
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="icon" type="image/png" href="uploads/logo1.png">
+    <link rel="icon" type="image/png" href="Uploads/logo1.png">
     <style>
-        body { font-family: Arial, sans-serif; background: #918f8fff; color: #fff; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-        .card { background: #fff; border:1px solid #faf1f1ff; border-radius:10px; padding:30px; width:100%; max-width:400px; }
-        h1 { color:#44D62C; margin:0 0 10px; }
-        p { color:#aaa; }
-        input { width:100%; padding:12px; border-radius:8px; border:1px solid #44D62C; background: #fff; color: #000; margin:10px 0 20px; }
-        .btn { width:100%; padding:12px; background:#44D62C; color: #fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
-        .link { color:#44D62C; text-decoration:none; }
-        .msg { margin-top:10px; color: #44D62C; }
-        .error-msg { color: #ff0000 !important; }
+        body { 
+            font-family: Arial, sans-serif; 
+            background: #918f8fff; 
+            color: #fff; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+        }
+        .card { 
+            background: #fff; 
+            border: 1px solid #faf1f1ff; 
+            border-radius: 10px; 
+            padding: 30px; 
+            width: 100%; 
+            max-width: 400px; 
+        }
+        h1 { 
+            color: #44D62C; 
+            margin: 0 0 10px; 
+        }
+        p { 
+            color: #aaa; 
+        }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #44D62C; 
+            background: #fff; 
+            color: #000; 
+            margin: 10px 0 20px; 
+        }
+        .btn { 
+            width: 100%; 
+            padding: 12px; 
+            background: #44D62C; 
+            color: #fff; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+        }
+        .link { 
+            color: #44D62C; 
+            text-decoration: none; 
+        }
+        .msg { 
+            margin-top: 10px; 
+            color: #44D62C; 
+        }
+        .error-msg { 
+            color: #ff0000 !important; 
+        }
+        .timer { 
+            margin: 10px 0; 
+            font-size: 14px; 
+            color: #44D62C; 
+            font-weight: bold; 
+            text-align: center; 
+        }
+        .timer.expired { 
+            color: #ff0000; 
+        }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Verify your account</h1>
-        <p>We sent a 6-digit code to <?php echo htmlspecialchars($email); ?>. Enter it below.</p>
+        <p>We sent a 6-digit code to <?php echo htmlspecialchars($email); ?>. Enter it below. <div class="timer" id="timer">Time remaining: 15:00</div></p>
         <?php if (!empty($message)) { 
             $class = (strpos($message, 'failed') !== false || strpos($message, 'error') !== false) ? 'error-msg' : 'msg'; 
             echo '<div class="' . $class . '">' . htmlspecialchars($message) . '</div>'; 
@@ -120,5 +175,38 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
             <a class="link" href="verify_account.php?resend=1">Resend code</a>
         </p>
     </div>
+
+    <script>
+        function startTimer(duration, display) {
+            let timer = duration, minutes, seconds;
+            const interval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = `Time remaining: ${minutes}:${seconds}`;
+
+                if (--timer < 0) {
+                    clearInterval(interval);
+                    display.textContent = "Code expired!";
+                    display.classList.add("expired");
+                    alert("Your verification code has expired. Please request a new one.");
+                }
+            }, 1000);
+        }
+
+        window.onload = function () {
+            const fifteenMinutes = 15 * 60; // 15 minutes in seconds
+            const display = document.getElementById('timer');
+            startTimer(fifteenMinutes, display);
+
+            // Reset timer on resend
+            <?php if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) { ?>
+                startTimer(fifteenMinutes, display); // Restart timer on resend
+            <?php } ?>
+        };
+    </script>
 </body>
 </html>
