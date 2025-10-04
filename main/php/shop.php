@@ -111,6 +111,7 @@ if (isset($_SESSION['user_id'])) {
       --secondary-bg: #f8f9fa;
       --border-color: #dee2e6;
       --theme-menu: black;
+      --theme-btn: black;
     }
 
     [data-theme="dark"] {
@@ -120,6 +121,7 @@ if (isset($_SESSION['user_id'])) {
       --secondary-bg: #2a2a2a;
       --border-color: #444;
       --theme-menu: white;
+      --theme-btn: white;
     }
 
 
@@ -291,8 +293,8 @@ if (isset($_SESSION['user_id'])) {
     }
     .theme-btn {
       appearance: none;
-      background: #000000ff;
-      color: #fff;
+      background: var(--theme-btn);
+      color: var(--secondary-bg);
       border: 2px solid #006400;
       padding: 8px 12px;
       border-radius: 10px;
@@ -318,7 +320,7 @@ if (isset($_SESSION['user_id'])) {
       top: 50%;
       transform: translateY(-50%);
       pointer-events: none;
-      color: #fff;
+      color: var(--secondary-bg);
     }
     .theme-menu {
       position: absolute;
