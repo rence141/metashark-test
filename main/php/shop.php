@@ -110,6 +110,7 @@ if (isset($_SESSION['user_id'])) {
       --primary-color: #00ff88;
       --secondary-bg: #f8f9fa;
       --border-color: #dee2e6;
+      --theme-menu: black;
     }
 
     [data-theme="dark"] {
@@ -118,6 +119,7 @@ if (isset($_SESSION['user_id'])) {
       --primary-color: #00ff88;
       --secondary-bg: #2a2a2a;
       --border-color: #444;
+      --theme-menu: white;
     }
 
 
@@ -158,6 +160,74 @@ if (isset($_SESSION['user_id'])) {
       pointer-events: none;
       color: #fff;
     }
+
+    .ai-input-wrapper {
+  width: 100%; /* Stretch to full parent width */
+  max-width: 600px; /* Default cap for standard screens */
+  margin: 10px auto; /* Center horizontally */
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(68, 214, 44, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-input-wrapper:hover {
+  border-color: rgba(68, 214, 44, 0.5);
+  box-shadow: 0 6px 16px rgba(68, 214, 44, 0.3);
+  transform: translateY(-2px);
+}
+
+.ai-input-wrapper:focus-within {
+  border-color: #44D62C;
+  box-shadow: 0 0 0 4px rgba(68, 214, 44, 0.2);
+}
+
+.ai-input-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(68, 214, 44, 0.2), transparent);
+  transition: transform 0.3s ease-in-out;
+  z-index: -1;
+}
+
+.ai-input-wrapper:hover::before,
+.ai-input-wrapper:focus-within::before {
+  transform: translateX(100%);
+}
+
+/* Stretch further on larger screens */
+@media (min-width: 768px) {
+  .ai-input-wrapper {
+    max-width: 800px; /* Stretch further on larger screens */
+  }
+}
+
+/* Stretch even more when maximized */
+@media (min-width: 1200px) {
+  .ai-input-wrapper {
+    max-width: 1000px; /* Maximum stretch for large, maximized screens */
+  }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+  .ai-input-wrapper {
+    padding: 8px;
+    border-radius: 10px;
+    max-width: 100%; /* Full width on small screens */
+  }
+}
+
+
 
     .filter-bar .device-toggle .login-btn-select,
     .filter-bar .device-toggle .device-toggle-btn {
@@ -221,7 +291,7 @@ if (isset($_SESSION['user_id'])) {
     }
     .theme-btn {
       appearance: none;
-      background: #333333;
+      background: #000000ff;
       color: #fff;
       border: 2px solid #006400;
       padding: 8px 12px;
@@ -255,11 +325,11 @@ if (isset($_SESSION['user_id'])) {
       top: 100%;
       right: 0;
       margin-top: 8px;
-      background: rgba(255,255,255,0.95);
+      background:var(--theme-menu);
       border: 2px solid rgba(0,255,136,0.3);
       border-radius: 12px;
       padding: 8px;
-      min-width: 160px;
+      min-width: 90px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.12);
       display: none;
       z-index: 1000;
@@ -276,7 +346,7 @@ if (isset($_SESSION['user_id'])) {
       cursor: pointer;
       text-align: left;
       font-weight: 600;
-      color: #333;
+      color: #ceccccff;
     }
     [data-theme="dark"] .theme-option {
       color: #3c3c3cff;
@@ -367,7 +437,7 @@ if (isset($_SESSION['user_id'])) {
       visibility: visible;
     }
     .ai-chat-header {
-      background: #3deb26ff;
+      background: #07e1a3ff;
       color: white;
       padding: 10px;
       display: flex;
@@ -399,14 +469,14 @@ if (isset($_SESSION['user_id'])) {
     }
     #newChatBtn {
       padding: 10px;
-      background: #007bff;
+      background: #03e4d9ff;
       color: white;
       border: none;
       cursor: pointer;
       font-size: 16px;
     }
     #newChatBtn:hover {
-      background: #0056b3;
+      background: #0ae997ff;
     }
     #chatHistoryList {
       list-style: none;
@@ -454,7 +524,7 @@ if (isset($_SESSION['user_id'])) {
       color: #e0e0e0;
     }
     .ai-chat-messages .message.user {
-      background: #38f61fff;
+      background: #04d2cbff;
       color: white;
       align-self: flex-end;
     }

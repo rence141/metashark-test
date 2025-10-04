@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up - MyShop</title>
-  <link rel="icon" type="image/png" href="uploads/logo1.png">
+  <link rel="icon" type="image/png" href="Uploads/logo1.png">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <style>
 /* General Styles */
@@ -47,7 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 :root {
-  --primary-color: #00ff88;
+  --primary-color: #06d675ff;
   --secondary-color: #00d4ff;
   --accent-color: #00ff88;
   --text-primary: #333;
@@ -56,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   --card-background: white;
   --border-color: rgba(0, 0, 0, 0.1);
   --shadow-color: rgba(0, 0, 0, 0.3);
-  --placeholder-color: rgb(24, 195, 5);
+  --placeholder-color: rgba(66, 66, 66, 1);
   --error-color: #ff4757;
 }
 
@@ -67,11 +67,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   --card-background: #1e1e1e;
   --border-color: rgba(255, 255, 255, 0.1);
   --shadow-color: rgba(0, 0, 0, 0.5);
-  --placeholder-color:rgb(87, 85, 85);
+  --placeholder-color: rgb(87, 85, 85);
   --logo-container: white;
 }
 
-.theme-light{
+.theme-light {
   --logo-container: black;
 }
 
@@ -113,12 +113,12 @@ body::before {
   padding: 40px;
   border-radius: 20px;
   width: 100%;
-  max-width: 400px;
+  max-width: 500px;
   text-align: center;
   position: relative;
   z-index: 2;
   box-shadow: 0 20px 40px var(--shadow-color);
-  border: 3px solid transparent;
+  border: 3px твердый прозрачный;
   background-clip: padding-box;
   animation: fadeIn 0.5s ease-in-out;
 }
@@ -159,17 +159,27 @@ body::before {
   font-weight: 700;
 }
 
+/* Input Row for side-by-side fields */
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
 /* Input Fields */
 .form-container input {
   width: 100%;
   padding: 15px 20px;
-  margin: 10px 0;
   border: 2px solid #e1e5e9;
   border-radius: 12px;
   font-size: 16px;
   background: #f8f9fa;
   transition: all 0.3s ease;
   outline: none;
+}
+
+.input-row input {
+  flex: 1;
 }
 
 .form-container input:focus {
@@ -244,6 +254,7 @@ body::before {
   .form-container {
     padding: 30px 20px;
     margin: 10px;
+    max-width: 100%;
   }
   
   .form-container h2 {
@@ -253,6 +264,15 @@ body::before {
   .form-container img.logo {
     width: 60px;
     height: 60px;
+  }
+  
+  .input-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .input-row input {
+    width: 100%;
   }
 }
   </style>
@@ -591,17 +611,20 @@ window.ThemeSystem = ThemeSystem;
   </script>
 </head>
 <body>
-
   <div class="form-container">
-    <img src="uploads/logo1.png" alt="MyShop Logo" class="logo">
+    <img src="Uploads/logo1.png" alt="MyShop Logo" class="logo">
     <h2>Create Meta Shark Account</h2>
 
     <form action="signupprocess_users.php" method="POST">
-      <input type="text" name="fullname" placeholder="Full Name" required>
-      <input type="email" name="email" placeholder="Email" required>
+      <div class="input-row">
+        <input type="text" name="fullname" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email" required>
+      </div>
       <input type="text" name="phone" placeholder="Phone Number" maxlength="15" required>
-      <input type="password" name="password" placeholder="Password" required>
-      <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+      <div class="input-row">
+        <input type="password" name="password" placeholder="Password" required>
+        <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+      </div>
       <button type="submit">Sign Up</button>
       
       <?php if (!empty($error)): ?>
@@ -610,6 +633,7 @@ window.ThemeSystem = ThemeSystem;
     </form>
 
     <p>Already have an account? <a href="login_users.php">Login</a></p>
+    <p>Review our <a href="../../privacy_policy.html">Privacy Policy</a> and <a href="../../terms.html">Terms of Service</a></p>
   </div>
 </body>
 </html>
