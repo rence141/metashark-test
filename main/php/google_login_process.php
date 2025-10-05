@@ -69,6 +69,6 @@ unset($_SESSION['google_name']);
 session_write_close();
 
 // Redirect to shop.php
-header("Location: http://localhost/SaysonCo/main/php/shop.php");
+header("Location: http://localhost/SaysonCotest/main/php/shop.php");
 exit;
 ?>
