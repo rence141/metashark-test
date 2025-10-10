@@ -1156,6 +1156,7 @@ if (isset($_SESSION['user_id'])) {
   <ul class="menu" id="menu">
     <li><a href="shop.php">Home</a></li>
     <li><a href="carts_users.php">Cart (<span class="cart-count" id="cartCount"><?php echo $cart_count; ?></span>)</a></li>
+     <li><a href="order_status.php">My Purchases</a></li>
     <?php if(isset($_SESSION['user_id'])): ?>
       <?php
       $user_role = $_SESSION['role'] ?? 'buyer';
