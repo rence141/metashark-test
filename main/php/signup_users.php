@@ -1,4 +1,12 @@
 <?php
+// Enable error reporting for debugging (comment out in production)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Start output buffering to prevent stray output
+ob_start();
+
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -11,24 +19,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($password !== $confirm) {
         $error = "Passwords do not match!";
     } else {
-        // connect to DB
+        // Connect to DB
         $conn = new mysqli("localhost", "root", "", "myshop");
         if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
-
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $sql = "INSERT INTO users (fullname, email, phone, password) 
-                VALUES ('$fullname', '$email', '$phone', '$hashed')";
-        
-        if ($conn->query($sql)) {
-            echo "Signup successful!";
+            $error = "Connection failed: " . $conn->connect_error;
         } else {
-            $error = "Error: " . $conn->error;
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            // Use prepared statement to prevent SQL injection
+            $sql = "INSERT INTO users (fullname, email, phone, password) VALUES (?, ?, ?, ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ssss", $fullname, $email, $phone, $hashed);
+            
+            if ($stmt->execute()) {
+                $success = "Signup successful!";
+            } else {
+                $error = "Error: " . $conn->error;
+            }
+            $stmt->close();
+            $conn->close();
         }
-        $conn->close();
     }
 }
+
+// End output buffering
+ob_end_clean();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   --accent-color: #00ff88;
   --text-primary: #333;
   --text-secondary: #6c757d;
-  --background-primary: linear-gradient(135deg,rgb(2, 2, 4) 0%,rgb(14, 90, 5) 25%,rgb(17, 147, 22) 50%,rgb(28, 255, 28) 75%,rgb(0, 0, 0) 100%);
+  --background-primary: linear-gradient(135deg, rgb(2, 2, 4) 0%, rgb(14, 90, 5) 25%, rgb(17, 147, 22) 50%, rgb(28, 255, 28) 75%, rgb(0, 0, 0) 100%);
   --card-background: white;
   --border-color: rgba(0, 0, 0, 0.1);
   --shadow-color: rgba(0, 0, 0, 0.3);
@@ -118,7 +132,7 @@ body::before {
   position: relative;
   z-index: 2;
   box-shadow: 0 20px 40px var(--shadow-color);
-  border: 3px твердый прозрачный;
+  border: 3px solid transparent;
   background-clip: padding-box;
   animation: fadeIn 0.5s ease-in-out;
 }
@@ -193,13 +207,13 @@ body::before {
   color: var(--placeholder-color);
 }
 
-/* Button */
-.form-container button {
+/* Primary action button (does not affect .google-btn) */
+.primary-btn {
   width: 100%;
   padding: 15px;
   background: #000;
   border: 2px solid var(--primary-color);
-  color: white;
+  color: #fff;
   font-size: 16px;
   font-weight: 600;
   border-radius: 12px;
@@ -207,11 +221,69 @@ body::before {
   transition: all 0.3s ease;
   margin-top: 10px;
 }
-
-.form-container button:hover {
+.primary-btn:hover {
   background: var(--primary-color);
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(1, 235, 28, 0.2);
+}
+
+/* Google Button */
+.google-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  justify-content: center;
+  margin: 12px 0 18px;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+  box-shadow: none;
+}
+
+.google-btn:hover {
+  background: #f7f8f9;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 1px rgba(60, 64, 67, 0.08);
+}
+
+
+.google-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+}
+
+.google-text {
+  display: inline-block;
+  line-height: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+}
+
+/* Dark theme overrides for Google button */
+.theme-dark .google-btn {
+  background: white;
+  color: #000000;
+  border: 1px solid #4a4a4a;
+}
+
+.theme-dark .google-btn:hover {
+  background: #f7f8f9;
+  box-shadow: 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .google-btn .google-text {
+  color: #000000;
 }
 
 /* Links */
@@ -241,6 +313,17 @@ body::before {
   margin: 10px 0;
   font-size: 14px;
   border-left: 3px solid var(--error-color);
+}
+
+/* Success Messages */
+.success {
+  color: #155724;
+  background: #d4edda;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+  font-size: 14px;
+  border-left: 3px solid #28a745;
 }
 
 /* Animation */
@@ -408,7 +491,7 @@ body::before {
 
     watchSystemTheme() {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addListener(() => {
+        mediaQuery.addEventListener('change', () => {
             if (this.currentTheme === 'device') {
                 this.applyTheme('device');
             }
@@ -601,9 +684,24 @@ const themeStyles = `
 // Inject styles
 document.head.insertAdjacentHTML('beforeend', themeStyles);
 
-// Initialize theme system when DOM is loaded
+// Initialize theme system and Google button handler
 document.addEventListener('DOMContentLoaded', () => {
-    window.themeSystem = new ThemeSystem();
+    try {
+        window.themeSystem = new ThemeSystem();
+
+        const btn = document.getElementById('googleSignupBtn');
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Google Sign Up button clicked, redirecting to google_login.php?source=signup');
+                window.location.href = 'google_login.php?source=signup';
+            });
+        } else {
+            console.error('Google Sign Up button not found');
+        }
+    } catch (error) {
+        console.error('Error in signupprocess_users.php JavaScript:', error);
+    }
 });
 
 // Export for use in other scripts
@@ -625,9 +723,25 @@ window.ThemeSystem = ThemeSystem;
         <input type="password" name="password" placeholder="Password" required>
         <input type="password" name="confirm_password" placeholder="Confirm Password" required>
       </div>
-      <button type="submit">Sign Up</button>
+      <button type="submit" class="primary-btn">Sign Up</button>
+
+      <!-- Google Sign Up Button -->
+      <button type="button" class="google-btn" id="googleSignupBtn" aria-label="Sign up with Google">
+        <span class="google-icon" aria-hidden="true">
+          <!-- Google "G" SVG (multicolor) -->
+          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <path fill="#4285F4" d="M17.64 9.2045c0-.638-.0578-1.2509-.166-1.835H9v3.475h4.844c-.209 1.12-.845 2.07-1.803 2.71v2.257h2.912c1.705-1.571 2.697-3.88 2.697-6.607z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.468-.803 5.956-2.182l-2.912-2.257c-.806.543-1.84.866-3.044.866-2.34 0-4.325-1.58-5.033-3.705H1.01v2.328C2.496 15.861 5.548 18 9 18z"/>
+            <path fill="#FBBC05" d="M3.967 10.74a5.49 5.49 0 0 1 0-3.48V4.93H1.01A9 9 0 0 0 0 9c0 1.47.33 2.86.91 4.07l3.057-2.33z"/>
+            <path fill="#EA4335" d="M9 3.58c1.322 0 2.51.454 3.445 1.347l2.582-2.5C13.463.996 11.425 0 9 0 5.548 0 2.496 2.139 1.01 4.93l2.957 2.33C4.675 5.16 6.66 3.58 9 3.58z"/>
+          </svg>
+        </span>
+        <span class="google-text">Sign up with Google</span>
+      </button>
       
-      <?php if (!empty($error)): ?>
+      <?php if (!empty($success)): ?>
+        <div class="success"><?php echo htmlspecialchars($success); ?></div>
+      <?php elseif (!empty($error)): ?>
         <div class="error"><?php echo htmlspecialchars($error); ?></div>
       <?php endif; ?>
     </form>

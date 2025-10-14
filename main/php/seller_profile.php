@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -96,7 +95,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['verify_otp'])) {
     } else {
         // Handle image upload
         if (!empty($_FILES["profile_image"]["name"])) {
-            $targetDir = "uploads/";
+            $targetDir = "Uploads/";
             if (!is_dir($targetDir)) {
                 mkdir($targetDir, 0777, true);
             }
@@ -192,17 +191,318 @@ $stats = $stats_result->fetch_assoc();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($user["seller_name"] ?: $user["fullname"]); ?> - Seller Profile</title>
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="icon" type="image/png" href="uploads/logo1.png">
-    <link rel="stylesheet" href="../../css/seller_profile.css">
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            <?php if (isset($show_otp_modal) && $show_otp_modal): ?>
-                document.getElementById('otpModal').classList.add('show');
-                // For testing: Log OTP to console (remove in production)
-                console.log('OTP for testing: <?php echo $_SESSION['otp'] ?? ''; ?>');
-            <?php endif; ?>
-        });
-    </script>
+    <link rel="icon" type="image/png" href="Uploads/logo1.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --background: #fff;
+            --text-color: #333;
+            --primary-color: #44D62C;
+            --secondary-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        [data-theme="dark"] {
+            --background: #000000ff;
+            --text-color: #e0e0e0;
+            --primary-color: #44D62C;
+            --secondary-bg: #2a2a2a;
+            --border-color: #444;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--background);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--background);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h2 {
+            margin: 0;
+            color: var(--text-color);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .profile-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .seller-header {
+            background: var(--secondary-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .seller-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .seller-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary-color);
+        }
+
+        .profile-image-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .profile-image-container .edit-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: var(--primary-color);
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            padding: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .profile-image-container:hover .edit-icon {
+            opacity: 1;
+        }
+
+        .file-selected {
+            margin-top: 10px;
+            font-size: 14px;
+            color: var(--text-color);
+            opacity: 0.8;
+            text-align: center;
+        }
+
+        .seller-details h1 {
+            margin: 0 0 10px;
+            font-size: 24px;
+        }
+
+        .seller-details p {
+            margin: 5px 0;
+        }
+
+        .seller-badge {
+            background: var(--primary-color);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--secondary-bg);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .profile-form {
+            background: var(--secondary-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 16px;
+            background: var(--background);
+            color: var(--text-color);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .user-id-display {
+            background: var(--background);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .user-id-display input {
+            background: var(--secondary-bg);
+            color: var(--text-color);
+            font-family: monospace;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .required {
+            color: #ff0000;
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: #000;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #00cc6a;
+            transform: translateY(-2px);
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--background);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .seller-info {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- NAVBAR -->
@@ -220,10 +520,10 @@ $stats = $stats_result->fetch_assoc();
                 $current_profile = $profile_result->fetch_assoc();
                 $current_profile_image = $current_profile['profile_image'] ?? null;
                 ?>
-                <?php if(!empty($current_profile_image) && file_exists('uploads/' . $current_profile_image)): ?>
-                    <img src="uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
+                <?php if(!empty($current_profile_image) && file_exists('Uploads/' . $current_profile_image)): ?>
+                    <img src="Uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
                 <?php else: ?>
-                    <img src="uploads/default-avatar.svg" alt="Profile" class="profile-icon">
+                    <img src="Uploads/default-avatar.svg" alt="Profile" class="profile-icon">
                 <?php endif; ?>
             </a>
             <a href="seller_dashboard.php" style="color: #44D62C; text-decoration: none; font-weight: bold;">Dashboard</a>
@@ -247,12 +547,13 @@ $stats = $stats_result->fetch_assoc();
         <!-- SELLER HEADER -->
         <div class="seller-header">
             <div class="seller-info">
-                <div>
-                    <?php if (!empty($user["profile_image"])): ?>
-                        <img src="uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Seller Avatar" class="seller-avatar">
+                <div class="profile-image-container" tabindex="0" aria-label="Click to change profile picture">
+                    <?php if (!empty($user["profile_image"]) && file_exists("Uploads/" . $user["profile_image"])): ?>
+                        <img src="Uploads/<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Seller Avatar" class="seller-avatar" id="profileImage">
                     <?php else: ?>
-                        <img src="uploads/default-avatar.svg" alt="Default Avatar" class="seller-avatar">
+                        <img src="Uploads/default-avatar.svg" alt="Default Avatar" class="seller-avatar" id="profileImage">
                     <?php endif; ?>
+                    <i class="bi bi-pencil edit-icon"></i>
                 </div>
                 <div class="seller-details">
                     <h1><?php echo htmlspecialchars($user["seller_name"] ?: $user["fullname"]); ?></h1>
@@ -297,9 +598,10 @@ $stats = $stats_result->fetch_assoc();
 
             <form method="POST" enctype="multipart/form-data">
                 <div class="form-group full-width">
-                    <label for="profile_image">Profile Picture</label>
-                    <input type="file" name="profile_image" accept="image/*">
-                    <div class="help-text">Upload a new profile picture (JPG, PNG only)</div>
+                    <label>Profile Picture</label>
+                    <div class="file-selected" id="fileSelectedText"></div>
+                    <input type="file" id="profileImageInput" name="profile_image" accept="image/*" style="display: none;">
+                    <div class="help-text">Click the avatar above to upload a new profile picture (JPG, PNG only)</div>
                 </div>
 
                 <!-- User ID Display (Read-only) -->
@@ -371,5 +673,47 @@ $stats = $stats_result->fetch_assoc();
             </form>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // OTP Modal Handling
+            <?php if (isset($show_otp_modal) && $show_otp_modal): ?>
+                document.getElementById('otpModal').classList.add('show');
+                // For testing: Log OTP to console (remove in production)
+                console.log('OTP for testing: <?php echo $_SESSION['otp'] ?? ''; ?>');
+            <?php endif; ?>
+
+            // Profile Image File Selection
+            const profileImageContainer = document.querySelector('.profile-image-container');
+            const profileImageInput = document.getElementById('profileImageInput');
+            const fileSelectedText = document.getElementById('fileSelectedText');
+
+            if (profileImageContainer && profileImageInput && fileSelectedText) {
+                // Click handler for image
+                profileImageContainer.addEventListener('click', function() {
+                    console.log('Profile image clicked, triggering file input');
+                    profileImageInput.click();
+                });
+
+                // Keyboard handler for accessibility
+                profileImageContainer.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        console.log('Profile image activated via keyboard, triggering file input');
+                        profileImageInput.click();
+                    }
+                });
+
+                // Display selected file name
+                profileImageInput.addEventListener('change', function() {
+                    if (profileImageInput.files.length > 0) {
+                        fileSelectedText.textContent = `Selected: ${profileImageInput.files[0].name}`;
+                    } else {
+                        fileSelectedText.textContent = '';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

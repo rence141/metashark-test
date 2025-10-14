@@ -197,61 +197,48 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
       color: var(--text-secondary);
     }
 
+    /* Google-like button */
     .google-btn {
       width: 100%;
-      padding: 12px;
-      background: #4285f4;
-      border: none;
-      color: white;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #fff;
+      border: 1px solid #dadce0;
+      border-radius: 6px;
+      color: #3c4043;
       font-size: 14px;
       font-weight: 500;
-      border-radius: 12px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      gap: 10px;
       margin: 20px 0;
-      transition: all 0.3s ease;
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+      box-shadow: none;
     }
 
-    .google-btn {
-    position: relative;
-    overflow: hidden;
-    background: #5a87e7ff; /* Default background, adjust as needed */
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
+    .google-btn:hover {
+      background: #f7f8f9;
+      transform: translateY(-1px);
+      box-shadow: 0 1px 1px rgba(60,64,67,0.08);
+    }
 
-.google-btn:hover {
-    transform: translateY(-2px);
-}
-
-.google-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: rgb(12, 144, 14);
-    transition: transform 0.2s ease-in-out;
-    z-index: -1;
-}
-
-.google-btn:hover::before {
-    transform: translateX(100%);
-}
+    .google-btn:active {
+      transform: translateY(0);
+    }
 
     .google-icon {
-      width: 20px;
-      height: 20px;
-      background: white;
-      border-radius: 50%;
-      display: flex;
+      display: inline-flex;
+      width: 18px;
+      height: 18px;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      color:rgb(72, 244, 66);
+      flex: 0 0 18px;
+    }
+
+    .google-text {
+      display: inline-block;
+      line-height: 1;
     }
 
     .signup-link, .seller-link {
@@ -383,9 +370,17 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     </form>
 
     <!-- Google Login Button -->
-    <button class="google-btn" id="googleLoginBtn">
-      <div class="google-icon">G</div>
-      Sign in with Google
+    <button class="google-btn" id="googleLoginBtn" aria-label="Sign in with Google">
+      <span class="google-icon" aria-hidden="true">
+        <!-- Google "G" SVG (multicolor) -->
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" focusable="false">
+          <path fill="#4285F4" d="M17.64 9.2045c0-.638-.0578-1.2509-.166-1.835H9v3.475h4.844c-.209 1.12-.845 2.07-1.803 2.71v2.257h2.912c1.705-1.571 2.697-3.88 2.697-6.607z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.468-.803 5.956-2.182l-2.912-2.257c-.806.543-1.84.866-3.044.866-2.34 0-4.325-1.58-5.033-3.705H1.01v2.328C2.496 15.861 5.548 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.967 10.74a5.49 5.49 0 0 1 0-3.48V4.93H1.01A9 9 0 0 0 0 9c0 1.47.33 2.86.91 4.07l3.057-2.33z"/>
+          <path fill="#EA4335" d="M9 3.58c1.322 0 2.51.454 3.445 1.347l2.582-2.5C13.463.996 11.425 0 9 0 5.548 0 2.496 2.139 1.01 4.93l2.957 2.33C4.675 5.16 6.66 3.58 9 3.58z"/>
+        </svg>
+      </span>
+      <span class="google-text">Sign in with Google</span>
     </button>
 
     <div class="forgot-password">
@@ -399,8 +394,11 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     <div class="seller-link">
       Are you a seller? <a href="seller_login.php">Seller Login</a>
     </div>
+    <div class="seller-link" style="margin-top:8px;">
+      Are you an admin? <a href="admin_login.php">Admin Login</a>
+    </div>
   </div>
-
+  
   <script>
     document.getElementById('loginForm').addEventListener('submit', function() {
       document.querySelector('.loading-screen').classList.add('active');

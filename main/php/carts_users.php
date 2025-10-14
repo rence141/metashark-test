@@ -1141,7 +1141,6 @@ if ($notif_result->num_rows > 0) {
                             
                             <div class="item-details">
                                 <h3 class="item-name"><?php echo htmlspecialchars($item['name']); ?></h3>
-                                <p class="item-description"><?php echo htmlspecialchars($item['description']); ?></p>
                                 <p class="item-price">$<?php echo number_format($item['price']); ?></p>
                             </div>
                             
