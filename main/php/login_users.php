@@ -391,13 +391,14 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
       Don't have an account? <a href="signup_users.php">Sign Up</a>
     </div>
 
-    <div class="seller-link">
+   <!-- <div class="seller-link">
       Are you a seller? <a href="seller_login.php">Seller Login</a>
-    </div>
-    <div class="seller-link" style="margin-top:8px;">
+    </div>-->
+    
+    <!--<div class="seller-link" style="margin-top:8px;">
       Are you an admin? <a href="admin_login.php">Admin Login</a>
     </div>
-  </div>
+  </div>-->
   
   <script>
     document.getElementById('loginForm').addEventListener('submit', function() {

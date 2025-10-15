@@ -304,6 +304,39 @@ $current_profile = $profile_result->fetch_assoc();
 $current_profile_image = $current_profile['profile_image'] ?? null;
 $profile_stmt->close();
 ?>
+<?php
+// Helper: resolve product image URL for a seller order item
+function resolveProductImageUrlSeller(array $orderRow) {
+    // Always prefer the database value as-is (consistent with cart/shop rendering)
+    $img = isset($orderRow['product_image']) ? trim($orderRow['product_image']) : '';
+    if ($img !== '') {
+        return str_replace('\\', '/', $img);
+    }
+    // Candidate relative paths (relative to this PHP file)
+    $candidates = [
+        __DIR__ . '/uploads/products/' . $img,
+        __DIR__ . '/uploads/' . $img,
+        __DIR__ . '/Uploads/products/' . $img,
+        __DIR__ . '/Uploads/' . $img,
+        __DIR__ . '/../uploads/products/' . $img,
+        __DIR__ . '/../uploads/' . $img
+    ];
+    foreach ($candidates as $path) {
+        if ($img !== '' && file_exists($path)) {
+            return basename($path);
+        }
+    }
+    // Best-effort simple fallbacks
+    if ($img !== '') {
+        if (file_exists(__DIR__ . '/uploads/' . $img)) return 'uploads/' . $img;
+        if (file_exists(__DIR__ . '/Uploads/' . $img)) return 'Uploads/' . $img;
+    }
+    // Default placeholder
+    if (file_exists(__DIR__ . '/uploads/default-product.png')) return 'uploads/default-product.png';
+    if (file_exists(__DIR__ . '/../uploads/default-product.png')) return 'uploads/default-product.png';
+    return 'data:image/svg+xml;utf8,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90"><rect width="100%" height="100%" fill="#222"/><text x="50%" y="50%" fill="#888" font-size="12" dominant-baseline="middle" text-anchor="middle">No image</text></svg>');
+}
+?>
 <!DOCTYPE html>
 <html lang="en" data-theme="<?php echo htmlspecialchars($effective_theme); ?>">
 <head>
@@ -315,6 +348,18 @@ $profile_stmt->close();
     <link rel="stylesheet" href="../../css/seller_order_status.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <style>
+        /* Navbar styles (from shop.php) */
+        .navbar { position: sticky; top: 0; z-index: 1000; background: var(--bg-secondary); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .nav-left { display: flex; align-items: center; gap: 10px; }
+        .logo { height: 40px; }
+        .nav-right { display: flex; align-items: center; gap: 12px; }
+        .profile-icon { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); }
+        .hamburger { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-primary); }
+        .menu { display: none; position: absolute; top: 60px; right: 20px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; list-style: none; margin: 0; z-index: 1000; }
+        .menu.show { display: block; }
+        .menu li { margin: 10px 0; }
+        .menu li a { color: var(--text-primary); text-decoration: none; font-size: 16px; }
+        .menu li a:hover { color: var(--accent-color); }
         /* Seller Orders CSS */
         * {
             margin: 0;
@@ -549,6 +594,17 @@ $profile_stmt->close();
         .order-card:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transform: translateY(-2px);
+        }
+        /* product thumbnail */
+        .product-thumb {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            background: #111;
+            border: 1px solid var(--border-color);
         }
         .stats-grid {
             display: grid;
@@ -803,28 +859,29 @@ $profile_stmt->close();
 <body>
     <div class="navbar">
         <div class="nav-left">
-            <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="logo">
+            <img src="uploads/logo1.png" alt="Meta Shark Logo" class="logo">
             <h2>Meta Shark</h2>
         </div>
         <div class="nav-right">
-            <!-- Theme dropdown -->
             <div class="theme-dropdown" id="themeDropdown">
-                <button class="theme-btn login-btn-select" id="themeDropdownBtn" title="Select theme" aria-label="Select theme">
-                    <i class="bi theme-icon" id="themeIcon"></i>
-                    <span class="theme-text" id="themeText"><?php echo $theme === 'device' ? 'Device' : ($theme === 'light' ? 'Light' : 'Dark'); ?></span>
-                </button>
-                <div class="theme-menu" id="themeMenu" aria-hidden="true">
-                    <button class="theme-option" data-theme="light">
-                        <i class="bi bi-sun-fill"></i>Light
-                    </button>
-                    <button class="theme-option" data-theme="dark">
-                        <i class="bi bi-moon-fill"></i>Dark
-                    </button>
-                    <button class="theme-option" data-theme="device">
-                        <i class="bi bi-laptop"></i>Device
-                    </button>    
-                </div>
+              <button class="theme-btn login-btn-select" id="themeDropdownBtn" title="Select theme" aria-label="Select theme">
+                <i class="bi theme-icon" id="themeIcon"></i>
+                <span class="theme-text" id="themeText"><?php echo $theme === 'device' ? 'Device' : ($effective_theme === 'light' ? 'Dark' : 'Light'); ?></span>
+              </button>
+              <div class="theme-menu" id="themeMenu" aria-hidden="true">
+                <button class="theme-option" data-theme="light">Light</button>
+                <button class="theme-option" data-theme="dark">Dark</button>
+                <button class="theme-option" data-theme="device">Device</button>
+              </div>
             </div>
+            <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+              <i class="bi bi-bell" style="font-size:18px;"></i>
+              <span></span>
+            </a>
+            <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+              <i class="bi bi-cart" style="font-size:18px;"></i>
+              <span></span>
+            </a>
             <a href="seller_profile.php">
                 <?php if (!empty($current_profile_image) && file_exists('Uploads/' . $current_profile_image)): ?>
                     <img src="Uploads/<?php echo htmlspecialchars($current_profile_image); ?>" alt="Profile" class="profile-icon">
@@ -832,6 +889,7 @@ $profile_stmt->close();
                     <img src="Uploads/default-avatar.svg" alt="Profile" class="profile-icon">
                 <?php endif; ?>
             </a>
+            <button class="hamburger">☰</button>
         </div>
         <ul class="menu" id="menu">
             <li><a href="shop.php">Home</a></li>
@@ -966,6 +1024,8 @@ $profile_stmt->close();
                         <div class="order-details">
                             <div class="order-item">
                                 <div class="product-info">
+                                    <?php $imgSrc = resolveProductImageUrlSeller($order); ?>
+                                    <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="<?php echo htmlspecialchars($order['product_name']); ?>" class="product-thumb" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<?php echo rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90"><rect width="100%" height="100%" fill="#222"/><text x="50%" y="50%" fill="#888" font-size="12" dominant-baseline="middle" text-anchor="middle">No image</text></svg>'); ?>';">
                                     <div class="product-details">
                                         <strong><?php echo htmlspecialchars($order['product_name']); ?></strong>
                                         <p>Quantity: <?php echo $order['quantity']; ?> × $<?php echo number_format($order['price'], 2); ?></p>
@@ -1024,21 +1084,18 @@ $profile_stmt->close();
             const hamburger = document.querySelector('.hamburger');
             const menu = document.getElementById('menu');
             if (hamburger && menu) {
-                hamburger.addEventListener('click', function() {
-                    console.log('Hamburger clicked'); // Debug log
+                hamburger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     menu.classList.toggle('show');
                 });
                 document.addEventListener('click', function(e) {
                     if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
-                        console.log('Clicked outside menu'); // Debug log
                         menu.classList.remove('show');
                     }
                 });
                 menu.querySelectorAll('a').forEach(item => {
-                    item.addEventListener('click', () => {
-                        console.log('Menu item clicked'); // Debug log
-                        menu.classList.remove('show');
-                    });
+                    item.addEventListener('click', () => menu.classList.remove('show'));
                 });
             }
             // Auto-dismiss notifications
