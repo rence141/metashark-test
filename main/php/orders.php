@@ -60,7 +60,7 @@ if (!empty($orders)) {
           </div>
           <div class="row" style="margin-top:6px;">
             <div>Status: <strong><?php echo htmlspecialchars($o['status']); ?></strong></div>
-            <div>Total: ₱<?php echo number_format((float)$o['total'], 2); ?></div>
+            <div>Total: ₱<?php echo number_format((float)($o['total_price'] ?? 0), 2); ?></div>
           </div>
           <div class="timeline">
             <?php $list = $updates[$o['id']] ?? []; ?>

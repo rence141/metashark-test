@@ -1235,7 +1235,7 @@ if ($notif_result->num_rows > 0) {
             <div class="json-display" id="jsonDisplay"></div>
             <div class="popup-actions">
                 <button class="popup-btn cancel" id="cancelPopupBtn">Cancel</button>
-                <button class="popup-btn confirm" id="confirmPopupBtn">Confirm Order</button>
+                <!--<button class="popup-btn confirm" id="confirmPopupBtn">Confirm Order</button>-->
             </div>
         </div>
     </div>

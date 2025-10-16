@@ -314,12 +314,12 @@ function resolveProductImageUrlSeller(array $orderRow) {
     }
     // Candidate relative paths (relative to this PHP file)
     $candidates = [
-        __DIR__ . '/uploads/products/' . $img,
-        __DIR__ . '/uploads/' . $img,
         __DIR__ . '/Uploads/products/' . $img,
         __DIR__ . '/Uploads/' . $img,
-        __DIR__ . '/../uploads/products/' . $img,
-        __DIR__ . '/../uploads/' . $img
+        __DIR__ . '/Uploads/products/' . $img,
+        __DIR__ . '/Uploads/' . $img,
+        __DIR__ . '/../Uploads/products/' . $img,
+        __DIR__ . '/../Uploads/' . $img
     ];
     foreach ($candidates as $path) {
         if ($img !== '' && file_exists($path)) {
@@ -328,12 +328,12 @@ function resolveProductImageUrlSeller(array $orderRow) {
     }
     // Best-effort simple fallbacks
     if ($img !== '') {
-        if (file_exists(__DIR__ . '/uploads/' . $img)) return 'uploads/' . $img;
+        if (file_exists(__DIR__ . '/Uploads/' . $img)) return 'Uploads/' . $img;
         if (file_exists(__DIR__ . '/Uploads/' . $img)) return 'Uploads/' . $img;
     }
     // Default placeholder
-    if (file_exists(__DIR__ . '/uploads/default-product.png')) return 'uploads/default-product.png';
-    if (file_exists(__DIR__ . '/../uploads/default-product.png')) return 'uploads/default-product.png';
+    if (file_exists(__DIR__ . '/Uploads/default-product.png')) return 'Uploads/default-product.png';
+    if (file_exists(__DIR__ . '/../Uploads/default-product.png')) return 'Uploads/default-product.png';
     return 'data:image/svg+xml;utf8,' . rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90"><rect width="100%" height="100%" fill="#222"/><text x="50%" y="50%" fill="#888" font-size="12" dominant-baseline="middle" text-anchor="middle">No image</text></svg>');
 }
 ?>
@@ -550,27 +550,18 @@ function resolveProductImageUrlSeller(array $orderRow) {
         }
         .notification {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 5px;
+            top: 16px;
+            right: 16px;
+            padding: 0;
             z-index: 1000;
             max-width: 400px;
-            transition: all 0.3s ease;
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            background: transparent;
+            border: none;
             color: var(--text-primary);
         }
-        .notification.success {
-            background-color: var(--success-color);
-            color: white;
-            border-color: var(--success-color);
-        }
-        .notification.error {
-            background-color: var(--danger-color);
-            color: white;
-            border-color: var(--danger-color);
-        }
+        .notification.success { color: var(--success-color); }
+        .notification.error { color: var(--danger-color); }
         .status-badge {
             padding: 4px 8px;
             border-radius: 12px;
@@ -597,11 +588,11 @@ function resolveProductImageUrlSeller(array $orderRow) {
         }
         /* product thumbnail */
         .product-thumb {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             object-fit: cover;
             border-radius: 8px;
-            margin-right: 12px;
+            margin-left: 12px;
             flex-shrink: 0;
             background: #111;
             border: 1px solid var(--border-color);
@@ -720,6 +711,26 @@ function resolveProductImageUrlSeller(array $orderRow) {
             cursor: pointer;
             font-weight: 500;
         }
+        /* Updated Ellipsis-style buttons */
+        .ellipsis-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ellipsis-btn:hover {
+            background: var(--accent-color);
+            color: black;
+            transform: translateY(-1px);
+        }
         .order-header {
             display: flex;
             justify-content: space-between;
@@ -742,7 +753,10 @@ function resolveProductImageUrlSeller(array $orderRow) {
             gap: 15px;
         }
         .product-info {
-            display: block;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
         }
         .product-details {
             flex: none;
@@ -851,7 +865,14 @@ function resolveProductImageUrlSeller(array $orderRow) {
                 align-items: stretch;
             }
             .product-info {
-                flex-direction: column;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+            }
+            .ellipsis-btn {
+                padding: 6px 12px;
+                font-size: 13px;
             }
         }
     </style>
@@ -859,7 +880,7 @@ function resolveProductImageUrlSeller(array $orderRow) {
 <body>
     <div class="navbar">
         <div class="nav-left">
-            <img src="uploads/logo1.png" alt="Meta Shark Logo" class="logo">
+            <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="logo">
             <h2>Meta Shark</h2>
         </div>
         <div class="nav-right">
@@ -1024,13 +1045,13 @@ function resolveProductImageUrlSeller(array $orderRow) {
                         <div class="order-details">
                             <div class="order-item">
                                 <div class="product-info">
-                                    <?php $imgSrc = resolveProductImageUrlSeller($order); ?>
-                                    <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="<?php echo htmlspecialchars($order['product_name']); ?>" class="product-thumb" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<?php echo rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="90"><rect width="100%" height="100%" fill="#222"/><text x="50%" y="50%" fill="#888" font-size="12" dominant-baseline="middle" text-anchor="middle">No image</text></svg>'); ?>';">
                                     <div class="product-details">
                                         <strong><?php echo htmlspecialchars($order['product_name']); ?></strong>
                                         <p>Quantity: <?php echo $order['quantity']; ?> × $<?php echo number_format($order['price'], 2); ?></p>
                                         <p class="item-total">Item Total: $<?php echo number_format($order['quantity'] * $order['price'], 2); ?></p>
                                     </div>
+                                    <?php $imgSrc = resolveProductImageUrlSeller($order); ?>
+                                    <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="<?php echo htmlspecialchars($order['product_name']); ?>" class="product-thumb" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<?php echo rawurlencode('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"90\"><rect width=\"100%\" height=\"100%\" fill=\"#222\"/><text x=\"50%\" y=\"50%\" fill=\"#888\" font-size=\"12\" dominant-baseline=\"middle\" text-anchor=\"middle\">No image</text></svg>'); ?>';">
                                 </div>
                             </div>
                             <div class="customer-info">
@@ -1074,6 +1095,10 @@ function resolveProductImageUrlSeller(array $orderRow) {
                         </div>
                     </div>
                 <?php endforeach; ?>
+                <div class="orders-pagination" style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+                    <button type="button" id="sellerShowLessBtn" class="ellipsis-btn" title="Show less" style="display:none;">Show less</button>
+                    <button type="button" id="sellerShowMoreBtn" class="ellipsis-btn" title="Show more" style="display:none;">Show more...</button>
+                </div>
                 </form> <!-- Close the bulk actions form -->
             <?php endif; ?>
         </div>
@@ -1098,13 +1123,13 @@ function resolveProductImageUrlSeller(array $orderRow) {
                     item.addEventListener('click', () => menu.classList.remove('show'));
                 });
             }
-            // Auto-dismiss notifications
+            // Auto-dismiss notifications (no bg, just fade text)
             const notification = document.getElementById('statusNotification');
             if (notification) {
                 setTimeout(() => {
                     notification.style.opacity = '0';
                     setTimeout(() => notification.remove(), 300);
-                }, 5000);
+                }, 4000);
             }
             // Bulk selection
             window.toggleSelectAll = function(source) {
@@ -1198,6 +1223,44 @@ function resolveProductImageUrlSeller(array $orderRow) {
                     if (currentTheme === 'device') {
                         applyTheme('device');
                     }
+                });
+            }
+            // Pagination: show more/less (5 at a time)
+            const orderCards = document.querySelectorAll('.orders-list .order-card');
+            const showMoreOrdersBtn = document.getElementById('sellerShowMoreBtn');
+            const showLessOrdersBtn = document.getElementById('sellerShowLessBtn');
+            const PAGE_SIZE = 5;
+            let visibleOrders = 0;
+
+            function updateOrdersVisibility() {
+                orderCards.forEach((el, idx) => {
+                    el.style.display = idx < visibleOrders ? 'block' : 'none';
+                });
+                if (showMoreOrdersBtn) {
+                    showMoreOrdersBtn.style.display = visibleOrders < orderCards.length ? 'inline-block' : 'none';
+                }
+                if (showLessOrdersBtn) {
+                    showLessOrdersBtn.style.display = visibleOrders > PAGE_SIZE ? 'inline-block' : 'none';
+                }
+            }
+
+            if (orderCards.length > 0) {
+                visibleOrders = Math.min(PAGE_SIZE, orderCards.length);
+                updateOrdersVisibility();
+            }
+
+            if (showMoreOrdersBtn) {
+                showMoreOrdersBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    visibleOrders = Math.min(visibleOrders + PAGE_SIZE, orderCards.length);
+                    updateOrdersVisibility();
+                });
+            }
+            if (showLessOrdersBtn) {
+                showLessOrdersBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    visibleOrders = Math.max(PAGE_SIZE, visibleOrders - PAGE_SIZE);
+                    updateOrdersVisibility();
                 });
             }
         });

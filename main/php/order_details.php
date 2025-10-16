@@ -389,6 +389,9 @@ $overall_status = getOverallOrderStatus($order_items);
                         <!-- per-item badge removed -->
                     </div>
                 <?php endforeach; ?>
+                <div style="text-align:center; margin-top:10px;">
+                    <button type="button" id="showMoreItemsBtn" class="btn btn-back" style="display:none;">Show more</button>
+                </div>
             </div>
 
             <div class="order-actions" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
@@ -435,6 +438,33 @@ $overall_status = getOverallOrderStatus($order_items);
                 hamburger.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); menu.classList.toggle('show'); });
                 document.addEventListener('click', function(e) { if (!hamburger.contains(e.target) && !menu.contains(e.target)) { menu.classList.remove('show'); } });
                 menu.querySelectorAll('a').forEach(item => { item.addEventListener('click', () => menu.classList.remove('show')); });
+            }
+            // Show-more pagination for order items (5 at a time)
+            const orderItems = document.querySelectorAll('.order-items .order-item');
+            const showMoreBtn = document.getElementById('showMoreItemsBtn');
+            const PAGE_SIZE = 5;
+            let visibleCount = 0;
+
+            function updateVisibility() {
+                orderItems.forEach((el, idx) => {
+                    el.style.display = idx < visibleCount ? 'flex' : 'none';
+                });
+                if (showMoreBtn) {
+                    showMoreBtn.style.display = visibleCount < orderItems.length ? 'inline-block' : 'none';
+                }
+            }
+
+            if (orderItems.length > 0) {
+                visibleCount = Math.min(PAGE_SIZE, orderItems.length);
+                updateVisibility();
+            }
+
+            if (showMoreBtn) {
+                showMoreBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    visibleCount = Math.min(visibleCount + PAGE_SIZE, orderItems.length);
+                    updateVisibility();
+                });
             }
         });
     </script>

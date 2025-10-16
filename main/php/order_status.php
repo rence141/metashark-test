@@ -473,10 +473,20 @@ function canCancelOrder($order_items) {
             color: black;
         }
         
-        .btn-details {
-            background: #6c757d;
-            color: white;
-        }
+       .btn-details {
+    background: #6c757d09; /* translucent background */
+    color: white;
+    border: 1px solid #00ff88; /* subtle gray border */
+    border-radius: 5px; /* optional: rounded corners */
+    padding: 8px 16px; /* optional: add spacing */
+    cursor: pointer; /* makes it feel clickable */
+    transition: 0.3s; /* smooth hover effect */
+    }
+
+    .btn-details:hover {
+        background: #6c757d33; /* slightly darker on hover */
+        border-color: #6c757d; /* keep border visible */
+    }
         
         .tracking-info {
             background: #2a2a2a;
@@ -758,6 +768,10 @@ function canCancelOrder($order_items) {
                         </div>
                     </div>
                 <?php endforeach; ?>
+                <div style="text-align:center; margin-top:10px; display:flex; gap:8px; justify-content:center;">
+                    <button type="button" id="showLessOrdersBtn" class="btn btn-details" style="display:none;">Show less</button>
+                    <button type="button" id="showMoreOrdersBtn" class="btn btn-review" style="display:none;">Show more</button>
+                </div>
             </div>
         <?php endif; ?>
     </div>
@@ -828,6 +842,47 @@ function canCancelOrder($order_items) {
                 });
                 menu.querySelectorAll('a').forEach(item => {
                     item.addEventListener('click', () => menu.classList.remove('show'));
+                });
+            }
+            // Show-more pagination for order cards (5 at a time)
+            const orderCards = document.querySelectorAll('.orders-list .order-card');
+            const showMoreOrdersBtn = document.getElementById('showMoreOrdersBtn');
+            const showLessOrdersBtn = document.getElementById('showLessOrdersBtn');
+            const PAGE_SIZE = 5;
+            let visibleOrders = 0;
+
+            function updateOrdersVisibility() {
+                orderCards.forEach((el, idx) => {
+                    el.style.display = idx < visibleOrders ? 'block' : 'none';
+                });
+                if (showMoreOrdersBtn) {
+                    showMoreOrdersBtn.style.display = visibleOrders < orderCards.length ? 'inline-block' : 'none';
+                }
+                if (showLessOrdersBtn) {
+                    showLessOrdersBtn.style.display = visibleOrders > PAGE_SIZE ? 'inline-block' : 'none';
+                }
+            }
+
+            if (orderCards.length > 0) {
+                visibleOrders = Math.min(PAGE_SIZE, orderCards.length);
+                updateOrdersVisibility();
+            }
+
+            if (showMoreOrdersBtn) {
+                showMoreOrdersBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    visibleOrders = Math.min(visibleOrders + PAGE_SIZE, orderCards.length);
+                    updateOrdersVisibility();
+                });
+            }
+            if (showLessOrdersBtn) {
+                showLessOrdersBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    visibleOrders = Math.max(PAGE_SIZE, visibleOrders - PAGE_SIZE);
+                    updateOrdersVisibility();
+                    // Optionally scroll to the top of the list for context
+                    const list = document.querySelector('.orders-list');
+                    if (list) { list.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
                 });
             }
         });

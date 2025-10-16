@@ -33,6 +33,14 @@ include("db.php");
 include_once("email.php");
 $user_id = $_SESSION['user_id'];
 
+// Capture selected product IDs from GET or POST to support "checkout selected" flow
+$selectedProductIds = [];
+if (isset($_GET['selected_items']) && is_array($_GET['selected_items'])) {
+    $selectedProductIds = array_values(array_unique(array_map('intval', $_GET['selected_items'])));
+} elseif (isset($_POST['selected_items']) && is_array($_POST['selected_items'])) {
+    $selectedProductIds = array_values(array_unique(array_map('intval', $_POST['selected_items'])));
+}
+
 // Fetch available vouchers for dropdown
 $available_vouchers = [];
 $voucher_list_query = "SELECT code, discount_type, discount_value, min_purchase 
@@ -63,12 +71,24 @@ if ($gcq) {
     $gcq->close();
 }
 
-// Support single-item checkout via ?product_id=...
+// Support single-item checkout via ?product_id=... (fallback when no selected_items[] passed)
 $onlyProductId = isset($_GET['product_id']) ? intval($_GET['product_id']) : 0;
 
-// Fetch cart items
-if ($onlyProductId > 0) {
-    $sql = "SELECT c.*, p.name, p.price, p.image, p.description 
+// Fetch cart items honoring selected IDs if provided
+if (!empty($selectedProductIds)) {
+    $placeholders = implode(',', array_fill(0, count($selectedProductIds), '?'));
+    $sql = "SELECT c.*, p.name, p.price, p.image, p.description, p.seller_id 
+            FROM cart c 
+            LEFT JOIN products p ON c.product_id = p.id 
+            WHERE c.user_id = ? AND c.product_id IN ($placeholders)
+            ORDER BY c.created_at DESC";
+    $stmt = $conn->prepare($sql);
+    // types: one user_id + N product ids
+    $types = 'i' . str_repeat('i', count($selectedProductIds));
+    $params = array_merge([$user_id], $selectedProductIds);
+    $stmt->bind_param($types, ...$params);
+} elseif ($onlyProductId > 0) {
+    $sql = "SELECT c.*, p.name, p.price, p.image, p.description, p.seller_id 
             FROM cart c 
             LEFT JOIN products p ON c.product_id = p.id 
             WHERE c.user_id = ? AND c.product_id = ? 
@@ -76,7 +96,7 @@ if ($onlyProductId > 0) {
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $user_id, $onlyProductId);
 } else {
-    $sql = "SELECT c.*, p.name, p.price, p.image, p.description 
+    $sql = "SELECT c.*, p.name, p.price, p.image, p.description, p.seller_id 
             FROM cart c 
             LEFT JOIN products p ON c.product_id = p.id 
             WHERE c.user_id = ? 
@@ -240,28 +260,58 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
             
             $latest_total = round($latest_subtotal + $latest_tax - $latest_discount, 2);
 
-            // Create order
+            // Precompute global totals for discount proration
+            $global_subtotal = 0.0;
+            foreach ($cart_items as $ci) { $global_subtotal += $ci['price'] * $ci['quantity']; }
+            $prorate_base = max($global_subtotal, 0.00001);
+
+            // Prepare statements reused in loop
             $order_query = "INSERT INTO orders (buyer_id, subtotal, tax, discount, total_price, status, shipping_name, shipping_address, payment_method, voucher_code, created_at, paid_at) 
-                           VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW(), NOW())";
-            
+                            VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, NOW(), NOW())";
             $order_stmt = $conn->prepare($order_query);
-            if ($order_stmt) {
-                $order_stmt->bind_param("idddsssss", $user_id, $latest_subtotal, $latest_tax, $latest_discount, $latest_total, $shipping_name, $shipping_address, $payment_method, $voucher_code_used);
+            $item_query = "INSERT INTO order_items (order_id, product_id, quantity, price, status) VALUES (?, ?, ?, ?, 'pending')";
+            $item_stmt = $conn->prepare($item_query);
+
+            if ($order_stmt && $item_stmt) {
+            $created_order_ids = [];
+            foreach ($cart_items as $it) {
+                $item_subtotal = $it['price'] * $it['quantity'];
+                $item_tax = round($item_subtotal * 0.08, 2);
+                // Prorate discount by item share of subtotal
+                $item_discount = 0.0;
+                if ($latest_discount > 0) {
+                    $item_discount = round(($item_subtotal / $prorate_base) * $latest_discount, 2);
+                    if ($item_discount > $item_subtotal) { $item_discount = $item_subtotal; }
+                }
+                $item_total = round($item_subtotal + $item_tax - $item_discount, 2);
+
+                // Create order for this single item
+                $order_stmt->bind_param("idddsssss", $user_id, $item_subtotal, $item_tax, $item_discount, $item_total, $shipping_name, $shipping_address, $payment_method, $voucher_code_used);
                 $order_stmt->execute();
                 $order_id = $conn->insert_id;
-                
-                // Insert order items
-                $item_query = "INSERT INTO order_items (order_id, product_id, quantity, price, status) 
-                              VALUES (?, ?, ?, ?, 'pending')";
-                $item_stmt = $conn->prepare($item_query);
-                
-                foreach ($cart_items as $item) {
-                    $item_stmt->bind_param("iiid", $order_id, $item['product_id'], $item['quantity'], $item['price']);
-                    $item_stmt->execute();
-                }
-                $item_stmt->close();
+                $created_order_ids[] = $order_id;
 
-                // Update voucher usage
+                // Insert the one item
+                $item_stmt->bind_param("iiid", $order_id, $it['product_id'], $it['quantity'], $it['price']);
+                $item_stmt->execute();
+
+                // Notify seller for this item
+                $sellerId = (int)($it['seller_id'] ?? 0);
+                if ($sellerId && $sellerId != $user_id) {
+                    $notification_type = "order";
+                    $notification_sql = "INSERT INTO notifications (user_id, message, type, created_at, `read`) VALUES (?, ?, ?, NOW(), 0)";
+                    $seller_message = "New order #$order_id received for product: " . $it['name'] . " (Quantity: " . $it['quantity'] . ")";
+                    $seller_notif_stmt = $conn->prepare($notification_sql);
+                    if ($seller_notif_stmt) {
+                        $seller_notif_stmt->bind_param("iss", $sellerId, $seller_message, $notification_type);
+                        $seller_notif_stmt->execute();
+                        $seller_notif_stmt->close();
+                    }
+                }
+            }
+            $item_stmt && $item_stmt->close();
+
+                // Update voucher usage ONCE (regardless of number of seller orders)
                 if ($voucher_code_used) {
                     $update_voucher = $conn->prepare("UPDATE vouchers SET current_uses = current_uses + 1 WHERE UPPER(code) = ?");
                     $update_voucher->bind_param("s", $voucher_code_used);
@@ -269,55 +319,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['checkout']) && $_POST[
                     $update_voucher->close();
                 }
 
-                // Clear cart
-                $clear_cart = $conn->prepare("DELETE FROM cart WHERE user_id = ?");
-                $clear_cart->bind_param("i", $user_id);
-                $clear_cart->execute();
-                $clear_cart->close();
+                // Clear only the items that were part of this checkout
+                if (!empty($selectedProductIds)) {
+                    $ph = implode(',', array_fill(0, count($selectedProductIds), '?'));
+                    $clear_sql = "DELETE FROM cart WHERE user_id = ? AND product_id IN ($ph)";
+                    $clear_cart = $conn->prepare($clear_sql);
+                    $types = 'i' . str_repeat('i', count($selectedProductIds));
+                    $params = array_merge([$user_id], $selectedProductIds);
+                    $clear_cart->bind_param($types, ...$params);
+                    $clear_cart->execute();
+                    $clear_cart->close();
+                } elseif ($onlyProductId > 0) {
+                    $clear_cart = $conn->prepare("DELETE FROM cart WHERE user_id = ? AND product_id = ?");
+                    $clear_cart->bind_param("ii", $user_id, $onlyProductId);
+                    $clear_cart->execute();
+                    $clear_cart->close();
+                } else {
+                    $clear_cart = $conn->prepare("DELETE FROM cart WHERE user_id = ?");
+                    $clear_cart->bind_param("i", $user_id);
+                    $clear_cart->execute();
+                    $clear_cart->close();
+                }
 
                 $conn->commit();
                 
-                // Send buyer notification
-                $buyer_message = "Order #$order_id placed successfully!";
+                // Buyer notifications per created order
                 $notification_type = "order";
                 $notification_sql = "INSERT INTO notifications (user_id, message, type, created_at, `read`) VALUES (?, ?, ?, NOW(), 0)";
-                $notif_stmt = $conn->prepare($notification_sql);
-                if ($notif_stmt) {
-                    $notif_stmt->bind_param("iss", $user_id, $buyer_message, $notification_type);
-                    $notif_stmt->execute();
-                    $notif_stmt->close();
-                }
-                
-                // Notify sellers
-                foreach ($cart_items as $item) {
-                    $seller_query = "SELECT seller_id FROM products WHERE id = ?";
-                    $seller_stmt = $conn->prepare($seller_query);
-                    if ($seller_stmt) {
-                        $seller_stmt->bind_param("i", $item['product_id']);
-                        $seller_stmt->execute();
-                        $seller_result = $seller_stmt->get_result();
-                        if ($seller_row = $seller_result->fetch_assoc()) {
-                            $seller_id = $seller_row['seller_id'];
-                            if ($seller_id != $user_id) {
-                                $seller_message = "New order #$order_id received for product: " . $item['name'] . " (Quantity: " . $item['quantity'] . ")";
-                                $seller_notif_stmt = $conn->prepare($notification_sql);
-                                if ($seller_notif_stmt) {
-                                    $seller_notif_stmt->bind_param("iss", $seller_id, $seller_message, $notification_type);
-                                    $seller_notif_stmt->execute();
-                                    $seller_notif_stmt->close();
-                                }
-                            }
-                        }
-                        $seller_stmt->close();
+                foreach ($created_order_ids as $oid) {
+                    $buyer_message = "Order #$oid placed successfully!";
+                    $notif_stmt = $conn->prepare($notification_sql);
+                    if ($notif_stmt) {
+                        $notif_stmt->bind_param("iss", $user_id, $buyer_message, $notification_type);
+                        $notif_stmt->execute();
+                        $notif_stmt->close();
                     }
                 }
 
-                $order_message = "Order placed successfully! Order ID: #$order_id";
+                $order_message = "Order placed successfully!";
                 $order_success = true;
                 unset($_SESSION['applied_voucher']);
                 unset($_SESSION['voucher_details']);
                 
-                header("Location: order_status.php?order_id=$order_id&success=1");
+                header("Location: order_status.php?success=1");
                 exit;
                 
             } else {
@@ -519,6 +563,10 @@ $profile_stmt->close();
                 const formData = new FormData();
                 formData.append('voucher_code', voucherCode);
                 formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+                // Persist selected items so server scopes totals to selection
+                document.querySelectorAll('input[name="selected_items[]"]').forEach(input => {
+                    formData.append('selected_items[]', input.value);
+                });
                 
                 return fetch('', {
                     method: 'POST',
@@ -793,6 +841,13 @@ $profile_stmt->close();
                     
                     <form method="POST" name="checkout">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <?php if (!empty($selectedProductIds)): ?>
+                            <?php foreach ($selectedProductIds as $pid): ?>
+                                <input type="hidden" name="selected_items[]" value="<?php echo (int)$pid; ?>">
+                            <?php endforeach; ?>
+                        <?php elseif ($onlyProductId > 0): ?>
+                            <input type="hidden" name="selected_items[]" value="<?php echo (int)$onlyProductId; ?>">
+                        <?php endif; ?>
                         
                         <!-- Voucher form - Auto-applies when selected -->
                         <div class="form-group">

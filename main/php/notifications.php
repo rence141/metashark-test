@@ -42,15 +42,18 @@ function resolveProductImageUrlSeller(array $row) {
 // AJAX: Fetch notifications (GET) or perform actions (POST ajax_action)
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax_action']) && $_GET['ajax_action'] === 'fetch') {
     header('Content-Type: application/json; charset=utf-8');
-    // Modified query to fetch product_image for order-related notifications
+    $limit = 10;
+    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $offset = ($page - 1) * $limit;
+
     $query = "SELECT n.id, n.message, n.type, n.created_at, n.`read`, p.image AS product_image
               FROM notifications n
               LEFT JOIN order_items oi ON n.type IN ('order', 'order_status', 'order_updated', 'order_cancelled')
                 AND n.message REGEXP 'Order #[0-9]+' AND oi.order_id = CAST(SUBSTRING(n.message, LOCATE('#', n.message) + 1, LOCATE(' -', n.message) - LOCATE('#', n.message) - 1) AS UNSIGNED)
               LEFT JOIN products p ON oi.product_id = p.id
-              WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT 50";
+              WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $userId);
+    $stmt->bind_param("iii", $userId, $limit, $offset);
     $stmt->execute();
     $res = $stmt->get_result();
     $notifications = [];
@@ -58,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax_action']) && $_GET
         $title = isset($row['title']) && $row['title'] !== '' ? $row['title'] : (isset($row['message']) ? mb_strimwidth($row['message'], 0, 80, '...') : '');
         $type = $row['type'] ?? '';
         $nid = (int)$row['id'];
-        // Try to resolve product image if not joined correctly
         $resolvedProductImage = $row['product_image'] ?? null;
         if (empty($resolvedProductImage) && preg_match('/Order\s*#(\d+)/i', $row['message'] ?? '', $m)) {
             $oid = (int)$m[1];
@@ -96,7 +98,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax_action']) && $_GET
         ];
     }
     $unread_count = count(array_filter($notifications, fn($n) => $n['read'] === 0));
-    echo json_encode(['success' => true, 'notifications' => $notifications, 'unread_count' => $unread_count], JSON_UNESCAPED_SLASHES);
+    $cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM notifications WHERE user_id = ?");
+    $cntStmt->bind_param("i", $userId);
+    $cntStmt->execute();
+    $cntRes = $cntStmt->get_result();
+    $total_count = ($row = $cntRes->fetch_assoc()) ? (int)$row['c'] : 0;
+    $cntStmt->close();
+    echo json_encode(['success' => true, 'notifications' => $notifications, 'unread_count' => $unread_count, 'total' => $total_count, 'page' => $page, 'limit' => $limit], JSON_UNESCAPED_SLASHES);
     exit();
 }
 
@@ -128,6 +136,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
         echo json_encode(['success' => (bool)$success]);
         exit();
     }
+    if ($action === 'delete_one' && isset($_POST['id'])) {
+        $nid = (int)$_POST['id'];
+        $del = $conn->prepare("DELETE FROM notifications WHERE id = ? AND user_id = ?");
+        $del->bind_param("ii", $nid, $userId);
+        $success = $del->execute();
+        echo json_encode(['success' => (bool)$success]);
+        exit();
+    }
     echo json_encode(['success' => false, 'message' => 'Invalid action']);
     exit();
 }
@@ -138,7 +154,7 @@ $query = "SELECT n.id, n.message, n.type, n.created_at, n.`read`, p.image AS pro
           LEFT JOIN order_items oi ON n.type IN ('order', 'order_status', 'order_updated', 'order_cancelled')
             AND n.message REGEXP 'Order #[0-9]+' AND oi.order_id = CAST(SUBSTRING(n.message, LOCATE('#', n.message) + 1, LOCATE(' -', n.message) - LOCATE('#', n.message) - 1) AS UNSIGNED)
           LEFT JOIN products p ON oi.product_id = p.id
-          WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT 50";
+          WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT 10";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
@@ -148,7 +164,6 @@ while ($row = $res->fetch_assoc()) {
     $title = isset($row['title']) && $row['title'] !== '' ? $row['title'] : (isset($row['message']) ? mb_strimwidth($row['message'], 0, 80, '...') : '');
     $type = $row['type'] ?? '';
     $nid = (int)$row['id'];
-    // Resolve product image if missing by parsing order id from message
     $resolvedProductImage = $row['product_image'] ?? null;
     if (empty($resolvedProductImage) && preg_match('/Order\s*#(\d+)/i', $row['message'] ?? '', $m)) {
         $oid = (int)$m[1];
@@ -186,6 +201,12 @@ while ($row = $res->fetch_assoc()) {
     ];
 }
 $unread_count_initial = count(array_filter($notifications_initial, fn($n) => !$n['read']));
+$cntStmt = $conn->prepare("SELECT COUNT(*) AS c FROM notifications WHERE user_id = ?");
+$cntStmt->bind_param("i", $userId);
+$cntStmt->execute();
+$cntRes = $cntStmt->get_result();
+$total_count_initial = ($row = $cntRes->fetch_assoc()) ? (int)$row['c'] : 0;
+$cntStmt->close();
 
 // Fetch profile image
 $profile_query = "SELECT profile_image FROM users WHERE id = ?";
@@ -286,6 +307,17 @@ body {
 #markAllBtn:hover {
   background: var(--border);
 }
+#clearReadBtn {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .unread-count {
   background: #ff6b6b;
   color: #fff;
@@ -332,6 +364,8 @@ body {
 }
 .card .content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 .card .title {
   font-weight: 700;
@@ -348,21 +382,33 @@ body {
   font-size: 13px;
   color: var(--muted);
 }
+.card .mark-read-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-decoration: none;
+  align-self: flex-start;
+  margin-top: 8px;
+}
+.card .mark-read-text:hover {
+  color: #006400; /* Dark green */
+}
 .card .actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
   align-items: flex-end;
 }
-.mark-read-inline {
-  background: var(--accent);
-  color: #000;
+.delete-one {
+  background: transparent;
   border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
+  color: var(--muted);
   cursor: pointer;
-  font-weight: 700;
+  font-size: 16px;
 }
+.delete-one:hover { color: #ff6b6b; }
+.media-actions { display: flex; align-items: center; gap: 8px; }
 .empty {
   padding: 18px;
   border-radius: 10px;
@@ -379,12 +425,34 @@ body {
   border: 1px solid var(--border);
   flex-shrink: 0;
 }
+.ellipsis-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ellipsis-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.ellipsis-btn:hover {
+  background: var(--accent);
+  color: #000;
+}
 @media (max-width: 720px) {
   .card {
     flex-direction: row;
   }
   .card .actions {
-    align-items: flex-start;
+    align-items: flex-end;
+  }
+  .card .mark-read-text {
+    align-self: flex-start;
   }
   .product-image {
     margin-top: 8px;
@@ -399,10 +467,7 @@ body {
     <h2>Meta Shark</h2>
   </div>
   <div class="nav-right">
-   
     <div class="header-actions">
-      <button id="markAllBtn" title="Mark all as read"><i class="bi bi-check2-all"></i> <span style="margin-left:6px">Mark All as Read</span></button>
-      <button id="clearReadBtn" title="Delete read notifications" style="background:#00ff88;color:#000;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="bi bi-trash3"></i><span>Clear Read</span></button>
       <a href="<?php echo $role === 'seller' || $role === 'admin' ? 'seller_profile.php' : 'profile.php'; ?>">
         <img src="<?php echo $profile_src; ?>" alt="Profile" class="profile-icon">
       </a>
@@ -410,9 +475,12 @@ body {
   </div>
 </div>
 
-<div class="container">
-  <h1>Notifications <small id="unreadCountHeader"><?php echo $unread_count_initial>0? "({$unread_count_initial} unread)":""; ?></small></h1>
-
+<div class="container" data-total-notifications="<?php echo $total_count_initial; ?>">
+  <div class="header-actions">
+<h1>Notifications <small id="unreadCountHeader"><?php echo $unread_count_initial > 0 ? "($unread_count_initial unread)" : ""; ?></small></h1>
+<button id="markAllBtn" title="Mark all as read"><i class="bi bi-check2-all"></i> <span style="margin-left:6px">Mark All as Read</span></button>
+ <button id="clearReadBtn" title="Delete read notifications"><i class="bi bi-trash3"></i><span>Clear Read</span></button>
+  </div>
   <div id="notificationsList" class="list">
     <?php if (empty($notifications_initial)): ?>
       <div class="empty">No notifications yet. <a href="shop.php">Continue shopping</a></div>
@@ -432,7 +500,7 @@ body {
         $isOrderType = in_array(strtolower($n['type'] ?? ''), ['order', 'order_status', 'order_updated', 'order_cancelled']);
         $imgSrc = $isOrderType && $n['product_image'] ? htmlspecialchars($n['product_image']) : null;
       ?>
-      <div class="card <?php echo $isUnread ? 'unread' : ''; ?>" data-id="<?php echo (int)$n['id']; ?>" data-link="<?php echo $link; ?>" tabindex="0" role="button" aria-pressed="<?php echo $isUnread? 'false':'true'; ?>">
+      <div class="card <?php echo $isUnread ? 'unread' : ''; ?>" data-id="<?php echo (int)$n['id']; ?>" data-link="<?php echo $link; ?>" tabindex="0" role="button" aria-pressed="<?php echo $isUnread ? 'false' : 'true'; ?>">
         <div class="icon"><i class="bi <?php echo $icon; ?>"></i></div>
         <div class="content">
           <div class="title"><?php echo $title ?: ($n['type'] ? ucfirst($n['type']) : 'Notification'); ?></div>
@@ -442,28 +510,59 @@ body {
             <span>·</span>
             <span><?php echo date('M j, Y g:i A', strtotime($n['created_at'])); ?></span>
           </div>
+          <?php if ($isUnread): ?>
+            <span class="mark-read-text" data-id="<?php echo (int)$n['id']; ?>">Mark as read</span>
+          <?php endif; ?>
         </div>
         <div class="actions">
-          <?php if ($isUnread): ?>
-            <button class="mark-read-inline" data-id="<?php echo (int)$n['id']; ?>">Mark read</button>
-          <?php endif; ?>
           <?php if ($isOrderType && $imgSrc): ?>
-            <img src="<?php echo $imgSrc; ?>" alt="Product for order #<?php echo htmlspecialchars(substr($n['message'], strpos($n['message'], '#') + 1, strpos($n['message'], ' -') - strpos($n['message'], '#') - 1)); ?>" class="product-image" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<?php echo rawurlencode('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"48\" height=\"48\"><rect width=\"100%\" height=\"100%\" fill=\"#222\"/><text x=\"50%\" y=\"50%\" fill=\"#888\" font-size=\"10\" dominant-baseline=\"middle\" text-anchor=\"middle\">No image</text></svg>'); ?>';">
+            <div class="media-actions">
+              <img src="<?php echo $imgSrc; ?>" alt="Product for order #<?php echo htmlspecialchars(substr($n['message'], strpos($n['message'], '#') + 1, strpos($n['message'], ' -') - strpos($n['message'], '#') - 1)); ?>" class="product-image" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<?php echo rawurlencode('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"48\" height=\"48\"><rect width=\"100%\" height=\"100%\" fill=\"#222\"/><text x=\"50%\" y=\"50%\" fill=\"#888\" font-size=\"10\" dominant-baseline=\"middle\" text-anchor=\"middle\">No image</text></svg>'); ?>';">
+              <button class="delete-one" title="Delete notification" data-id="<?php echo (int)$n['id']; ?>"><i class="bi bi-trash3"></i></button>
+            </div>
+          <?php else: ?>
+            <button class="delete-one" title="Delete notification" data-id="<?php echo (int)$n['id']; ?>"><i class="bi bi-trash3"></i></button>
           <?php endif; ?>
         </div>
       </div>
       <?php endforeach; ?>
     <?php endif; ?>
   </div>
+  <div class="ellipsis-row">
+    <button type="button" id="notifShowLess" class="ellipsis-btn" title="Show less">Show Less</button>
+    <button type="button" id="notifShowMore" class="ellipsis-btn" title="Show more">Show More...</button>
+  </div>
 </div>
 
 <script>
 (function(){
   const listEl = document.getElementById('notificationsList');
-  const unreadCountEl = document.getElementById('unreadCount');
-  const unreadHeaderEl = document.getElementById('unreadCountHeader');
+  const showMoreBtn = document.getElementById('notifShowMore');
+  const showLessBtn = document.getElementById('notifShowLess');
+  const unreadCountEl = document.getElementById('unreadCountHeader');
   const markAllBtn = document.getElementById('markAllBtn');
+  const clearReadBtn = document.getElementById('clearReadBtn');
+  const containerEl = document.querySelector('.container');
   const FETCH_INTERVAL = 5000;
+  const PAGE_SIZE = 10;
+  let visibleCount = PAGE_SIZE;
+  let currentPage = 1;
+  let totalNotifications = parseInt(containerEl.dataset.totalNotifications || '0', 10);
+  let allNotifications = [];
+
+  function updateVisibility() {
+    const cards = listEl.querySelectorAll('.card');
+    cards.forEach((c, i) => {
+      c.style.display = i < visibleCount ? 'flex' : 'none';
+    });
+    showMoreBtn.style.display = visibleCount < totalNotifications ? 'inline-block' : 'none';
+    showLessBtn.style.display = visibleCount > PAGE_SIZE ? 'inline-block' : 'none';
+  }
+
+  function initPagination() {
+    visibleCount = Math.min(PAGE_SIZE, listEl.querySelectorAll('.card').length);
+    updateVisibility();
+  }
 
   function formatCardHTML(n) {
     const iconMap = { order:'bi-receipt', message:'bi-chat-left-dots', promo:'bi-gift', order_cancelled:'bi-x-circle' };
@@ -472,7 +571,7 @@ body {
     const message = n.message || '';
     const time = new Date(n.created_at).toLocaleString();
     const unreadClass = n.read === 0 ? 'unread' : '';
-    const markBtn = n.read === 0 ? `<button class="mark-read-inline" data-id="${n.id}">Mark read</button>` : '';
+    const markText = n.read === 0 ? `<span class="mark-read-text" data-id="${n.id}">Mark as read</span>` : '';
     const isOrderType = ['order', 'order_status', 'order_updated', 'order_cancelled'].includes((n.type || '').toLowerCase());
     const imgSrc = isOrderType && n.product_image ? escapeHtml(n.product_image) : null;
     const imgHTML = imgSrc ? `<img src="${imgSrc}" alt="Product for order" class="product-image" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"48\" height=\"48\"><rect width=\"100%\" height=\"100%\" fill=\"#222\"/><text x=\"50%\" y=\"50%\" fill=\"#888\" font-size=\"10\" dominant-baseline=\"middle\" text-anchor=\"middle\">No image</text></svg>')}';">` : '';
@@ -483,74 +582,112 @@ body {
           <div class="title">${escapeHtml(title)}</div>
           <div class="message">${escapeHtml(message)}</div>
           <div class="meta"><span class="type-badge">${escapeHtml(n.type||'')}</span> · <span>${escapeHtml(time)}</span></div>
+          ${markText}
         </div>
-        <div class="actions">${markBtn}${imgHTML}</div>
+        <div class="actions">${imgHTML ? `<div class="media-actions">${imgHTML}<button class="delete-one" title="Delete notification" data-id="${n.id}"><i class="bi bi-trash3"></i></button></div>` : `<button class="delete-one" title="Delete notification" data-id="${n.id}"><i class="bi bi-trash3"></i></button>`}</div>
       </div>`;
   }
 
-  function escapeHtml(s){
-    if(!s) return '';
-    return s.toString().replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];});
+  function escapeHtml(s) {
+    if (!s) return '';
+    return s.toString().replace(/[&<>"']/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
   }
 
-  function renderNotifications(data){
-    if(!data || !Array.isArray(data.notifications)) return;
-    if(data.notifications.length === 0){
-      listEl.innerHTML = '<div class="empty">No notifications yet. <a href="shop.php">Continue shopping</a></div>';
+  function renderNotifications(data) {
+    if (!data || !Array.isArray(data.notifications)) return;
+    totalNotifications = data.total || totalNotifications;
+    containerEl.dataset.totalNotifications = totalNotifications;
+    if (currentPage === 1) {
+      allNotifications = data.notifications;
     } else {
-      listEl.innerHTML = data.notifications.map(formatCardHTML).join('');
+      allNotifications = [...allNotifications, ...data.notifications];
+    }
+    if (allNotifications.length === 0) {
+      listEl.innerHTML = '<div class="empty">No notifications yet. <a href="shop.php">Continue shopping</a></div>';
+      showMoreBtn.style.display = 'none';
+      showLessBtn.style.display = 'none';
+    } else {
+      listEl.innerHTML = allNotifications.map(formatCardHTML).join('');
     }
     updateUnreadUI(data.unread_count || 0);
+    updateVisibility();
   }
 
-  function updateUnreadUI(count){
-    unreadCountEl.textContent = count > 0 ? `(${count})` : '';
-    unreadHeaderEl.textContent = count > 0 ? `(${count} unread)` : '';
+  function updateUnreadUI(count) {
+    unreadCountEl.textContent = count > 0 ? `(${count} unread)` : '';
   }
 
-  function fetchNotifications(){
-    fetch(window.location.pathname + '?ajax_action=fetch', { credentials: 'same-origin' })
+  function fetchNotifications(page = 1) {
+    fetch(`${window.location.pathname}?ajax_action=fetch&page=${page}`, { credentials: 'same-origin' })
       .then(r => r.json())
       .then(data => {
-        if(data && data.success){
+        if (data && data.success) {
+          currentPage = page;
           renderNotifications(data);
         }
       })
-      .catch(err => console.error('Fetch notifications failed', err));
+      .catch(err => console.error('Fetch notifications failed:', err));
   }
 
-  listEl.addEventListener('click', function(e){
-    const markBtn = e.target.closest('.mark-read-inline');
-    if(markBtn){
+  listEl.addEventListener('click', function(e) {
+    const delBtn = e.target.closest('.delete-one');
+    if (delBtn) {
       e.stopPropagation();
-      const id = markBtn.getAttribute('data-id');
-      markAsRead(id, function(success){
-        if(success){
-          const card = markBtn.closest('.card');
-          if(card) {
+      const id = delBtn.getAttribute('data-id');
+      if (!id) return;
+      if (!confirm('Delete this notification?')) return;
+      fetch(window.location.pathname, {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'ajax_action=delete_one&id=' + encodeURIComponent(id)
+      }).then(r => r.json()).then(d => {
+        if (d && d.success) {
+          const card = delBtn.closest('.card');
+          if (card) card.remove();
+          allNotifications = allNotifications.filter(n => n.id != id);
+          totalNotifications = Math.max(0, totalNotifications - 1);
+          containerEl.dataset.totalNotifications = totalNotifications;
+          updateVisibility();
+        } else {
+          alert('Could not delete notification.');
+        }
+      }).catch(() => alert('Request failed'));
+      return;
+    }
+    const markText = e.target.closest('.mark-read-text');
+    if (markText) {
+      e.stopPropagation();
+      const id = markText.getAttribute('data-id');
+      markAsRead(id, function(success) {
+        if (success) {
+          const card = markText.closest('.card');
+          if (card) {
             card.classList.remove('unread');
-            markBtn.remove();
+            markText.remove();
           }
           const current = parseInt((unreadCountEl.textContent || '').replace(/[()]/g,'')||'0',10);
           updateUnreadUI(Math.max(0, current - 1));
+          allNotifications = allNotifications.map(n => n.id == id ? { ...n, read: 1 } : n);
         } else {
-          alert('Could not mark notification as read. Try again.');
+          alert('Could not mark notification as read.');
         }
       });
       return;
     }
-
     const card = e.target.closest('.card');
-    if(card){
+    if (card) {
       const id = card.getAttribute('data-id');
       const link = card.getAttribute('data-link') || 'shop.php';
-      if(card.classList.contains('unread')){
-        markAsRead(id, function(success){
-          card.classList.remove('unread');
-          const btn = card.querySelector('.mark-read-inline');
-          if(btn) btn.remove();
-          const current = parseInt((unreadCountEl.textContent || '').replace(/[()]/g,'')||'0',10);
-          updateUnreadUI(Math.max(0, current - 1));
+      if (card.classList.contains('unread')) {
+        markAsRead(id, function(success) {
+          if (success) {
+            card.classList.remove('unread');
+            const text = card.querySelector('.mark-read-text');
+            if (text) text.remove();
+            const current = parseInt((unreadCountEl.textContent || '').replace(/[()]/g,'')||'0',10);
+            updateUnreadUI(Math.max(0, current - 1));
+            allNotifications = allNotifications.map(n => n.id == id ? { ...n, read: 1 } : n);
+          }
           window.location.href = link;
         });
       } else {
@@ -559,14 +696,14 @@ body {
     }
   });
 
-  listEl.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' || e.key === ' '){
+  listEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
       const card = e.target.closest('.card');
-      if(card){ card.click(); e.preventDefault(); }
+      if (card) { card.click(); e.preventDefault(); }
     }
   });
 
-  function markAsRead(id, cb){
+  function markAsRead(id, cb) {
     fetch(window.location.pathname, {
       method: 'POST',
       headers: {'Content-Type':'application/x-www-form-urlencoded'},
@@ -574,48 +711,71 @@ body {
     }).then(r => r.json()).then(d => cb(Boolean(d && d.success))).catch(() => cb(false));
   }
 
-  if(markAllBtn){
-    markAllBtn.addEventListener('click', function(){
-      if(!confirm('Mark all notifications as read?')) return;
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', function() {
+      if (!confirm('Mark all notifications as read?')) return;
       fetch(window.location.pathname, {
         method: 'POST',
         headers: {'Content-Type':'application/x-www-form-urlencoded'},
         body: 'ajax_action=mark_all'
       }).then(r => r.json()).then(d => {
-        if(d && d.success){
+        if (d && d.success) {
           document.querySelectorAll('.card.unread').forEach(c => {
             c.classList.remove('unread');
-            const btn = c.querySelector('.mark-read-inline');
-            if(btn) btn.remove();
+            const text = c.querySelector('.mark-read-text');
+            if (text) text.remove();
           });
+          allNotifications = allNotifications.map(n => ({ ...n, read: 1 }));
           updateUnreadUI(0);
         } else {
-          alert('Could not mark all as read. Try again.');
+          alert('Could not mark all as read.');
         }
       }).catch(err => { console.error(err); alert('Request failed'); });
     });
   }
 
-  const clearReadBtn = document.getElementById('clearReadBtn');
   if (clearReadBtn) {
-    clearReadBtn.addEventListener('click', function(){
-      if(!confirm('Delete all read notifications? This cannot be undone.')) return;
+    clearReadBtn.addEventListener('click', function() {
+      if (!confirm('Delete all read notifications? This cannot be undone.')) return;
       fetch(window.location.pathname, {
         method: 'POST',
         headers: {'Content-Type':'application/x-www-form-urlencoded'},
         body: 'ajax_action=clear_read'
-      }).then(r=>r.json()).then(d=>{
-        if(d && d.success){
+      }).then(r => r.json()).then(d => {
+        if (d && d.success) {
           document.querySelectorAll('.card:not(.unread)').forEach(c => c.remove());
+          allNotifications = allNotifications.filter(n => n.read === 0);
+          totalNotifications = allNotifications.length;
+          containerEl.dataset.totalNotifications = totalNotifications;
+          updateVisibility();
         } else {
-          alert('Could not clear read notifications. Try again.');
+          alert('Could not clear read notifications.');
         }
       }).catch(() => alert('Request failed'));
     });
   }
 
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      visibleCount += PAGE_SIZE;
+      currentPage++;
+      fetchNotifications(currentPage);
+    });
+  }
+
+  if (showLessBtn) {
+    showLessBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      visibleCount = Math.max(PAGE_SIZE, visibleCount - PAGE_SIZE);
+      updateVisibility();
+      containerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   fetchNotifications();
-  setInterval(fetchNotifications, FETCH_INTERVAL);
+  setInterval(() => fetchNotifications(1), FETCH_INTERVAL);
+  initPagination();
 })();
 </script>
 </body>
