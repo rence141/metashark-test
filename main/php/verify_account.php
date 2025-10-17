@@ -95,7 +95,7 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            background: #918f8fff; 
+            background: #313030ff; 
             color: #fff; 
             display: flex; 
             align-items: center; 
@@ -103,7 +103,7 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
             min-height: 100vh; 
         }
         .card { 
-            background: #fff; 
+            background: #ecebebff; 
             border: 1px solid #faf1f1ff; 
             border-radius: 10px; 
             padding: 30px; 
@@ -111,11 +111,11 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
             max-width: 400px; 
         }
         h1 { 
-            color: #44D62C; 
+            color: #080808ff; 
             margin: 0 0 10px; 
         }
         p { 
-            color: #aaa; 
+            color: #696868ff; 
         }
         input { 
             width: 100%; 
@@ -162,7 +162,7 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
 <body>
     <div class="card">
         <h1>Verify your account</h1>
-        <p>We sent a 6-digit code to <?php echo htmlspecialchars($email); ?>. Enter it below. <div class="timer" id="timer">Time remaining: 15:00</div></p>
+        <p>We sent a 6-digit code to your email: <?php echo htmlspecialchars($email); ?>. Enter it below. <div class="timer" id="timer">Time remaining: 15:00</div></p>
         <?php if (!empty($message)) { 
             $class = (strpos($message, 'failed') !== false || strpos($message, 'error') !== false) ? 'error-msg' : 'msg'; 
             echo '<div class="' . $class . '">' . htmlspecialchars($message) . '</div>'; 
@@ -172,7 +172,7 @@ if (isset($_GET['resend']) && ($_SESSION['pending_verification_user_id'] ?? 0)) 
             <button type="submit" class="btn">Verify</button>
         </form>
         <p style="margin-top:12px;">
-            <a class="link" href="verify_account.php?resend=1">Resend code</a>
+            <a class="link" href="verify_account.php?resend=1" style="color: black;">Resend code</a>
         </p>
     </div>
 
