@@ -40,6 +40,8 @@ if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="../../css/tablets.css">
   <link rel="icon" type="image/png" href="Uploads/logo1.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
   
 </head>
 <body>
@@ -62,7 +64,8 @@ if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
   <div class="banner">
     <div class="banner-overlay">
       <div class="banner-quick-links">
-        <a href="/SaysonCo/index.html" class="home-icon"></a>
+            <a href="/SaysonCo/index.html"><i class="bi bi-house"></i></a>
+            <span style="color: grey; font-size: 1.8;">/</span>
         <a href="shop.php">Shop</a>
       </div>
       <h1 class="banner-title">Tablets</h1>

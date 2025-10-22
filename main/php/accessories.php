@@ -63,6 +63,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_to_cart"])) {
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="Uploads/logo1.png">
 <link rel="stylesheet" href="../../css/accessories.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
 
 </head>
 <body>
@@ -92,7 +94,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_to_cart"])) {
 <div class="banner">
   <div class="banner-overlay">
     <div class="banner-quick-links">
-      <a href="/SaysonCo/index.html" class="home-icon"></a>
+      <a href="/SaysonCo/index.html"><i class="bi bi-house"></i></a>
+      <span style="color: grey;">/</span>
       <a href="shop.php">Shop</a>
     </div>
     <h1 class="banner-title">Accessories</h1>

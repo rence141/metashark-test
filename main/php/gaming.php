@@ -32,6 +32,8 @@ if (isset($_POST['add_to_cart'])) {
   <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="icon" type="image/png" href="uploads/logo1.png">
   <link rel="stylesheet" href="../../css/gaming.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
   <style>
     .cart-notification {
         position: fixed;
@@ -92,7 +94,8 @@ if (isset($_POST['add_to_cart'])) {
 <div class="banner">
   <div class="banner-overlay">
     <div class="banner-quick-links">
-      <a href="/SaysonCo/index.html" class="home-icon"></a>
+      <a href="/SaysonCo/index.html"><i class="bi bi-house"></i></a>
+      <span style="color: grey;">/</span>
       <a href="shop.php">Shop</a>
     </div>
     <h1 class="banner-title">Gaming Gears</h1>

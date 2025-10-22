@@ -78,8 +78,8 @@ body {
 }
 .banner-quick-links a:hover { color: #24e334ff; }
 .banner-quick-links .home-icon::before {
-  content: "⌂ ";
-  font-size: 1.2rem;
+  content: "⌂";
+  font-size: 2rem;
   vertical-align: middle;
   color: #FFFFFF;
 }
