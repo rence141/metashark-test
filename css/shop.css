@@ -1350,6 +1350,7 @@ a .profile-icon {
     font-size: 2.2rem;
     color: #44D62C;
     text-transform: uppercase;
+    text-decoration: none;
     letter-spacing: 2px;
     margin-bottom: 20px;
     position: relative;

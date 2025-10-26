@@ -380,7 +380,7 @@ if (isset($_SESSION['user_id'])) {
       text-decoration: none;
     }
     [data-theme="light"] .chat-widget {
-      background: #5bf431ff;
+      background: #00ff88;
       color: #353434ff;
     }
     [data-theme="dark"] .chat-widget {
@@ -389,7 +389,7 @@ if (isset($_SESSION['user_id'])) {
     }
     .chat-widget:hover {
       transform: scale(1.1);
-      background: #27ed15ff;
+      background: #00ff88;
       color: white;
     }
     .chat-icon {
@@ -399,7 +399,7 @@ if (isset($_SESSION['user_id'])) {
       bottom: 100px;
     }
     [data-theme="light"] .chat-widget.ai {
-      background: #46ff2dff;
+      background: #00ff88;
       color: #333;
     }
     [data-theme="dark"] .chat-widget.ai {
@@ -407,7 +407,7 @@ if (isset($_SESSION['user_id'])) {
       color: white;
     }
     .chat-widget.ai:hover {
-      background: #11df18ff;
+      background: #00ff88;
       color: white;
     }
     .ai-chat-modal {
@@ -543,14 +543,14 @@ if (isset($_SESSION['user_id'])) {
       color: var(--text-color);
     }
     .ai-chat-form button {
-      background: #48f514ff;
+      background: #00ff88;
       color: white;
       border: none;
       padding: 0 15px;
       cursor: pointer;
     }
     .ai-chat-form button:hover {
-      background: #13e60fff;
+      background: #00ff88;
     }
     .notification {
       position: fixed;
@@ -568,7 +568,7 @@ if (isset($_SESSION['user_id'])) {
       opacity: 1;
       transform: translateX(0);
     }
-    .notification.success { background: #28a745; }
+    .notification.success { background: #00ff88; }
     .notification.error { background: #dc3545; }
     .notification.info { background: #17a2b8; }
     footer {
@@ -618,7 +618,7 @@ if (isset($_SESSION['user_id'])) {
       transition: color 0.3s;
     }
     .footer-links li a:hover {
-      color: #27ed15;
+      color: #00ff88;
     }
     .footer-bottom {
       text-align: center;
@@ -1113,12 +1113,12 @@ if (isset($_SESSION['user_id'])) {
     }
     ?>
     <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-      <i class="bi bi-bell" style="font-size:18px;"></i>
-      <span><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
+      <i class="bi bi-bell" style="font-size:18px; color: #00ff88;"></i>
+      <span style="color: #00ff88;"><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
     </a>
     <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-      <i class="bi bi-cart" style="font-size:18px;"></i>
-      <span>(<?php echo (int)$cart_count; ?>)</span>
+      <i class="bi bi-cart" style="font-size:18px; color: #00ff88;"></i>
+      <span st>(<?php echo (int)$cart_count; ?>)</span>
     </a>
     <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
       <?php
@@ -1142,32 +1142,32 @@ if (isset($_SESSION['user_id'])) {
       </a>
     <?php else: ?>
       <a href="login_users.php">
-        <div class="nonuser-text">Login</div>
+        <div class="nonuser-text" style="color: #00ff88;">Login</div>
       </a>
       <a href="signup_users.php">
-        <div class="nonuser-text">Signup</div>
+        <div class="nonuser-text" style="color: #00ff88;">Signup</div>
       </a>
       <a href="login_users.php">
         <div class="profile-icon">👤</div>
       </a>
     <?php endif; ?>
-    <button class="hamburger">☰</button>
+    <button class="hamburger" style="color: #00ff88;">☰</button>
   </div>
-  <ul class="menu" id="menu">
-    <li><a href="shop.php">Home</a></li>
-    <li><a href="carts_users.php">Cart (<span class="cart-count" id="cartCount"><?php echo $cart_count; ?></span>)</a></li>
-     <li><a href="order_status.php">My Purchases</a></li>
+  <ul class="menu" style="color: #00ff88;" id="menu">
+    <li><a href="shop.php" style="color: #00ff88;">Home</a></li>
+    <li><a href="carts_users.php" style="color: #00ff88;">Cart (<span class="cart-count" id="cartCount"><?php echo $cart_count; ?></span>)</a></li>
+     <li><a href="order_status.php" style="color: #00ff88;">My Purchases</a></li>
     <?php if(isset($_SESSION['user_id'])): ?>
       <?php
       $user_role = $_SESSION['role'] ?? 'buyer';
       ?>
       <?php if($user_role === 'seller' || $user_role === 'admin'): ?>
-        <li><a href="seller_dashboard.php">Seller Dashboard</a></li>
+        <li><a href="seller_dashboard.php" style="color: #00ff88;">Seller Dashboard</a></li>
       <?php else: ?>
-        <li><a href="become_seller.php">Become Seller</a></li>
+        <li><a href="become_seller.php" style="color: #00ff88;">Become Seller</a></li>
       <?php endif; ?>
-      <li><a href="<?php echo $profile_page; ?>">Profile</a></li>
-      <li><a href="logout.php">Logout</a></li>
+      <li><a href="<?php echo $profile_page; ?>" style="border: #00ff88;">Profile</a></li>
+      <li><a href="logout.php" style="color: #00ff88;">Logout</a></li>
     <?php endif; ?>
   </ul>
 </div>
@@ -1177,7 +1177,8 @@ if (isset($_SESSION['user_id'])) {
     ✅ <?php echo $cart_message; ?>
   </div>
 <?php endif; ?>
-<!-- Video Banner -->
+
+<!-- Video Banner Input-->
 <div class="banner video-banner">
   <video autoplay muted loop playsinline preload="auto">
     <source src="../../mp4/bateo.mp4" type="video/mp4">
