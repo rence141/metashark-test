@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax_action']) && $_GET
                 break;
             case 'message':
             case 'inbox':
-                $link = "messages.php?nid={$nid}";
+                $link = "chat.php?nid={$nid}";
                 break;
             case 'promo':
             case 'offer':

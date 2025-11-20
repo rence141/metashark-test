@@ -62,7 +62,7 @@ if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
   <div class="banner">
   <div class="banner-overlay">
     <div class="banner-quick-links">
-      <a href="/SaysonCo/index.html"><i class="bi bi-house"></i></a>
+      <a href="/SaysonCotest/index.html"><i class="bi bi-house"></i></a>
       <span style="color:grey;">/</span>
       <a href="shop.php">Shop</a>
     </div>

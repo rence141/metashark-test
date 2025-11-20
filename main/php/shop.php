@@ -1372,9 +1372,7 @@ if (isset($_SESSION['user_id'])) {
         </div>
         <button id="newChatBtn" class="ai-btn ai-btn-primary">+ New Chat</button>
         <ul id="chatHistoryList" class="ai-chat-list"></ul>
-        <div class="ai-sidebar-footer">
-          <button id="clearChatBtn" class="ai-btn ai-btn-secondary">Clear Chat</button>
-        </div>
+
       </div>
       <div class="ai-chat-main">
         <div class="ai-chat-messages" id="aiChatMessages">

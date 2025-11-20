@@ -7,21 +7,35 @@ $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $email = trim($_POST['email'] ?? '');
-  if ($email !== '') {
-    // Always generate a token and try to update, even if user does not exist
-    $token = bin2hex(random_bytes(32));
-    $expires = date('Y-m-d H:i:s', time() + 3600);
-    $upd = $conn->prepare("UPDATE users SET reset_token = ?, reset_expires = ? WHERE email = ?");
-    if ($upd) { $upd->bind_param("sss", $token, $expires, $email); $upd->execute(); }
 
-    $link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']) . "/reset_password.php?token=" . urlencode($token);
-    $subject = 'Password Reset';
-    $body = "Click the link to reset your password (valid for 1 hour):\n$link";
+  if ($email !== '') {
+    // Generate secure token
+    $token = bin2hex(random_bytes(32));
+
+    // ✅ Use MySQL to generate expiry to avoid timezone mismatch
+    $upd = $conn->prepare("UPDATE users SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = ?");
+    if ($upd) {
+      $upd->bind_param("ss", $token, $email);
+      $upd->execute();
+    }
+
+    // Build reset link
+    $link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') .
+            $_SERVER['HTTP_HOST'] .
+            dirname($_SERVER['REQUEST_URI']) .
+            "/reset_password.php?token=" . urlencode($token);
+
+    $subject = 'Password Reset Request';
+    $body = "Hi,\n\nClick the link below to reset your password (valid for 1 hour):\n\n$link\n\nIf you didn’t request a password reset, please ignore this email.";
+
+    // Send email (if email.php is configured)
     send_email($email, $subject, $body);
 
-    // Redirect to confirmation page
+    // Redirect to confirmation page (always, even if email doesn’t exist)
     header('Location: reset_link_sent.php?email=' . urlencode($email));
     exit;
+  } else {
+    $message = 'Please enter your email address.';
   }
 }
 ?>
@@ -32,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Forgot Password</title>
   <link rel="stylesheet" href="fonts/fonts.css">
-  <link rel="icon" type="image/png" href="Uploads/logo1.png">
+  <link rel="icon" type="image/png" href="uploads/logo1.png">
   <?php include('theme_toggle.php'); ?>
   <style>
     :root {
@@ -98,9 +112,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     input {
       display: block;
-      width: calc(100% - 40px); /* Adjusted to prevent stretching */
-      max-width: 360px; /* Constrain width */
-      margin: 10px auto; /* Center horizontally */
+      width: calc(100% - 40px);
+      max-width: 360px;
+      margin: 10px auto;
       padding: 12px;
       border: 1px solid var(--primary-color);
       border-radius: 8px;
@@ -153,6 +167,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       font-weight: bold;
       cursor: pointer;
       display: block;
+      transition: 0.2s;
+    }
+
+    .btn:hover {
+      background: #2ecc40;
     }
 
     .msg {
@@ -168,6 +187,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="email" name="email" placeholder="Your email" required>
       <button class="btn" type="submit">Send reset link</button>
     </form>
+    <?php if ($message): ?>
+      <div class="msg"><?= htmlspecialchars($message) ?></div>
+    <?php endif; ?>
   </div>
 </body>
 </html>

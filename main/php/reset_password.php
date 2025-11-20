@@ -3,29 +3,65 @@ session_start();
 include("db.php");
 
 $message = '';
-$token = $_GET['token'] ?? '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $token = $_POST['token'] ?? '';
+// Get token (from GET or POST)
+$token = $_POST['token'] ?? $_GET['token'] ?? '';
+
+// --- Validate token (GET request) ---
+if ($token && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $sel = $conn->prepare("SELECT id FROM users WHERE reset_token = ? AND reset_expires > NOW()");
+    if ($sel) {
+        $sel->bind_param("s", $token);
+        $sel->execute();
+        $res = $sel->get_result();
+
+        if ($res->num_rows !== 1) {
+            $message = 'Invalid or expired token. Please restart the password reset process.';
+            $token = ''; // hide form
+        }
+    } else {
+        $message = 'Database error while checking token.';
+        $token = '';
+    }
+} elseif (!$token && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $message = 'Error: Missing password reset token.';
+}
+
+// --- Handle password submission (POST) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token) {
     $pwd = $_POST['password'] ?? '';
     $cpwd = $_POST['confirm_password'] ?? '';
+
     if ($pwd !== $cpwd) {
-        $message = 'Passwords do not match';
+        $message = 'Passwords do not match.';
     } elseif (strlen($pwd) < 6) {
-        $message = 'Use at least 6 characters';
+        $message = 'Use at least 6 characters for your new password.';
     } else {
+        // Double-check token validity again before changing password
         $sel = $conn->prepare("SELECT id FROM users WHERE reset_token = ? AND reset_expires > NOW()");
         if ($sel) {
             $sel->bind_param("s", $token);
             $sel->execute();
             $res = $sel->get_result();
+
             if ($res->num_rows === 1) {
-                $u = $res->fetch_assoc();
+                $user = $res->fetch_assoc();
+
+                // Hash and update password, invalidate token
                 $hash = password_hash($pwd, PASSWORD_DEFAULT);
                 $upd = $conn->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?");
-                if ($upd) { $upd->bind_param("si", $hash, $u['id']); $upd->execute(); $message = 'Password updated. You can now log in.'; }
+                if ($upd) {
+                    $upd->bind_param("si", $hash, $user['id']);
+                    if ($upd->execute()) {
+                        $message = 'Password successfully updated! You can now log in.';
+                        $token = ''; // Hide form after success
+                    } else {
+                        $message = 'Database error while updating password.';
+                    }
+                }
             } else {
-                $message = 'Invalid or expired token';
+                $message = 'Invalid or expired token. Please request a new link.';
+                $token = '';
             }
         }
     }
@@ -41,11 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="icon" type="image/png" href="uploads/logo1.png">
   <?php include('theme_toggle.php'); ?>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
+    html, body { height: 100%; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
       display: flex;
@@ -61,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       background: #181818cc;
       border: 1px solid #222;
       border-radius: 16px;
-      padding: 32px 28px 28px 28px;
+      padding: 32px 28px;
       box-shadow: 0 6px 32px 0 #0008;
       display: flex;
       flex-direction: column;
@@ -138,21 +170,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       text-align: center;
       min-height: 24px;
     }
+    .msg.error { color: #ff4d4f; font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="card">
     <img src="uploads/logo1.png" alt="Logo" class="logo">
     <h2>Reset Password</h2>
-    <?php if ($message) { echo '<div class="msg">' . htmlspecialchars($message) . '</div>'; } ?>
-    <form method="POST" autocomplete="off">
-      <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
-      <input type="password" name="password" placeholder="New password" required minlength="6">
-      <input type="password" name="confirm_password" placeholder="Confirm password" required minlength="6">
-      <button class="btn" type="submit">Update Password</button>
-    </form>
+
+    <?php 
+      if ($message) {
+        $is_error = strpos($message, 'successfully updated') === false;
+        $class = $is_error ? 'msg error' : 'msg';
+        echo '<div class="' . $class . '">' . htmlspecialchars($message) . '</div>';
+      }
+    ?>
+
+    <?php if ($token): ?>
+      <form method="POST" autocomplete="off">
+        <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+        <input type="password" name="password" placeholder="New password" required minlength="6">
+        <input type="password" name="confirm_password" placeholder="Confirm password" required minlength="6">
+        <button class="btn" type="submit">Update Password</button>
+      </form>
+    <?php endif; ?>
+
+    <div style="margin-top: 20px;">
+      <a href="login_users.php" style="color: #44D62C; text-decoration: none; font-size: 0.95rem;">Back to Login</a>
+    </div>
   </div>
 </body>
 </html>
-
-
