@@ -33,6 +33,52 @@ body {
     font-size: 1.1rem;
 }
 
+.beta-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.95rem;
+    color: #d7d7d7;
+    background: #111;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #2c2c2c;
+}
+.beta-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+.beta-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+.btn-beta-toggle {
+    background: transparent;
+    border: 1px solid rgba(0,255,136,0.6);
+    color: #00ff88;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-beta-toggle:hover {
+    background: rgba(0,255,136,0.1);
+}
+
+.beta-banner {
+    margin-top: 10px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(68,214,44,0.12);
+    border: 1px solid rgba(68,214,44,0.35);
+    color: #d8ffd0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
 .order-card {
     background: #1a1a1a;
     border-radius: 10px;
@@ -121,6 +167,7 @@ body {
     display: flex;
     gap: 10px;
     margin-top: 15px;
+    flex-wrap: wrap;
 }
 
 .btn {
@@ -146,6 +193,14 @@ body {
 .btn-details {
     background: #6c757d;
     color: white;
+}
+
+.btn-beta {
+    background: linear-gradient(135deg,#00f2a9,#00c48c);
+    color: #031b14;
+    font-weight: 600;
+    border: 1px solid #00c48c;
+    box-shadow: 0 8px 20px rgba(0, 242, 169, 0.2);
 }
 
 .btn:hover {
@@ -208,6 +263,28 @@ body {
     text-transform: uppercase;
 }
 
+.beta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 8px;
+}
+.beta-success {
+    background: rgba(0, 242, 169, 0.15);
+    color: #00f2a9;
+    border: 1px solid rgba(0, 242, 169, 0.4);
+}
+.beta-pending {
+    background: rgba(255, 193, 7, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.35);
+}
+
 .status-pending { background: #fff3cd; color: #856404; }
 .status-processing { background: #cce7ff; color: #004085; }
 .status-shipped { background: #d1ecf1; color: #0c5460; }
@@ -243,4 +320,20 @@ body {
     .item-status {
         margin-top: 8px;
     }
+
+.inline-beta-form {
+    margin-top: 8px;
+}
+.inline-beta-btn {
+    background: transparent;
+    border: 1px dashed rgba(0,255,136,0.6);
+    color: #00ff88;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.inline-beta-btn:hover {
+    background: rgba(0,255,136,0.1);
+}
 }

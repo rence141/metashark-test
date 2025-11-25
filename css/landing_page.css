@@ -94,6 +94,12 @@ nav ul li a:hover {
   margin-bottom: 20px;
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .cta-button {
   display: inline-block;
   padding: 10px 20px;
@@ -106,6 +112,17 @@ nav ul li a:hover {
 
 .cta-button:hover {
   background: #24e334ff;
+}
+
+.cta-button.secondary {
+  background: transparent;
+  color: #090b0bff;
+  border: 2px solid #090b0bff;
+}
+
+.cta-button.secondary:hover {
+  background: rgba(9,11,11,0.1);
+  color: #090b0bff;
 }
 
 

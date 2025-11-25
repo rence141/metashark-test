@@ -32,4 +32,19 @@ if ($action === 'mark_all_read') {
     exit;
 }
 
+$allowedStatuses = ['pending','confirmed','shipped','delivered','cancelled','received'];
+if ($action === 'update_order_status') {
+    $order_id = intval($_POST['order_id'] ?? 0);
+    $status = $_POST['status'] ?? '';
+    if ($order_id <= 0 || !in_array($status, $allowedStatuses, true)) {
+        echo json_encode(['error'=>'invalid_parameters']);
+        exit;
+    }
+    $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
+    $stmt->bind_param('si', $status, $order_id);
+    $ok = $stmt->execute();
+    echo json_encode(['success'=>$ok]);
+    exit;
+}
+
 echo json_encode(['error'=>'unknown_action']);

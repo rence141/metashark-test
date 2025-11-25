@@ -102,4 +102,193 @@ document.addEventListener('DOMContentLoaded', function(){
     fetch('includes/send_notification.php', { method:'POST', body: d }).then(r=>r.json()).then(resp=>{ if(resp.success) alert('Sent'); else alert('Failed'); });
   };
 
+  const orderStatuses = ['pending','confirmed','shipped','delivered','received','cancelled'];
+  const orderTableBody = document.querySelector('#ordersTable tbody');
+  const usersTableBody = document.querySelector('#usersTable tbody');
+  const sellersTableBody = document.querySelector('#sellersTable tbody');
+
+  function formatCurrency(value){
+    const num = Number(value || 0);
+    return new Intl.NumberFormat(undefined, { style:'currency', currency:'USD' }).format(num);
+  }
+
+  function formatDateTime(value){
+    if(!value) return '—';
+    const d = new Date(value.replace(' ', 'T'));
+    if(Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString();
+  }
+
+  function loadOrders(status = 'all'){
+    if(!orderTableBody) return;
+    orderTableBody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+    const query = new URLSearchParams({ action:'recent_orders' });
+    if(status && status !== 'all') query.append('status', status);
+    fetchJSON(`includes/fetch_data.php?${query.toString()}`, function(rows = []){
+      if(!rows.length){
+        orderTableBody.innerHTML = '<tr><td colspan="7" class="muted">No orders found for this filter.</td></tr>';
+        return;
+      }
+      const html = rows.map(row=>{
+        const total = formatCurrency(row.total_price);
+        const statusClass = row.status ? `status-${row.status}` : 'status-pending';
+        const statusOptions = orderStatuses.map(st => `<option value="${st}" ${st===row.status?'selected':''}>${st.charAt(0).toUpperCase()+st.slice(1)}</option>`).join('');
+        return `
+          <tr>
+            <td>#${row.id}</td>
+            <td>
+              <div>${row.buyer ?? 'Guest'}</div>
+              <small class="muted">${row.buyer_email ?? ''}</small>
+            </td>
+            <td>${total}</td>
+            <td>
+              <div class="status-cell">
+                <span class="status-pill ${statusClass}">${row.status ?? 'pending'}</span>
+                <select class="order-status-select" data-id="${row.id}">
+                  ${statusOptions}
+                </select>
+              </div>
+            </td>
+            <td>${row.payment_method ? row.payment_method.toUpperCase() : 'N/A'}</td>
+            <td>${formatDateTime(row.created_at)}</td>
+            <td class="table-actions">
+              <a class="ghost-btn" href="order_details.php?id=${row.id}" target="_blank" rel="noopener">View</a>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      orderTableBody.innerHTML = html;
+    });
+  }
+
+  function loadUsers(){
+    if(!usersTableBody) return;
+    usersTableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+    fetchJSON('includes/fetch_data.php?action=users_list', function(rows = []){
+      if(!rows.length){
+        usersTableBody.innerHTML = '<tr><td colspan="6" class="muted">No users found.</td></tr>';
+        return;
+      }
+      usersTableBody.innerHTML = rows.map(user=>{
+        const statusText = user.status ?? 'active';
+        const isBanned = statusText === 'banned';
+        return `
+          <tr>
+            <td>${user.id}</td>
+            <td>${user.fullname || 'Unknown'}</td>
+            <td>${user.email ?? ''}</td>
+            <td>${(user.role || 'buyer').charAt(0).toUpperCase() + (user.role || 'buyer').slice(1)}</td>
+            <td><span class="status-pill ${isBanned ? 'status-cancelled':'status-confirmed'}">${statusText}</span></td>
+            <td>
+              <button class="ghost-btn ban-toggle" data-user="${user.id}" data-status="${statusText}">
+                ${isBanned ? 'Unban' : 'Ban'}
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    });
+  }
+
+  function loadSellers(){
+    if(!sellersTableBody) return;
+    sellersTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+    fetchJSON('includes/fetch_data.php?action=seller_overview', function(rows = []){
+      if(!rows.length){
+        sellersTableBody.innerHTML = '<tr><td colspan="5" class="muted">No seller data found.</td></tr>';
+        return;
+      }
+      sellersTableBody.innerHTML = rows.map(seller=>{
+        const statusLabel = seller.is_active_seller ? 'Active' : 'Inactive';
+        const statusClass = seller.is_active_seller ? 'status-confirmed' : 'status-pending';
+        return `
+          <tr>
+            <td>
+              <div>${seller.seller_name}</div>
+              <small class="muted">${seller.email ?? ''}</small>
+            </td>
+            <td>${seller.total_orders}</td>
+            <td>${formatCurrency(seller.revenue)}</td>
+            <td>${seller.rating ?? '—'}</td>
+            <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+          </tr>
+        `;
+      }).join('');
+    });
+  }
+
+  function refreshNotifCount(){
+    const notifBadge = document.getElementById('notifCount');
+    if(!notifBadge) return;
+    fetchJSON('includes/fetch_data.php?action=unread_count', function(data = {}){
+      notifBadge.textContent = data.count ?? 0;
+    });
+  }
+
+  const orderFilter = document.getElementById('orderStatusFilter');
+  if(orderFilter){
+    orderFilter.addEventListener('change', ()=> loadOrders(orderFilter.value));
+  }
+  const refreshOrdersBtn = document.getElementById('refreshOrdersBtn');
+  refreshOrdersBtn && refreshOrdersBtn.addEventListener('click', ()=> loadOrders(orderFilter ? orderFilter.value : 'all'));
+  const refreshUsersBtn = document.getElementById('refreshUsersBtn');
+  refreshUsersBtn && refreshUsersBtn.addEventListener('click', loadUsers);
+  const refreshSellersBtn = document.getElementById('refreshSellersBtn');
+  refreshSellersBtn && refreshSellersBtn.addEventListener('click', loadSellers);
+
+  if(orderTableBody){
+    orderTableBody.addEventListener('change', function(e){
+      const select = e.target.closest('.order-status-select');
+      if(!select) return;
+      const orderId = select.dataset.id;
+      const newStatus = select.value;
+      updateOrderStatus(orderId, newStatus, select);
+    });
+  }
+
+  if(usersTableBody){
+    usersTableBody.addEventListener('click', function(e){
+      const btn = e.target.closest('.ban-toggle');
+      if(!btn) return;
+      const userId = btn.dataset.user;
+      window.toggleBan(userId, btn);
+    });
+  }
+
+  function updateOrderStatus(orderId, status, selectEl){
+    if(!orderId || !status) return;
+    selectEl.disabled = true;
+    const body = new URLSearchParams();
+    body.append('action','update_order_status');
+    body.append('order_id', orderId);
+    body.append('status', status);
+    fetch('includes/update_status.php', { method:'POST', body })
+      .then(r=>r.json())
+      .then(resp=>{
+        if(resp && resp.success){
+          loadOrders(orderFilter ? orderFilter.value : 'all');
+        } else {
+          alert(resp.error || 'Failed to update order status.');
+        }
+      })
+      .catch(()=> alert('Failed to update order status.'))
+      .finally(()=>{ selectEl.disabled = false; });
+  }
+
+  window.toggleBan = function(userId, el){
+    fetch('includes/update_status.php', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'action=toggle_ban&user_id='+encodeURIComponent(userId)}).then(r=>r.json()).then(d=>{
+      if(d.success){
+        loadUsers();
+      } else if(d.error){
+        alert(d.error);
+      }
+    });
+  };
+
+  loadOrders(orderFilter ? orderFilter.value : 'all');
+  loadUsers();
+  loadSellers();
+  refreshNotifCount();
+  setInterval(refreshNotifCount, 15000);
+
 });

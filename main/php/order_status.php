@@ -68,6 +68,85 @@ function clearPendingResults($conn) {
     }
 }
 
+$payment_message = null;
+$payment_success = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['beta_toggle_submit'])) {
+    $_SESSION['beta_payment_enabled'] = isset($_POST['toggle_beta']) ? 1 : 0;
+    $payment_message = $_SESSION['beta_payment_enabled']
+        ? 'Beta payment tools enabled.'
+        : 'Beta payment tools disabled.';
+    $payment_success = true;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_paid'])) {
+    $orderId = (int)($_POST['order_id'] ?? 0);
+    if (empty($_SESSION['beta_payment_enabled'])) {
+        $payment_message = "Beta payment must be enabled before marking orders as paid.";
+        $payment_success = false;
+    } else {
+    clearPendingResults($conn);
+    $conn->begin_transaction();
+    try {
+        $verify_stmt = $conn->prepare("SELECT status FROM orders WHERE id = ? AND buyer_id = ? LIMIT 1");
+        if (!$verify_stmt) {
+            throw new Exception("Unable to verify order ownership.");
+        }
+        $verify_stmt->bind_param("ii", $orderId, $userId);
+        $verify_stmt->execute();
+        $verify_stmt->store_result();
+        if ($verify_stmt->num_rows === 0) {
+            throw new Exception("Order not found or not owned by you.");
+        }
+        $verify_stmt->close();
+
+        $order_upd = $conn->prepare("UPDATE orders SET paid_at = NOW() WHERE id = ? AND buyer_id = ?");
+        $order_upd->bind_param("ii", $orderId, $userId);
+        $order_upd->execute();
+        $order_upd->close();
+
+        $seller_stmt = $conn->prepare("SELECT DISTINCT p.seller_id FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?");
+        $seller_stmt->bind_param("i", $orderId);
+        $seller_stmt->execute();
+        $seller_res = $seller_stmt->get_result();
+        $notification_sql = "INSERT INTO notifications (user_id, message, type, created_at, `read`) VALUES (?, ?, ?, NOW(), 0)";
+        while ($seller = $seller_res->fetch_assoc()) {
+            $sellerId = (int)$seller['seller_id'];
+            if ($sellerId && $sellerId !== $userId) {
+                $message = "Payment confirmed (beta) for order #$orderId. You can proceed with fulfillment.";
+                $notif_stmt = $conn->prepare($notification_sql);
+                if ($notif_stmt) {
+                    $type = 'payment_beta';
+                    $notif_stmt->bind_param("iss", $sellerId, $message, $type);
+                    $notif_stmt->execute();
+                    $notif_stmt->close();
+                }
+            }
+        }
+        $seller_res->free();
+        $seller_stmt->close();
+
+        $buyer_message = "Payment marked as done (beta) for order #$orderId.";
+        $buyer_notif = $conn->prepare($notification_sql);
+        if ($buyer_notif) {
+            $type = 'payment_beta';
+            $buyer_notif->bind_param("iss", $userId, $buyer_message, $type);
+            $buyer_notif->execute();
+            $buyer_notif->close();
+        }
+
+        $conn->commit();
+        $payment_message = "Payment recorded for order #$orderId. Sellers will be notified while we finish the beta.";
+        $payment_success = true;
+    } catch (Exception $e) {
+        $conn->rollback();
+        $payment_message = $e->getMessage();
+        $payment_success = false;
+    }
+    clearPendingResults($conn);
+    }
+}
+
 // Handle order cancellation
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_order'])) {
     $orderId = (int)$_POST['order_id'];
@@ -337,7 +416,18 @@ function canCancelOrder($order_items) {
         .navbar { position: sticky; top: 0; z-index: 1000; background: var(--background, #000); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #444); }
         .nav-left { display: flex; align-items: center; gap: 10px; }
         .logo { height: 40px; }
-        .nav-right { display: flex; align-items: center; gap: 12px; }
+        .nav-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .nav-controls { display: flex; align-items: center; gap: 14px; }
+        .nav-icon-link { text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px; font-size:0.95rem; }
+        .nav-icon-link i { font-size:18px; }
+        .beta-toggle-inline { display:inline-flex; align-items:center; gap:8px; color:#c7c7c7; font-size:0.9rem; }
+        .beta-switch { position:relative; display:inline-block; width:40px; height:20px; }
+        .beta-switch input { opacity:0; width:0; height:0; }
+        .beta-switch .slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#444; transition:.3s; border-radius:34px; }
+        .beta-switch .slider:before { position:absolute; content:""; height:16px; width:16px; left:2px; bottom:2px; background-color:#fff; transition:.3s; border-radius:50%; }
+        .beta-switch input:checked + .slider { background-color:#00ff88; }
+        .beta-switch input:checked + .slider:before { transform:translateX(20px); }
+        .beta-label { font-weight:600; text-transform:uppercase; letter-spacing:0.08em; }
         .profile-icon { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #00640033; }
         .nonuser-text { font-size: 16px; color: #fff; text-decoration: none; }
         .hamburger { background: none; border: none; font-size: 24px; cursor: pointer; color: #fff; }
@@ -540,25 +630,35 @@ function canCancelOrder($order_items) {
             <h2>Meta Shark</h2>
         </div>
         <div class="nav-right">
-            <div class="theme-dropdown" id="themeDropdown">
-              <button class="theme-btn login-btn-select" id="themeDropdownBtn" title="Select theme" aria-label="Select theme">
-                <i class="bi theme-icon" id="themeIcon"></i>
-                <span class="theme-text" id="themeText"><?php echo $theme === 'device' ? 'Device' : ($effective_theme === 'light' ? 'Dark' : 'Light'); ?></span>
-              </button>
-              <div class="theme-menu" id="themeMenu" aria-hidden="true">
-                <button class="theme-option" data-theme="light">Light</button>
-                <button class="theme-option" data-theme="dark">Dark</button>
-                <button class="theme-option" data-theme="device">Device</button>
+            <div class="nav-controls">
+              <div class="theme-dropdown" id="themeDropdown">
+                <button class="theme-btn login-btn-select" id="themeDropdownBtn" title="Select theme" aria-label="Select theme">
+                  <i class="bi theme-icon" id="themeIcon"></i>
+                  <span class="theme-text" id="themeText"><?php echo $theme === 'device' ? 'Device' : ($effective_theme === 'light' ? 'Dark' : 'Light'); ?></span>
+                </button>
+                <div class="theme-menu" id="themeMenu" aria-hidden="true">
+                  <button class="theme-option" data-theme="light">Light</button>
+                  <button class="theme-option" data-theme="dark">Dark</button>
+                  <button class="theme-option" data-theme="device">Device</button>
+                </div>
               </div>
+              <form method="post" class="beta-toggle-inline">
+                <label class="beta-switch">
+                  <input type="checkbox" name="toggle_beta" value="1" <?php echo !empty($_SESSION['beta_payment_enabled']) ? 'checked' : ''; ?> onchange="this.form.submit()">
+                  <span class="slider"></span>
+                </label>
+                <span class="beta-label">Beta Pay</span>
+                <input type="hidden" name="beta_toggle_submit" value="1">
+              </form>
             </div>
-            <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-              <i class="bi bi-bell" style="font-size:18px;"></i>
-              <span><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
-            </a>
-            <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
-              <i class="bi bi-cart" style="font-size:18px;"></i>
-              <span>(<?php echo (int)$cart_count; ?>)</span>
-            </a>
+              <a href="notifications.php" title="Notifications" class="nav-icon-link">
+                <i class="bi bi-bell"></i>
+                <span><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
+              </a>
+              <a href="carts_users.php" title="Cart" class="nav-icon-link">
+                <i class="bi bi-cart"></i>
+                <span>(<?php echo (int)$cart_count; ?>)</span>
+              </a>
             <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
               <a href="<?php echo $profile_page; ?>">
                 <?php if(!empty($current_profile_image) && file_exists('Uploads/' . $current_profile_image)): ?>
@@ -594,7 +694,19 @@ function canCancelOrder($order_items) {
         <div class="header">
             <h1>My Orders</h1>
             <p>Track your order status and history</p>
+            <?php if (!empty($_SESSION['beta_payment_enabled'])): ?>
+            <div class="beta-banner">
+                <strong>Beta Payment Enabled:</strong> You can mark pending orders as paid for testing. Sellers will be notified that this is a beta confirmation.
+            </div>
+            <?php endif; ?>
         </div>
+
+        <?php if ($payment_message !== null): ?>
+            <div class="notification <?php echo $payment_success ? 'success' : 'error'; ?>">
+                <?php echo $payment_success ? '💳' : '⚠️'; ?>
+                <?php echo htmlspecialchars($payment_message); ?>
+            </div>
+        <?php endif; ?>
 
         <?php if (isset($cancellation_message)): ?>
             <div class="notification <?php echo $cancellation_success ? 'success' : 'error'; ?>">
@@ -681,8 +793,21 @@ function canCancelOrder($order_items) {
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label">Payment Method:</span>
-                                <span class="detail-value"><?php echo ucfirst($order['payment_method']); ?></span>
+                                <span class="detail-value">
+                                    <?php echo ucfirst($order['payment_method']); ?>
+                                    <?php if (!empty($order['paid_at'])): ?>
+                                        <span class="beta-pill beta-success">Paid (Beta)</span>
+                                    <?php else: ?>
+                                        <span class="beta-pill beta-pending">Awaiting payment</span>
+                                    <?php endif; ?>
+                                </span>
                             </div>
+                            <?php if (!empty($order['paid_at'])): ?>
+                                <div class="detail-row">
+                                    <span class="detail-label">Paid on:</span>
+                                    <span class="detail-value"><?php echo date('F j, Y g:i A', strtotime($order['paid_at'])); ?></span>
+                                </div>
+                            <?php endif; ?>
                             <div class="detail-row">
                                 <span class="detail-label">Shipping Address:</span>
                                 <span class="detail-value"><?php echo htmlspecialchars($order['shipping_name']); ?>, <?php echo htmlspecialchars($order['shipping_address']); ?></span>
@@ -734,6 +859,14 @@ function canCancelOrder($order_items) {
                                                 <span class="tracking-number"><?php echo htmlspecialchars($item['tracking_number']); ?></span>
                                             </div>
                                         <?php endif; ?>
+                                <?php if (!empty($_SESSION['beta_payment_enabled'])): ?>
+                                    <form method="POST" class="inline-beta-form">
+                                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                        <button type="submit" name="mark_paid" class="inline-beta-btn" onclick="return confirm('Simulate payment for order #<?php echo $order['id']; ?>?');">
+                                            Beta Pay this Item
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
                                     </div>
                                     <div class="item-status">
                                         <span class="status-badge status-<?php echo $item['status']; ?>">
@@ -746,6 +879,14 @@ function canCancelOrder($order_items) {
 
                         <!-- Action Buttons -->
                         <div class="order-actions">
+                            <?php if (!empty($_SESSION['beta_payment_enabled'])): ?>
+                                <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                    <button type="submit" name="mark_paid" class="btn btn-beta" onclick="return confirm('Mark order #<?php echo $order['id']; ?> as paid? Sellers will be notified that this is a beta payment.');">
+                                        Payment Done (Beta)
+                                    </button>
+                                </form>
+                            <?php endif; ?>
                             <?php if ($can_cancel): ?>
                                 <form method="POST" style="display: inline;">
                                     <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">

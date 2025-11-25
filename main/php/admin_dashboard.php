@@ -82,9 +82,95 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
     </section>
 
     <!-- Orders / Users / Sellers sections placeholders -->
-    <section id="orders" class="card"><h3>Orders</h3><div id="ordersArea"></div></section>
-    <section id="users" class="card"><h3>Users</h3><div id="usersArea"></div></section>
-    <section id="sellers" class="card"><h3>Sellers</h3><div id="sellersArea"></div></section>
+    <section id="orders" class="card">
+      <div class="section-header">
+        <div>
+          <h3>Recent Orders</h3>
+          <p class="muted">Track the latest marketplace activity</p>
+        </div>
+        <div class="section-actions">
+          <select id="orderStatusFilter" aria-label="Filter orders">
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="received">Received</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="ghost-btn" id="refreshOrdersBtn" type="button"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table id="ordersTable" class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Buyer</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Placed</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="users" class="card">
+      <div class="section-header">
+        <div>
+          <h3>Customers</h3>
+          <p class="muted">Manage user accounts and access</p>
+        </div>
+        <div class="section-actions">
+          <button class="ghost-btn" id="refreshUsersBtn" type="button"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table id="usersTable" class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="sellers" class="card">
+      <div class="section-header">
+        <div>
+          <h3>Seller Performance</h3>
+          <p class="muted">Top revenue drivers from the last 90 days</p>
+        </div>
+        <div class="section-actions">
+          <button class="ghost-btn" id="refreshSellersBtn" type="button"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table id="sellersTable" class="table">
+          <thead>
+            <tr>
+              <th>Seller</th>
+              <th>Orders</th>
+              <th>Revenue</th>
+              <th>Rating</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </div>
 

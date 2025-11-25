@@ -46,8 +46,8 @@ if ($status === 'success') {
         }
     }
 
-    // Mark order as paid
-    $upd = $conn->prepare("UPDATE orders SET status = 'paid', paid_at = NOW() WHERE id = ?");
+    // Mark order as confirmed/paid
+    $upd = $conn->prepare("UPDATE orders SET status = 'confirmed', paid_at = NOW() WHERE id = ?");
     if ($upd) { $upd->bind_param("i", $orderId); $upd->execute(); }
 
     // Remove only ordered items from cart (supports single-item checkout)
