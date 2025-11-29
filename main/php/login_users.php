@@ -83,10 +83,10 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
 
     .form-container {
       background: var(--card-background);
-      padding: 40px;
+      padding: 50px;
       border-radius: 20px;
       width: 100%;
-      max-width: 400px;
+      max-width: 500px;
       text-align: center;
       position: relative;
       z-index: 2;
@@ -133,19 +133,19 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     }
 
     .form-container h2 {
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       color: var(--primary-color);
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 700;
     }
 
     .form-container input {
       width: 100%;
-      padding: 15px 20px;
-      margin: 10px 0;
+      padding: 16px 22px;
+      margin: 12px 0;
       border: 2px solid #e1e5e9;
-      border-radius: 12px;
-      font-size: 16px;
+      border-radius: 14px;
+      font-size: 17px;
       background: #f8f9fa;
       transition: all 0.3s ease;
       outline: none;
@@ -165,12 +165,12 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     .login-btn {
       border-color: var(--primary-color);
       width: 100%;
-      padding: 15px;
+      padding: 16px;
       background: #000;
       color: white;
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 600;
-      border-radius: 12px;
+      border-radius: 14px;
       cursor: pointer;
       transition: all 0.3s ease;
       margin-top: 10px;
@@ -329,17 +329,18 @@ $error = isset($_GET['error']) ? $_GET['error'] : "";
     /* Responsive Design */
     @media (max-width: 480px) {
       .form-container {
-        padding: 30px 20px;
+        padding: 35px 20px;
         margin: 10px;
+        max-width: 95%;
       }
       
       .form-container h2 {
-        font-size: 24px;
+        font-size: 26px;
       }
       
       .logo {
-        width: 60px;
-        height: 60px;
+        width: 70px;
+        height: 70px;
         font-size: 24px;
       }
     }

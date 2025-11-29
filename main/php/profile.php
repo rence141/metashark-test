@@ -1,6 +1,7 @@
 <?php
 session_start();
-
+// Load language preferences and translations
+require_once __DIR__ . '/includes/init.php';
 // Debug: Log session data to verify variables
 error_log("Profile.php session data: " . print_r($_SESSION, true));
 
@@ -163,7 +164,7 @@ $current_profile = $profile_result->fetch_assoc();
 $current_profile_image = $current_profile['profile_image'] ?? null;
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?php echo htmlspecialchars($effective_theme); ?>">
+<html lang="<?php echo htmlspecialchars($currentLanguage ?? 'en'); ?>" data-theme="<?php echo htmlspecialchars($effective_theme); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

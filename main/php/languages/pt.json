@@ -1,0 +1,100 @@
+{
+  "common": {
+    "signed_in_as": "Conectado como",
+    "login": "Entrar",
+    "logout": "Sair",
+    "signup": "Cadastrar",
+    "email": "E-mail",
+    "password": "Senha",
+    "fullname": "Nome completo",
+    "phone": "Telefone",
+    "submit": "Enviar",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "search": "Pesquisar",
+    "cart": "Carrinho",
+    "profile": "Perfil",
+    "shop": "Loja",
+    "home": "Início",
+    "add_to_cart": "Adicionar ao carrinho",
+    "buy_now": "Comprar agora",
+    "price": "Preço",
+    "quantity": "Quantidade",
+    "total": "Total",
+    "checkout": "Finalizar compra",
+    "orders": "Pedidos",
+    "settings": "Configurações",
+    "language": "Idioma",
+    "theme": "Tema",
+    "dark": "Escuro",
+    "light": "Claro",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "warning": "Aviso",
+    "info": "Informação"
+  },
+  "auth": {
+    "login_title": "Entrar",
+    "signup_title": "Cadastrar",
+    "forgot_password": "Esqueceu a senha?",
+    "remember_me": "Lembrar-me",
+    "no_account": "Não tem uma conta?",
+    "has_account": "Já tem uma conta?",
+    "invalid_credentials": "E-mail ou senha inválidos",
+    "login_success": "Login realizado com sucesso",
+    "logout_success": "Logout realizado com sucesso"
+  },
+  "shop": {
+    "title": "Loja",
+    "all_products": "Todos os produtos",
+    "categories": "Categorias",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "no_products": "Nenhum produto encontrado",
+    "view_details": "Ver detalhes",
+    "shop_by_category": "Comprar por categoria",
+    "out_of_stock": "Fora de estoque"
+  },
+  "profile": {
+    "title": "Perfil",
+    "edit_profile": "Editar perfil",
+    "change_password": "Alterar senha",
+    "update_success": "Perfil atualizado com sucesso",
+    "update_error": "Erro ao atualizar o perfil"
+  },
+  "cart": {
+    "title": "Carrinho de compras",
+    "empty": "Seu carrinho está vazio",
+    "remove": "Remover",
+    "update": "Atualizar",
+    "subtotal": "Subtotal",
+    "tax": "Imposto",
+    "shipping": "Frete",
+    "grand_total": "Total geral"
+  },
+  "orders": {
+    "title": "Pedidos",
+    "order_id": "ID do pedido",
+    "date": "Data",
+    "status": "Status",
+    "pending": "Pendente",
+    "confirmed": "Confirmado",
+    "shipped": "Enviado",
+    "delivered": "Entregue",
+    "cancelled": "Cancelado"
+  },
+  "charts": {
+    "geo": {
+      "title": "Mapa geográfico — Vendas por país",
+      "heading": "Vendas por país — Geográfico",
+      "subtitle": "Vendas por país",
+      "country": "País",
+      "sales": "Vendas",
+      "unavailable": "Mapa geográfico indisponível."
+    },
+    "overview": "Visão geral dos gráficos"
+  }
+}

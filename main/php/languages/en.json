@@ -1,0 +1,100 @@
+{
+  "common": {
+    "signed_in_as": "Signed in as",
+    "login": "Login",
+    "logout": "Logout",
+    "signup": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "fullname": "Full Name",
+    "phone": "Phone",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "cart": "Cart",
+    "profile": "Profile",
+    "shop": "Shop",
+    "home": "Home",
+    "add_to_cart": "Add to Cart",
+    "buy_now": "Buy Now",
+    "price": "Price",
+    "quantity": "Quantity",
+    "total": "Total",
+    "checkout": "Checkout",
+    "orders": "Orders",
+    "settings": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "auth": {
+    "login_title": "Login",
+    "signup_title": "Sign Up",
+    "forgot_password": "Forgot Password?",
+    "remember_me": "Remember Me",
+    "no_account": "Don't have an account?",
+    "has_account": "Already have an account?",
+    "invalid_credentials": "Invalid email or password",
+    "login_success": "Login successful",
+    "logout_success": "Logged out successfully"
+  },
+  "shop": {
+    "title": "Shop",
+    "all_products": "All Products",
+    "categories": "Categories",
+    "filter": "Filter",
+    "sort": "Sort",
+    "no_products": "No products found",
+    "view_details": "View Details",
+    "shop_by_category": "Shop by Category",
+    "out_of_stock": "Out of Stock"
+  },
+  "profile": {
+    "title": "Profile",
+    "edit_profile": "Edit Profile",
+    "change_password": "Change Password",
+    "update_success": "Profile updated successfully",
+    "update_error": "Error updating profile"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Your cart is empty",
+    "remove": "Remove",
+    "update": "Update",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "shipping": "Shipping",
+    "grand_total": "Grand Total"
+  },
+  "orders": {
+    "title": "Orders",
+    "order_id": "Order ID",
+    "date": "Date",
+    "status": "Status",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "charts": {
+    "geo": {
+      "title": "Geo Chart — Sales by Country",
+      "heading": "Sales by Country — Geo",
+      "subtitle": "Sales by Country",
+      "country": "Country",
+      "sales": "Sales",
+      "unavailable": "Geography chart unavailable."
+    },
+    "overview": "Charts Overview"
+  }
+}

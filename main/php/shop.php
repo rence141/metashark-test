@@ -1,5 +1,7 @@
 <?php
 session_start();
+// Load language preferences and translations
+require_once __DIR__ . '/includes/init.php';
 // Debug: Log session data to verify variables
 error_log("Shop.php session data: " . print_r($_SESSION, true));
 
@@ -92,7 +94,7 @@ if (isset($_SESSION['user_id'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?php echo htmlspecialchars($effective_theme); ?>">
+<html lang="<?php echo htmlspecialchars($currentLanguage ?? 'en'); ?>" data-theme="<?php echo htmlspecialchars($effective_theme); ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1071,7 +1073,7 @@ if (isset($_SESSION['user_id'])) {
       <p class="popup-product-description" id="popupDescription">Check out this amazing product from our collection!</p>
       <div class="popup-actions">
         <button class="popup-view-btn" id="popupViewBtn">View Details</button>
-        <button class="popup-add-btn" id="popupAddBtn">Add to Cart</button>
+        <button class="popup-add-btn" id="popupAddBtn"><?php echo t('common.add_to_cart', 'Add to Cart'); ?></button>
       </div>
     </div>
   </div>
@@ -1142,7 +1144,7 @@ if (isset($_SESSION['user_id'])) {
       </a>
     <?php else: ?>
       <a href="login_users.php">
-        <div class="nonuser-text" style="color: #00ff88;">Login</div>
+        <div class="nonuser-text" style="color: #00ff88;"><?php echo t('common.login', 'Login'); ?></div>
       </a>
       <a href="signup_users.php">
         <div class="nonuser-text" style="color: #00ff88;">Signup</div>
@@ -1155,7 +1157,7 @@ if (isset($_SESSION['user_id'])) {
   </div>
   <ul class="menu" style="color: #00ff88;" id="menu">
     <li><a href="shop.php" style="color: #00ff88;">Home</a></li>
-    <li><a href="carts_users.php" style="color: #00ff88;">Cart (<span class="cart-count" id="cartCount"><?php echo $cart_count; ?></span>)</a></li>
+    <li><a href="carts_users.php" style="color: #00ff88;"><?php echo t('common.cart', 'Cart'); ?> (<span class="cart-count" id="cartCount"><?php echo $cart_count; ?></span>)</a></li>
      <li><a href="order_status.php" style="color: #00ff88;">My Purchases</a></li>
     <?php if(isset($_SESSION['user_id'])): ?>
       <?php
@@ -1166,8 +1168,8 @@ if (isset($_SESSION['user_id'])) {
       <?php else: ?>
         <li><a href="become_seller.php" style="color: #00ff88;">Become Seller</a></li>
       <?php endif; ?>
-      <li><a href="<?php echo $profile_page; ?>" style="border: #00ff88;">Profile</a></li>
-      <li><a href="logout.php" style="color: #00ff88;">Logout</a></li>
+      <li><a href="<?php echo $profile_page; ?>" style="border: #00ff88;"><?php echo t('common.profile', 'Profile'); ?></a></li>
+      <li><a href="logout.php" style="color: #00ff88;"><?php echo t('common.logout', 'Logout'); ?></a></li>
     <?php endif; ?>
   </ul>
 </div>
@@ -1226,7 +1228,7 @@ if (isset($_SESSION['user_id'])) {
 <!-- Categories Section -->
 <div class="categories-section">
   <div class="container">
-    <h2 class="section-title">Shop by Category</h2>
+    <h2 class="section-title"><?php echo t('shop.shop_by_category', 'Shop by Category'); ?></h2>
     <div class="categories-grid">
       <a href="phone.php" class="category-card" data-category="phones">
         <div class="category-icon"></div>
@@ -1324,7 +1326,7 @@ if (isset($_SESSION['user_id'])) {
             echo '<input type="hidden" name="add_to_cart" value="1">';
             echo '<input type="hidden" name="product_id" value="' . $product['id'] . '">';
             echo '<button type="submit" class="add-to-cart-btn" ' . ($product['stock_quantity'] <= 0 ? 'disabled' : '') . ' data-product-name="' . htmlspecialchars($product['name']) . '">';
-            echo $product['stock_quantity'] <= 0 ? 'Out of Stock' : 'Add to Cart';
+            echo $product['stock_quantity'] <= 0 ? t('shop.out_of_stock', 'Out of Stock') : t('common.add_to_cart', 'Add to Cart');
             echo '</button>';
             echo '</form>';
           } else {

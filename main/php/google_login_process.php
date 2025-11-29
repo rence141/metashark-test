@@ -8,7 +8,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 require __DIR__ . '/../../vendor/autoload.php';
-include("db.php");
+include("db.php"); // Ensure this file provides $conn
 
 // Check if Google session data is available
 if (!isset($_SESSION['google_email']) || !isset($_SESSION['google_name'])) {
@@ -20,8 +20,8 @@ if (!isset($_SESSION['google_email']) || !isset($_SESSION['google_name'])) {
 $email = $_SESSION['google_email'];
 $name = $_SESSION['google_name'];
 
-// Check if user exists
-$stmt = $conn->prepare("SELECT id, role FROM users WHERE email = ? LIMIT 1");
+// 1. Check if user exists and fetch role + suspension status
+$stmt = $conn->prepare("SELECT id, role, is_suspended FROM users WHERE email = ? LIMIT 1");
 if (!$stmt) {
     error_log("Database prepare failed: " . $conn->error);
     header("Location: ../../login_users.php?error=Database error");
@@ -44,14 +44,31 @@ if ($result->num_rows == 0) {
     $stmt->bind_param("ssss", $name, $email, $password, $role);
     $stmt->execute();
     $user_id = $conn->insert_id; // Get the ID of the newly inserted user
+    // New users are not suspended by default, no further checks needed for them.
 } else {
     // Existing user
     $user = $result->fetch_assoc();
     $user_id = $user['id'];
     $role = $user['role'] ?? 'buyer';
+    
+   // 2. CRITICAL SECURITY CHECK: Check for suspension status
+   if (isset($user['is_suspended']) && $user['is_suspended'] == 1) {
+    // Log the denial
+    error_log("ACCESS DENIED: Suspended user attempted login: ID {$user_id}, Email {$email}");
+
+    // Clear temporary Google session data and local session
+    unset($_SESSION['google_email']);
+    unset($_SESSION['google_name']);
+    
+    session_destroy(); // Ensure existing session is cleared
+    
+    // 🛑 NEW REDIRECT: Send user to a professional suspension notice page
+    header("Location: http://localhost/SaysonCotest/main/php/suspended_account.php"); 
+    exit;
+}
 }
 
-// Set session variables
+// 3. Login Setup (Only reached if the user is new or is not suspended)
 $_SESSION['user_id'] = $user_id; // Required by shop.php
 $_SESSION['email'] = $email;
 $_SESSION['name'] = $name;

@@ -1,0 +1,100 @@
+{
+  "common": {
+    "signed_in_as": "Naka-sign in bilang",
+    "login": "Mag-login",
+    "logout": "Mag-logout",
+    "signup": "Mag-sign Up",
+    "email": "Email",
+    "password": "Password",
+    "fullname": "Buong Pangalan",
+    "phone": "Telepono",
+    "submit": "Ipasa",
+    "cancel": "Kanselahin",
+    "save": "I-save",
+    "edit": "I-edit",
+    "delete": "Tanggalin",
+    "search": "Maghanap",
+    "cart": "Cart",
+    "profile": "Profile",
+    "shop": "Shop",
+    "home": "Home",
+    "add_to_cart": "Idagdag sa Cart",
+    "buy_now": "Bumili Ngayon",
+    "price": "Presyo",
+    "quantity": "Dami",
+    "total": "Kabuuan",
+    "checkout": "Checkout",
+    "orders": "Mga Order",
+    "settings": "Settings",
+    "language": "Wika",
+    "theme": "Tema",
+    "dark": "Madilim",
+    "light": "Maliwanag",
+    "loading": "Naglo-load...",
+    "error": "Error",
+    "success": "Tagumpay",
+    "warning": "Babala",
+    "info": "Impormasyon"
+  },
+  "auth": {
+    "login_title": "Mag-login",
+    "signup_title": "Mag-sign Up",
+    "forgot_password": "Nakalimutan ang Password?",
+    "remember_me": "Tandaan Ako",
+    "no_account": "Walang account?",
+    "has_account": "Mayroon nang account?",
+    "invalid_credentials": "Hindi wasto ang email o password",
+    "login_success": "Matagumpay na pag-login",
+    "logout_success": "Matagumpay na pag-logout"
+  },
+  "shop": {
+    "title": "Shop",
+    "all_products": "Lahat ng Produkto",
+    "categories": "Mga Kategorya",
+    "filter": "Filter",
+    "sort": "Ayusin",
+    "no_products": "Walang nahanap na produkto",
+    "view_details": "Tingnan ang Detalye",
+    "shop_by_category": "Mamili ayon sa Kategorya",
+    "out_of_stock": "Walang Stock"
+  },
+  "profile": {
+    "title": "Profile",
+    "edit_profile": "I-edit ang Profile",
+    "change_password": "Palitan ang Password",
+    "update_success": "Matagumpay na na-update ang profile",
+    "update_error": "Error sa pag-update ng profile"
+  },
+  "cart": {
+    "title": "Shopping Cart",
+    "empty": "Walang laman ang iyong cart",
+    "remove": "Tanggalin",
+    "update": "I-update",
+    "subtotal": "Subtotal",
+    "tax": "Buwis",
+    "shipping": "Pagpapadala",
+    "grand_total": "Kabuuang Total"
+  },
+  "orders": {
+    "title": "Mga Order",
+    "order_id": "Order ID",
+    "date": "Petsa",
+    "status": "Status",
+    "pending": "Naghihintay",
+    "confirmed": "Nakumpirma",
+    "shipped": "Naipadala",
+    "delivered": "Naihatid",
+    "cancelled": "Nakansela"
+  },
+  "charts": {
+    "geo": {
+      "title": "Mapang Heograpiko — Benta ayon sa Bansa",
+      "heading": "Benta ayon sa Bansa — Heograpiko",
+      "subtitle": "Benta ayon sa Bansa",
+      "country": "Bansa",
+      "sales": "Benta",
+      "unavailable": "Hindi available ang mapang heograpiko."
+    },
+    "overview": "Pangkalahatang-ideya ng mga Tsart"
+  }
+}

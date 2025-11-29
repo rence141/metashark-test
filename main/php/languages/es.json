@@ -1,0 +1,100 @@
+{
+  "common": {
+    "signed_in_as": "Conectado como",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "signup": "Registrarse",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "fullname": "Nombre completo",
+    "phone": "Teléfono",
+    "submit": "Enviar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "search": "Buscar",
+    "cart": "Carrito",
+    "profile": "Perfil",
+    "shop": "Tienda",
+    "home": "Inicio",
+    "add_to_cart": "Añadir al carrito",
+    "buy_now": "Comprar ahora",
+    "price": "Precio",
+    "quantity": "Cantidad",
+    "total": "Total",
+    "checkout": "Finalizar compra",
+    "orders": "Pedidos",
+    "settings": "Configuración",
+    "language": "Idioma",
+    "theme": "Tema",
+    "dark": "Oscuro",
+    "light": "Claro",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información"
+  },
+  "auth": {
+    "login_title": "Iniciar sesión",
+    "signup_title": "Registrarse",
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "remember_me": "Recordarme",
+    "no_account": "¿No tienes una cuenta?",
+    "has_account": "¿Ya tienes una cuenta?",
+    "invalid_credentials": "Correo electrónico o contraseña inválidos",
+    "login_success": "Inicio de sesión exitoso",
+    "logout_success": "Sesión cerrada exitosamente"
+  },
+  "shop": {
+    "title": "Tienda",
+    "all_products": "Todos los productos",
+    "categories": "Categorías",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "no_products": "No se encontraron productos",
+    "view_details": "Ver detalles",
+    "shop_by_category": "Comprar por categoría",
+    "out_of_stock": "Agotado"
+  },
+  "profile": {
+    "title": "Perfil",
+    "edit_profile": "Editar perfil",
+    "change_password": "Cambiar contraseña",
+    "update_success": "Perfil actualizado exitosamente",
+    "update_error": "Error al actualizar el perfil"
+  },
+  "cart": {
+    "title": "Carrito de compras",
+    "empty": "Tu carrito está vacío",
+    "remove": "Eliminar",
+    "update": "Actualizar",
+    "subtotal": "Subtotal",
+    "tax": "Impuesto",
+    "shipping": "Envío",
+    "grand_total": "Total general"
+  },
+  "orders": {
+    "title": "Pedidos",
+    "order_id": "ID de pedido",
+    "date": "Fecha",
+    "status": "Estado",
+    "pending": "Pendiente",
+    "confirmed": "Confirmado",
+    "shipped": "Enviado",
+    "delivered": "Entregado",
+    "cancelled": "Cancelado"
+  },
+  "charts": {
+    "geo": {
+      "title": "Mapa geográfico — Ventas por país",
+      "heading": "Ventas por país — Geográfico",
+      "subtitle": "Ventas por país",
+      "country": "País",
+      "sales": "Ventas",
+      "unavailable": "Mapa geográfico no disponible."
+    },
+    "overview": "Resumen de gráficos"
+  }
+}

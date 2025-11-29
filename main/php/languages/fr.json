@@ -1,0 +1,100 @@
+{
+  "common": {
+    "signed_in_as": "Connecté en tant que",
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "signup": "S'inscrire",
+    "email": "Email",
+    "password": "Mot de passe",
+    "fullname": "Nom complet",
+    "phone": "Téléphone",
+    "submit": "Soumettre",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "search": "Rechercher",
+    "cart": "Panier",
+    "profile": "Profil",
+    "shop": "Boutique",
+    "home": "Accueil",
+    "add_to_cart": "Ajouter au panier",
+    "buy_now": "Acheter maintenant",
+    "price": "Prix",
+    "quantity": "Quantité",
+    "total": "Total",
+    "checkout": "Commander",
+    "orders": "Commandes",
+    "settings": "Paramètres",
+    "language": "Langue",
+    "theme": "Thème",
+    "dark": "Sombre",
+    "light": "Clair",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "info": "Information"
+  },
+  "auth": {
+    "login_title": "Connexion",
+    "signup_title": "S'inscrire",
+    "forgot_password": "Mot de passe oublié?",
+    "remember_me": "Se souvenir de moi",
+    "no_account": "Pas de compte?",
+    "has_account": "Vous avez déjà un compte?",
+    "invalid_credentials": "Email ou mot de passe invalide",
+    "login_success": "Connexion réussie",
+    "logout_success": "Déconnexion réussie"
+  },
+  "shop": {
+    "title": "Boutique",
+    "all_products": "Tous les produits",
+    "categories": "Catégories",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "no_products": "Aucun produit trouvé",
+    "view_details": "Voir les détails",
+    "shop_by_category": "Acheter par catégorie",
+    "out_of_stock": "Rupture de stock"
+  },
+  "profile": {
+    "title": "Profil",
+    "edit_profile": "Modifier le profil",
+    "change_password": "Changer le mot de passe",
+    "update_success": "Profil mis à jour avec succès",
+    "update_error": "Erreur lors de la mise à jour du profil"
+  },
+  "cart": {
+    "title": "Panier",
+    "empty": "Votre panier est vide",
+    "remove": "Retirer",
+    "update": "Mettre à jour",
+    "subtotal": "Sous-total",
+    "tax": "Taxe",
+    "shipping": "Livraison",
+    "grand_total": "Total général"
+  },
+  "orders": {
+    "title": "Commandes",
+    "order_id": "ID de commande",
+    "date": "Date",
+    "status": "Statut",
+    "pending": "En attente",
+    "confirmed": "Confirmé",
+    "shipped": "Expédié",
+    "delivered": "Livré",
+    "cancelled": "Annulé"
+  },
+  "charts": {
+    "geo": {
+      "title": "Carte géographique — Ventes par pays",
+      "heading": "Ventes par pays — Géographique",
+      "subtitle": "Ventes par pays",
+      "country": "Pays",
+      "sales": "Ventes",
+      "unavailable": "Carte géographique indisponible."
+    },
+    "overview": "Aperçu des graphiques"
+  }
+}

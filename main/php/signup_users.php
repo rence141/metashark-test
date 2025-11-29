@@ -124,10 +124,10 @@ body::before {
 /* Container */
 .form-container {
   background: var(--card-background);
-  padding: 40px;
+  padding: 50px;
   border-radius: 20px;
   width: 100%;
-  max-width: 500px;
+  max-width: 550px;
   text-align: center;
   position: relative;
   z-index: 2;
@@ -167,9 +167,9 @@ body::before {
 
 /* Heading */
 .form-container h2 {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   color: var(--primary-color);
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 700;
 }
 
@@ -183,10 +183,10 @@ body::before {
 /* Input Fields */
 .form-container input {
   width: 100%;
-  padding: 15px 20px;
+  padding: 16px 22px;
   border: 2px solid #e1e5e9;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 14px;
+  font-size: 17px;
   background: #f8f9fa;
   transition: all 0.3s ease;
   outline: none;
@@ -210,13 +210,13 @@ body::before {
 /* Primary action button (does not affect .google-btn) */
 .primary-btn {
   width: 100%;
-  padding: 15px;
+  padding: 16px;
   background: #000;
   border: 2px solid var(--primary-color);
   color: #fff;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 10px;
@@ -335,18 +335,18 @@ body::before {
 /* Responsive Design */
 @media (max-width: 480px) {
   .form-container {
-    padding: 30px 20px;
+    padding: 35px 20px;
     margin: 10px;
-    max-width: 100%;
+    max-width: 95%;
   }
   
   .form-container h2 {
-    font-size: 24px;
+    font-size: 26px;
   }
   
   .form-container img.logo {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
   }
   
   .input-row {

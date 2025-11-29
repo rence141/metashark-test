@@ -1,13 +1,21 @@
 <?php
 session_start();
 
-// Check if user is logged in and is a seller
+$errors = [];     // <--- IMPORTANT
+$message = "";    // optional
+$currentCountryCode = "";
+$currentCountryName = "";
+$currentLanguage = $_SESSION['language'] ?? 'en';
+
+require_once 'db.php';
+
+// Check login
 if (!isset($_SESSION["user_id"])) {
     header("Location: login_users.php");
     exit();
 }
 
-// Check if user has seller role
+// Check role
 $user_role = $_SESSION['role'] ?? 'buyer';
 if ($user_role !== 'seller' && $user_role !== 'admin') {
     header("Location: profile.php");
@@ -16,42 +24,91 @@ if ($user_role !== 'seller' && $user_role !== 'admin') {
 
 include("db.php");
 
-// Load Twilio SDK (uncomment in production after installing via Composer)
-// require_once 'vendor/autoload.php';
-// use Twilio\Rest\Client;
+// Twilio config (disabled for dev)
+$twilio_sid = 'YOUR_TWILIO_ACCOUNT_SID';
+$twilio_token = 'YOUR_TWILIO_AUTH_TOKEN';
+$twilio_phone = '+1234567890';
 
-// Twilio credentials (replace with your own in production, or use environment variables)
-$twilio_sid = 'YOUR_TWILIO_ACCOUNT_SID'; // Replace with your Twilio Account SID
-$twilio_token = 'YOUR_TWILIO_AUTH_TOKEN'; // Replace with your Twilio Auth Token
-$twilio_phone = '+1234567890'; // Replace with your Twilio phone number
+// Country > Language map
+$countryLangMap = [
+    'US' => 'en', 'GB' => 'en', 'CA' => 'en', 'AU' => 'en',
+    'FR' => 'fr', 'DE' => 'de', 'ES' => 'es', 'IT' => 'it',
+    'BR' => 'pt', 'PT' => 'pt', 'CN' => 'zh', 'JP' => 'ja',
+    'IN' => 'en', 'NL' => 'nl', 'PH' => 'tl'
+];
 
-// Initialize Twilio client (uncomment in production)
-// $twilio = new Client($twilio_sid, $twilio_token);
+$countries = [
+    ['code'=>'US','name'=>'United States'],
+    ['code'=>'GB','name'=>'United Kingdom'],
+    ['code'=>'CA','name'=>'Canada'],
+    ['code'=>'AU','name'=>'Australia'],
+    ['code'=>'FR','name'=>'France'],
+    ['code'=>'DE','name'=>'Germany'],
+    ['code'=>'ES','name'=>'Spain'],
+    ['code'=>'IT','name'=>'Italy'],
+    ['code'=>'BR','name'=>'Brazil'],
+    ['code'=>'IN','name'=>'India'],
+    ['code'=>'CN','name'=>'China'],
+    ['code'=>'JP','name'=>'Japan'],
+    ['code'=>'NL','name'=>'Netherlands'],
+    ['code'=>'PT','name'=>'Portugal']
+];
 
-// Handle OTP verification
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
-    $otp = trim($_POST['otp']);
-    $new_phone = $_SESSION['pending_phone'] ?? '';
-    
-    if ($otp === $_SESSION['otp'] && !empty($new_phone)) {
-        // OTP is correct, update phone and mark as verified
-        $sql = "UPDATE users SET phone = ?, phone_verified = TRUE WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("si", $new_phone, $_SESSION["user_id"]);
+// Set proper userId
+$userId = $_SESSION["user_id"];
+
+/* ---------------------------------------------------------
+   SAVE COUNTRY + LANGUAGE PREFERENCES
+--------------------------------------------------------- */
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_preferences'])) {
+
+    $countryCode = strtoupper(trim($_POST['country_code'] ?? ''));
+    $countryName = trim($_POST['country_name'] ?? '');
+    $language = trim($_POST['language'] ?? '');
+
+    if ($countryCode && $countryName && $language) {
+        $stmt = $conn->prepare("
+            UPDATE users 
+            SET country_code = ?, country_name = ?, language = ?
+            WHERE id = ?
+        ");
+
+        $stmt->bind_param("sssi", $countryCode, $countryName, $language, $userId);
+
         if ($stmt->execute()) {
-            $success = "Phone number verified and updated successfully!";
-            unset($_SESSION['otp']);
-            unset($_SESSION['pending_phone']);
+            $_SESSION['language'] = $language;
+            $message = "Preferences saved successfully!";
         } else {
-            $error = "Error updating phone number: " . $conn->error;
+            $message = "Error saving preferences.";
         }
-    } else {
-        $error = "Invalid OTP. Please try again.";
     }
 }
 
-// Handle profile update
-if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['verify_otp'])) {
+/* ---------------------------------------------------------
+   OTP VERIFICATION HANDLER
+--------------------------------------------------------- */
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['verify_otp'])) {
+    $otp = trim($_POST['otp']);
+    $new_phone = $_SESSION['pending_phone'] ?? '';
+
+    if ($otp === ($_SESSION['otp'] ?? null)) {
+
+        $stmt = $conn->prepare("UPDATE users SET phone=?, phone_verified=TRUE WHERE id=?");
+        $stmt->bind_param("si", $new_phone, $userId);
+        $stmt->execute();
+
+        unset($_SESSION['otp'], $_SESSION['pending_phone']);
+        $success = "Phone number verified successfully!";
+    } else {
+        $error = "Invalid OTP.";
+    }
+}
+
+/* ---------------------------------------------------------
+   PROFILE UPDATE (FULL FORM)
+--------------------------------------------------------- */
+if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['verify_otp']) && !isset($_POST['save_preferences'])) {
+
     $fullname = trim($_POST["fullname"]);
     $email = trim($_POST["email"]);
     $phone = trim($_POST["phone"]);
@@ -59,130 +116,116 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['verify_otp'])) {
     $seller_name = trim($_POST["seller_name"]);
     $seller_description = trim($_POST["seller_description"]);
     $business_type = trim($_POST["business_type"]);
-    $profile_image = null;
 
-    // Fetch current user data to check if phone changed
-    $current_query = "SELECT phone, phone_verified FROM users WHERE id = ?";
-    $current_stmt = $conn->prepare($current_query);
-    $current_stmt->bind_param("i", $_SESSION["user_id"]);
-    $current_stmt->execute();
-    $current_user = $current_stmt->get_result()->fetch_assoc();
-    $current_phone = $current_user['phone'];
-    $phone_verified = $current_user['phone_verified'];
+    /* Retrieve current user */
+    $stmt = $conn->prepare("SELECT phone, phone_verified FROM users WHERE id=?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $current = $stmt->get_result()->fetch_assoc();
 
-    // Validate phone number (must start with '09' and be 11 digits)
+    $current_phone = $current["phone"];
+    $phone_verified = $current["phone_verified"];
+
+    /* PHONE VALIDATION */
     if (!preg_match('/^09[0-9]{9}$/', $phone)) {
-        $error = "Phone number must be 11 digits starting with '09' (e.g., 09123456789).";
+        $error = "Phone number must be 11 digits and start with 09.";
     } elseif ($phone !== $current_phone && !$phone_verified) {
-        // Phone changed and not verified, trigger OTP
+
+        $otp = sprintf("%06d", mt_rand(100000, 999999));
+        $_SESSION['otp'] = $otp;
         $_SESSION['pending_phone'] = $phone;
-        $_SESSION['otp'] = sprintf("%06d", mt_rand(100000, 999999)); // Mock OTP
-        // In production, send OTP via Twilio (uncomment and configure)
-        /*
-        try {
-            $twilio->messages->create(
-                $phone,
-                [
-                    'from' => $twilio_phone,
-                    'body' => "Your Meta Shark OTP is {$_SESSION['otp']}. Valid for 5 minutes."
-                ]
-            );
-        } catch (Exception $e) {
-            $error = "Failed to send OTP: " . $e->getMessage();
-        }
-        */
+
         $show_otp_modal = true;
-    } else {
-        // Handle image upload
-        if (!empty($_FILES["profile_image"]["name"])) {
-            $targetDir = "Uploads/";
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0777, true);
-            }
+        goto skip_update;
+    }
 
-            // Get current profile image to delete it later
-            $currentImageQuery = "SELECT profile_image FROM users WHERE id = ?";
-            $currentImageStmt = $conn->prepare($currentImageQuery);
-            $currentImageStmt->bind_param("i", $_SESSION["user_id"]);
-            $currentImageStmt->execute();
-            $currentImageResult = $currentImageStmt->get_result();
-            $currentImage = $currentImageResult->fetch_assoc()['profile_image'];
+    /* IMAGE UPLOAD */
+    $profile_image = null;
+    if (!empty($_FILES["profile_image"]["name"])) {
 
-            $fileName = $_SESSION["user_id"] . "_" . time() . "_" . basename($_FILES["profile_image"]["name"]);
-            $targetFilePath = $targetDir . $fileName;
-            $fileType = strtolower(pathinfo($targetFilePath, PATHINFO_EXTENSION));
+        $targetDir = "Uploads/";
+        if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
 
-            // Allow only jpg, png
-            $allowedTypes = ["jpg", "jpeg", "png"];
-            if (in_array($fileType, $allowedTypes)) {
-                if (move_uploaded_file($_FILES["profile_image"]["tmp_name"], $targetFilePath)) {
-                    $profile_image = $fileName;
-                    
-                    // Delete old profile image if it exists
-                    if (!empty($currentImage) && file_exists($targetDir . $currentImage)) {
-                        unlink($targetDir . $currentImage);
-                    }
-                }
-            }
-        }
+        $fileName = $userId . "_" . time() . "_" . basename($_FILES["profile_image"]["name"]);
+        $targetPath = $targetDir . $fileName;
 
-        // If password is provided, update with hashing
-        if (!empty($new_password)) {
-            $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
-
-            if ($profile_image) {
-                $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("ssssssssi", $fullname, $email, $phone, $hashedPassword, $profile_image, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
-            } else {
-                $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("sssssssi", $fullname, $email, $phone, $hashedPassword, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
-            }
-        } else {
-            if ($profile_image) {
-                $sql = "UPDATE users SET fullname=?, email=?, phone=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("sssssssi", $fullname, $email, $phone, $profile_image, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
-            } else {
-                $sql = "UPDATE users SET fullname=?, email=?, phone=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("ssssssi", $fullname, $email, $phone, $seller_name, $seller_description, $business_type, $_SESSION["user_id"]);
-            }
-        }
-
-        if ($stmt->execute()) {
-            $_SESSION["fullname"] = $fullname;
-            $success = "Seller profile updated successfully!";
-            if ($profile_image) {
-                $success .= " Profile image updated to: " . $profile_image;
-            }
-        } else {
-            $error = "Error updating seller profile: " . $conn->error;
+        $ext = strtolower(pathinfo($targetPath, PATHINFO_EXTENSION));
+        if (in_array($ext, ["jpg", "jpeg", "png"])) {
+            move_uploaded_file($_FILES["profile_image"]["tmp_name"], $targetPath);
+            $profile_image = $fileName;
         }
     }
+
+    /* PASSWORD HANDLING */
+    if (!empty($new_password)) {
+        $hashed = password_hash($new_password, PASSWORD_DEFAULT);
+
+        if ($profile_image) {
+            $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ssssssssi", $fullname, $email, $phone, $hashed, $profile_image, $seller_name, $seller_description, $business_type, $userId);
+        } else {
+            $sql = "UPDATE users SET fullname=?, email=?, phone=?, password=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("sssssssi", $fullname, $email, $phone, $hashed, $seller_name, $seller_description, $business_type, $userId);
+        }
+    } else {
+        if ($profile_image) {
+            $sql = "UPDATE users SET fullname=?, email=?, phone=?, profile_image=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("sssssssi", $fullname, $email, $phone, $profile_image, $seller_name, $seller_description, $business_type, $userId);
+        } else {
+            $sql = "UPDATE users SET fullname=?, email=?, phone=?, seller_name=?, seller_description=?, business_type=? WHERE id=?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ssssssi", $fullname, $email, $phone, $seller_name, $seller_description, $business_type, $userId);
+        }
+    }
+
+    if ($stmt->execute()) {
+        $_SESSION["fullname"] = $fullname;
+        $success = "Profile updated successfully!";
+    } else {
+        $error = "Error updating profile.";
+    }
+
+    skip_update:
 }
 
-// Fetch user info
-$sql = "SELECT id, fullname, email, phone, profile_image, seller_name, seller_description, business_type, seller_rating, total_sales, phone_verified FROM users WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $_SESSION["user_id"]);
+/* ---------------------------------------------------------
+   FETCH USER INFO
+--------------------------------------------------------- */
+$stmt = $conn->prepare("
+    SELECT id, fullname, email, phone, profile_image, seller_name, seller_description,
+           business_type, seller_rating, total_sales, phone_verified,
+           country_code, country_name, language
+    FROM users
+    WHERE id = ?
+");
+$stmt->bind_param("i", $userId);
 $stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
+$user = $stmt->get_result()->fetch_assoc();
 
-// Get seller statistics
-$stats_sql = "SELECT 
-    COUNT(*) as total_products,
-    SUM(stock_quantity) as total_inventory,
-    AVG(price) as avg_price
-    FROM products 
-    WHERE seller_id = ? AND is_active = TRUE";
+/* ---------------------------------------------------------
+   FIX COUNTRY/LANGUAGE LOADING
+--------------------------------------------------------- */
+$currentCountryCode = $user["country_code"] ?? '';
+$currentCountryName = $user["country_name"] ?? '';
+$currentLanguage    = $user["language"] ?? ($_SESSION['language'] ?? 'en');
+
+/* ---------------------------------------------------------
+   FETCH SELLER STATS
+--------------------------------------------------------- */
+$stats_sql = "
+    SELECT COUNT(*) AS total_products,
+           SUM(stock_quantity) AS total_inventory,
+           AVG(price) AS avg_price
+    FROM products
+    WHERE seller_id = ? AND is_active = TRUE
+";
 $stats_stmt = $conn->prepare($stats_sql);
-$stats_stmt->bind_param("i", $_SESSION["user_id"]);
+$stats_stmt->bind_param("i", $userId);
 $stats_stmt->execute();
-$stats_result = $stats_stmt->get_result();
-$stats = $stats_result->fetch_assoc();
+$stats = $stats_stmt->get_result()->fetch_assoc();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -492,6 +535,65 @@ $stats = $stats_result->fetch_assoc();
             border-radius: 5px;
         }
 
+        /* New styles for preferences page */
+        .form-container {
+            width: 100%;
+            max-width: 640px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 28px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin: 0 auto;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .select,
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+            color: inherit;
+        }
+
+        .btn {
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 0;
+            background: #44D62C;
+            color: #001;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .note {
+            color: #9aa6b2;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .msg {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .success {
+            background: rgba(68, 214, 44, 0.06);
+            color: #44D62C;
+        }
+
+        .error {
+            background: rgba(255, 107, 107, 0.06);
+            color: #ff6b6b;
+        }
+
         @media (max-width: 768px) {
             .form-grid {
                 grid-template-columns: 1fr;
@@ -563,9 +665,49 @@ $stats = $stats_result->fetch_assoc();
                     <p><strong>Rating:</strong> ⭐ <?php echo number_format($user["seller_rating"], 1); ?>/5.0</p>
                     <p><strong>Total Sales:</strong> $<?php echo number_format($user["total_sales"], 2); ?></p>
                 </div>
-                <div class="seller-badge">
-                    <?php echo strtoupper($user_role); ?> 
+
+                <!-- INSERTED: Preferences form moved into seller card for better UX -->
+                <div class="form-container" style="margin-left:20px;min-width:320px;">
+                    <h3 style="margin-top:0;color:#44D62C">Preferences</h3>
+                    <?php if ($message): ?><div class="msg success"><?php echo htmlspecialchars($message); ?></div><?php endif; ?>
+                    <?php if ($errors): ?><div class="msg error"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div><?php endif; ?>
+                    <form method="post" id="prefFormInline" style="margin-top:10px;">
+                        <div id="countryFieldsInline">
+                            <div style="margin-bottom:6px;color:#9aa6b2;font-size:13px">Country preference</div>
+                            <div class="form-row">
+                                <select name="country_code" id="countrySelectInline" class="select" required>
+                                    <option value="">Select country...</option>
+                                    <?php foreach ($countries as $c):
+                                        $sel = ($c['code'] === $currentCountryCode) ? 'selected' : '';
+                                    ?>
+                                        <option value="<?php echo htmlspecialchars($c['code']); ?>" <?php echo $sel; ?>><?php echo htmlspecialchars($c['name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <input type="text" name="country_name" id="countryNameInline" class="select" placeholder="Country name" value="<?php echo htmlspecialchars($currentCountryName); ?>" required>
+                            </div>
+                            <div style="margin:8px 0 6px;color:#9aa6b2;font-size:13px">Language (suggested)</div>
+                            <div class="form-row">
+                                <select name="language" id="languageSelectInline" class="select" required>
+                                    <option value="en" <?php echo $currentLanguage==='en'?'selected':''; ?>>English</option>
+                                    <option value="fr" <?php echo $currentLanguage==='fr'?'selected':''; ?>>Français</option>
+                                    <option value="de" <?php echo $currentLanguage==='de'?'selected':''; ?>>Deutsch</option>
+                                    <option value="es" <?php echo $currentLanguage==='es'?'selected':''; ?>>Español</option>
+                                    <option value="pt" <?php echo $currentLanguage==='pt'?'selected':''; ?>>Português</option>
+                                    <option value="zh" <?php echo $currentLanguage==='zh'?'selected':''; ?>>中文</option>
+                                    <option value="ja" <?php echo $currentLanguage==='ja'?'selected':''; ?>>日本語</option>
+                                    <option value="it" <?php echo $currentLanguage==='it'?'selected':''; ?>>Italiano</option>
+                                    <option value="nl" <?php echo $currentLanguage==='nl'?'selected':''; ?>>Nederlands</option>
+                                    <option value="tl" <?php echo $currentLanguage==='tl'?'selected':''; ?>>Filipino</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+                            <button id="savePrefBtnInline" type="submit" name="save_preferences" class="btn">Save</button>
+                            <div class="note" style="margin:0">Language change updates your session immediately.</div>
+                        </div>
+                    </form>
                 </div>
+                <!-- END preferences inserted -->
             </div>
         </div>
 
@@ -711,6 +853,61 @@ $stats = $stats_result->fetch_assoc();
                     } else {
                         fileSelectedText.textContent = '';
                     }
+                });
+            }
+        });
+
+        // country -> suggested language map (should mirror server-side)
+        const countryLangMap = <?php echo json_encode($countryLangMap); ?>;
+
+        const countrySelect = document.getElementById('countrySelect');
+        const countryName = document.getElementById('countryName');
+        const languageSelect = document.getElementById('languageSelect');
+
+        // when country select changes, set country name and suggest language
+        countrySelect.addEventListener('change', (e) => {
+            const code = e.target.value;
+            const option = e.target.selectedOptions[0];
+            if (option) countryName.value = option.text;
+            if (code && countryLangMap[code]) {
+                // set suggested language (don't override if user already changed)
+                languageSelect.value = countryLangMap[code];
+            }
+        });
+
+        // If user modifies country name manually, keep code unchanged
+        countryName.addEventListener('input', () => {
+            // no-op, kept for accessibility or advanced UX
+        });
+
+        // small accessibility: set country name when page loads if empty
+        if (!countryName.value && countrySelect.value) {
+            countryName.value = countrySelect.selectedOptions[0]?.text || '';
+        }
+
+        // Script: if a global profile form exists, inject the preference fields into it
+        document.addEventListener('DOMContentLoaded', function() {
+            const externalForm = document.getElementById('profileForm'); // target form id on your main profile page
+            const countryFields = document.getElementById('countryFields');
+            if (externalForm && countryFields) {
+                // Move the preference inputs into the external profile form so they submit with it
+                externalForm.appendChild(countryFields);
+                // Hide local save button to avoid duplicate controls (external profile form should handle submit)
+                const saveBtn = document.getElementById('savePrefBtn');
+                if (saveBtn) saveBtn.style.display = 'none';
+            }
+
+            // Keep existing behavior: when user selects country, suggest language
+            const countryMap = <?php echo json_encode($countryLangMap); ?>;
+            const countrySelect = document.getElementById('countrySelect');
+            const countryName = document.getElementById('countryName');
+            const languageSelect = document.getElementById('languageSelect');
+            if (countrySelect) {
+                countrySelect.addEventListener('change', function() {
+                    const code = this.value;
+                    const option = this.selectedOptions[0];
+                    if (option) countryName.value = option.text;
+                    if (code && countryMap[code]) languageSelect.value = countryMap[code];
                 });
             }
         });
