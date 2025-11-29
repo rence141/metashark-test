@@ -372,7 +372,6 @@ if ($chat_user) {
                     </div>
                 </div>
                 <div style="display:flex; gap:15px;">
-                    <i class="bi bi-telephone-fill icon-btn" style="background:transparent; color:var(--ms-blue);"></i>
                     <i class="bi bi-info-circle-fill icon-btn" style="background:transparent; color:var(--ms-blue);"></i>
                 </div>
             </div>

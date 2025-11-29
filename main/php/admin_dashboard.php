@@ -307,7 +307,8 @@ if ($stmt) {
             <div class="card-body"><canvas id="categoryChart" height="200"></canvas></div>
         </div>
         <div class="card">
-            <div class="card-header"><h3>User Registration Trend</h3></div>
+            <!-- Updated Header to Reflect Multi-line Chart -->
+            <div class="card-header"><h3>Total User Base Growth</h3></div>
             <div class="card-body"><canvas id="usersChart" height="80"></canvas></div>
         </div>
     </div>
@@ -438,106 +439,267 @@ async function loadTables() {
 let revenueChartCtx = document.getElementById('revenueChart').getContext('2d');
 
 async function loadCharts() {
-    // 1. Revenue
-    const resRev = await fetch('includes/fetch_data.php?action=monthly_revenue');
-    const revData = await resRev.json();
-    charts.revenue = new Chart(revenueChartCtx, {
-        type: 'line',
-        data: {
-            labels: revData.map(r => r.ym),
-            datasets: [{
-                label: 'Revenue',
-                data: revData.map(r => r.amt),
-                borderColor: '#44D62C',
-                backgroundColor: (context) => {
-                    const ctx = context.chart.ctx;
-                    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient.addColorStop(0, 'rgba(68, 214, 44, 0.4)');
-                    gradient.addColorStop(1, 'rgba(68, 214, 44, 0.0)');
-                    return gradient;
-                },
-                fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#44D62C'
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } } }
-    });
-
-    // 2. Orders
-    const resOrd = await fetch('includes/fetch_data.php?action=orders_summary');
-    const ordData = await resOrd.json();
-    charts.orders = new Chart(document.getElementById('ordersChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ordData.map(o => o.status),
-            datasets: [{ data: ordData.map(o => o.cnt), backgroundColor: ['#44D62C', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: 0 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } } }, cutout: '70%' }
-    });
     
-    // 3. Geo
-    const resGeo = await fetch('includes/fetch_data.php?action=geo_sales_distribution');
-    const geoData = await resGeo.json();
-    charts.geo = new Chart(document.getElementById('geoChart'), {
-        type: 'bar',
-        data: {
-            labels: geoData.map(g => g.country),
-            datasets: [{ label: 'Total Sales ($)', data: geoData.map(g => g.sales), backgroundColor: '#3b82f6', borderColor: '#1e40af', borderWidth: 1, borderRadius: 4 }]
-        },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { borderDash: [5, 5] }, title: { display: true, text: 'Sales Amount' } }, y: { grid: { display: false } } } }
-    });
-
-    // 4. CATEGORY CHART (USING LOCAL DATA)
-    
-    // Calculate totals based on 'productCategoryRelations'
-    let catCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    Object.values(productCategoryRelations).forEach(catIds => {
-        catIds.forEach(id => {
-            if (catCounts[id] !== undefined) catCounts[id]++;
-        });
-    });
-
-    // Convert to Chart Arrays
-    const catLabels = Object.keys(categoryMap).map(id => categoryMap[id]);
-    const catValues = Object.keys(categoryMap).map(id => catCounts[id]);
-
-    charts.category = new Chart(document.getElementById('categoryChart'), {
-        type: 'bar',
-        data: {
-            labels: catLabels,
-            datasets: [{ 
-                label: 'Products', 
-                data: catValues, 
-                backgroundColor: [
-                    '#8b5cf6', // Accessories
-                    '#3b82f6', // Phone
-                    '#06b6d4', // Tablet
-                    '#10b981', // Laptop
-                    '#44D62C'  // Gaming
-                ], 
-                borderRadius: 4 
-            }]
-        },
-        options: { 
-            responsive: true, 
-            plugins: { legend: { display: false } }, 
-            scales: { 
-                x: { grid: { display: false } }, 
-                y: { grid: { borderDash: [5, 5] }, beginAtZero: true, ticks: { stepSize: 1 } } 
-            } 
+    // ---------------------------------------------------------
+    // 1. CATEGORY CHART (Green Gradient Style - Local Data)
+    // ---------------------------------------------------------
+    try {
+        let catCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        
+        if (typeof productCategoryRelations !== 'undefined') {
+            Object.values(productCategoryRelations).forEach(catIds => {
+                catIds.forEach(id => {
+                    if (catCounts[id] !== undefined) catCounts[id]++;
+                });
+            });
         }
-    });
 
-    // 5. Users
-    const resUsers = await fetch('includes/fetch_data.php?action=user_registration_trend');
-    const userData = await resUsers.json();
-    charts.users = new Chart(document.getElementById('usersChart'), {
-        type: 'line',
-        data: {
-            labels: userData.map(u => u.date),
-            datasets: [{ label: 'New Users', data: userData.map(u => u.count), borderColor: '#8b5cf6', borderWidth: 2, tension: 0.4, pointRadius: 0 }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
-    });
+        const catLabels = Object.keys(categoryMap).map(id => categoryMap[id]);
+        const catValues = Object.keys(categoryMap).map(id => catCounts[id]);
+
+        const catCtx = document.getElementById('categoryChart');
+        if (catCtx) {
+            charts.category = new Chart(catCtx, {
+                type: 'bar',
+                data: {
+                    labels: catLabels,
+                    datasets: [{ 
+                        label: 'Products', 
+                        data: catValues, 
+                        backgroundColor: (context) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 200); 
+                            gradient.addColorStop(0, '#44D62C');
+                            gradient.addColorStop(1, 'rgba(68, 214, 44, 0.05)');
+                            return gradient;
+                        },
+                        borderColor: '#44D62C',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { grid: { display: false } }, 
+                        y: { grid: { borderDash: [5, 5] }, beginAtZero: true, ticks: { stepSize: 1 } } 
+                    } 
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Error loading Category Chart:", e);
+    }
+
+    // ---------------------------------------------------------
+    // 2. REVENUE CHART
+    // ---------------------------------------------------------
+    try {
+        const resRev = await fetch('includes/fetch_data.php?action=monthly_revenue');
+        if (resRev.ok) {
+            const revData = await resRev.json();
+            const revCtx = document.getElementById('revenueChart');
+            if (revCtx) {
+                charts.revenue = new Chart(revCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: revData.map(r => r.ym),
+                        datasets: [{
+                            label: 'Revenue',
+                            data: revData.map(r => r.amt),
+                            borderColor: '#44D62C',
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                                gradient.addColorStop(0, 'rgba(68, 214, 44, 0.4)');
+                                gradient.addColorStop(1, 'rgba(68, 214, 44, 0.0)');
+                                return gradient;
+                            },
+                            fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#44D62C'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } } }
+                });
+            }
+        }
+    } catch (e) { console.error(e); }
+
+    // ---------------------------------------------------------
+    // 3. ORDERS CHART
+    // ---------------------------------------------------------
+    try {
+        const resOrd = await fetch('includes/fetch_data.php?action=orders_summary');
+        if (resOrd.ok) {
+            const ordData = await resOrd.json();
+            const ordCtx = document.getElementById('ordersChart');
+            if (ordCtx) {
+                charts.orders = new Chart(ordCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ordData.map(o => o.status),
+                        datasets: [{ data: ordData.map(o => o.cnt), backgroundColor: ['#44D62C', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: 0 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } } }, cutout: '70%' }
+                });
+            }
+        }
+    } catch (e) { console.error(e); }
+    
+    // ---------------------------------------------------------
+    // 4. GEO CHART (Fixed API Call & Data Mapping)
+    // ---------------------------------------------------------
+    try {
+        // Use 'sales_by_country' to match your fetch_data.php
+        const resGeo = await fetch('includes/fetch_data.php?action=sales_by_country');
+        if (resGeo.ok) {
+            const geoData = await resGeo.json();
+            const geoCtx = document.getElementById('geoChart');
+            if (geoCtx) {
+                charts.geo = new Chart(geoCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: geoData.map(g => g.country),
+                        // Use g.value as returned by sales_by_country logic
+                        datasets: [{ label: 'Total Sales ($)', data: geoData.map(g => g.value), backgroundColor: '#3b82f6', borderColor: '#1e40af', borderWidth: 1, borderRadius: 4 }]
+                    },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { borderDash: [5, 5] }, title: { display: true, text: 'Sales Amount' } }, y: { grid: { display: false } } } }
+                });
+            }
+        }
+    } catch (e) { console.error(e); }
+
+    // ---------------------------------------------------------
+    // 5. USER REGISTRATION TREND (Overlapping Filled Areas + Total)
+    // ---------------------------------------------------------
+    try {
+        // Fetch 90 days of data (approx 3 months back from Nov = Sept start)
+        const resUsers = await fetch('includes/fetch_data.php?action=user_registration_trend&days=90');
+        
+        if (resUsers.ok) {
+            const userData = await resUsers.json();
+            
+            const labels = userData.length ? userData.map(u => u.date) : ['No Data'];
+            const activePoints = userData.length ? userData.map(u => u.active) : [0];
+            const suspendedPoints = userData.length ? userData.map(u => u.suspended) : [0];
+            const deletedPoints = userData.length ? userData.map(u => u.deleted) : [0];
+            
+            // CALCULATE TOTAL DYNAMICALLY (Active + Suspended + Deleted)
+            const totalPoints = userData.length 
+                ? userData.map(u => (Number(u.active)||0) + (Number(u.suspended)||0) + (Number(u.deleted)||0)) 
+                : [0];
+
+            const userCtx = document.getElementById('usersChart');
+            if (userCtx) {
+                charts.users = new Chart(userCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            // 0. Total Line (Dashed, On Top)
+                            {
+                                label: 'Total',
+                                data: totalPoints,
+                                borderColor: '#94a3b8', // Slate 400 (visible but neutral)
+                                borderWidth: 2,
+                                borderDash: [3, 3], // Dashed line
+                                fill: false, // Do not fill area for total
+                                tension: 0.4,
+                                pointRadius: 0,
+                                pointHoverRadius: 4,
+                                order: 0 // Ensure it draws on top of filled areas
+                            },
+                            // 1. Active Users (Purple)
+                            {
+                                label: 'New/Active',
+                                data: activePoints,
+                                borderColor: '#8b5cf6',
+                                backgroundColor: (ctx) => {
+                                    const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150);
+                                    gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+                                    gradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+                                    return gradient;
+                                },
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 0,
+                                pointHoverRadius: 4,
+                                order: 1
+                            },
+                            // 2. Suspended Users (Orange/Red)
+                            {
+                                label: 'Suspended',
+                                data: suspendedPoints,
+                                borderColor: '#f97316', // Orange
+                                backgroundColor: (ctx) => {
+                                    const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150);
+                                    gradient.addColorStop(0, 'rgba(249, 115, 22, 0.4)');
+                                    gradient.addColorStop(1, 'rgba(249, 115, 22, 0.05)');
+                                    return gradient;
+                                },
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 0,
+                                pointHoverRadius: 4,
+                                order: 2
+                            },
+                            // 3. Deleted Users (Gray/Dark Red)
+                            {
+                                label: 'Deleted',
+                                data: deletedPoints,
+                                borderColor: '#ef4444', // Red
+                                backgroundColor: (ctx) => {
+                                    const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150);
+                                    gradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+                                    gradient.addColorStop(1, 'rgba(239, 68, 68, 0.05)');
+                                    return gradient;
+                                },
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 0,
+                                pointHoverRadius: 4,
+                                order: 3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                display: true, 
+                                labels: { 
+                                    boxWidth: 8, 
+                                    usePointStyle: true,
+                                    font: { size: 10 }
+                                } 
+                            },
+                            tooltip: {
+                                intersect: false,
+                                mode: 'index',
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                titleColor: '#1f2937',
+                                bodyColor: '#1f2937',
+                                borderColor: '#e5e7eb',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            x: { display: false },
+                            y: { display: false, beginAtZero: true }
+                        }
+                    }
+                });
+            }
+        }
+    } catch (e) { 
+        console.error("User Trend Error:", e); 
+    }
 }
 
 document.getElementById('revenueToggle').addEventListener('change', async (e) => {
