@@ -74,6 +74,7 @@ if (!$token || !in_array($action, ['approve','reject'])) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/png" href="Uploads/logo1.png">
 <title>Admin Request Result</title>
 <style>
 :root{ --bg:#0b1220; --card:#0f1720; --accent:#44D62C; --muted:#9aa6b2; --text:#e6eef6; }

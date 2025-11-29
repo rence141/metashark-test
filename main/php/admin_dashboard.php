@@ -14,8 +14,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
 // Logic for Admin Initial (for the avatar)
 $admin_initial = strtoupper(substr($admin_name, 0, 1));
 
-
-// Pre-fetch Pending Requests (Logic moved to top for cleaner HTML)
+// Pre-fetch Pending Requests
 $pending_requests = [];
 $stmt = $conn->prepare("SELECT id, first_name, last_name, email, created_at, token FROM admin_requests WHERE status = 'pending' ORDER BY created_at DESC LIMIT 10");
 if ($stmt) {
@@ -51,7 +50,7 @@ if ($stmt) {
     }
 
     [data-theme="dark"] {
-        --bg: #0f1115; /* Deep matte black/blue */
+        --bg: #0f1115;
         --panel: #161b22;
         --panel-border: #242c38;
         --text: #e6eef6;
@@ -82,145 +81,47 @@ if ($stmt) {
     
     .sidebar-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
 
-    /* --- Profile/User Widget in Navbar --- */
-    .navbar-profile-link {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px 12px;
-        border-radius: 10px;
-        transition: var(--transition);
-        color: var(--text); /* Default color for text */
-    }
-    .navbar-profile-link:hover {
-        background: rgba(68,214,44,0.1);
-        color: var(--primary); /* Hover color for text/link */
-    }
-    [data-theme="light"] .navbar-profile-link:hover {
-        background: #f3f4f6;
-    }
+    /* --- Profile Widget --- */
+    .navbar-profile-link { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; transition: var(--transition); color: var(--text); }
+    .navbar-profile-link:hover { background: rgba(68,214,44,0.1); color: var(--primary); }
+    .profile-info-display { text-align: right; line-height: 1.2; display: none; }
+    @media (min-width: 640px) { .profile-info-display { display: block; } }
+    .profile-name { font-size: 14px; font-weight: 600; color: var(--text); transition: color 0.2s; }
+    .navbar-profile-link:hover .profile-name { color: var(--primary); }
+    .profile-role { font-size: 11px; color: var(--text-muted); }
+    .profile-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #000; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--primary); box-shadow: 0 0 8px var(--primary-glow); flex-shrink: 0; }
 
-    .profile-info-display {
-        text-align: right;
-        line-height: 1.2;
-        /* Hide on small screens */
-        display: none; 
-    }
-    @media (min-width: 640px) {
-        .profile-info-display {
-            display: block; 
-        }
-    }
-    .profile-name {
-        font-size: 14px;
-        font-weight: 600;
-        /* Ensure name is dark/light mode text color */
-        color: var(--text); 
-        transition: color 0.2s;
-    }
-    .navbar-profile-link:hover .profile-name {
-        color: var(--primary); /* Name changes color on hover */
-    }
-    .profile-role {
-        font-size: 11px;
-        color: var(--text-muted);
-    }
-    .profile-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: var(--primary);
-        color: #000;
-        font-weight: 700;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid var(--primary);
-        box-shadow: 0 0 8px var(--primary-glow);
-        flex-shrink: 0;
-    }
-    /* --- End Profile/User Widget --- */
-
-
-    .admin-sidebar {
-        position: fixed; left: 0; top: 70px; bottom: 0; width: var(--sidebar-width);
-        background: var(--panel); border-right: 1px solid var(--panel-border);
-        padding: 24px 16px; overflow-y: auto; transition: var(--transition); z-index: 40;
-    }
-
-    .sidebar-group-label {
-        font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-        color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7;
-    }
-
-    .sidebar-item {
-        display: flex; align-items: center; gap: 12px; padding: 12px;
-        border-radius: 10px; color: var(--text-muted); font-weight: 500; font-size: 14px;
-        transition: var(--transition); margin-bottom: 4px;
-    }
+    .admin-sidebar { position: fixed; left: 0; top: 70px; bottom: 0; width: var(--sidebar-width); background: var(--panel); border-right: 1px solid var(--panel-border); padding: 24px 16px; overflow-y: auto; transition: var(--transition); z-index: 40; }
+    .sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
+    .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-muted); font-weight: 500; font-size: 14px; transition: var(--transition); margin-bottom: 4px; }
     .sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
     [data-theme="light"] .sidebar-item:hover { background: #f3f4f6; }
-    
-    .sidebar-item.active {
-        background: linear-gradient(90deg, rgba(68,214,44,0.15), transparent);
-        color: var(--primary);
-        border-left: 3px solid var(--primary);
-    }
+    .sidebar-item.active { background: linear-gradient(90deg, rgba(68,214,44,0.15), transparent); color: var(--primary); border-left: 3px solid var(--primary); }
     .sidebar-item i { font-size: 18px; }
 
-    .admin-main {
-        margin-left: var(--sidebar-width); margin-top: 70px; padding: 32px;
-        min-height: calc(100vh - 70px); transition: var(--transition);
-    }
+    .admin-main { margin-left: var(--sidebar-width); margin-top: 70px; padding: 32px; min-height: calc(100vh - 70px); transition: var(--transition); }
 
     /* --- Components --- */
     .dashboard-header { margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end; }
     .dashboard-header h2 { font-size: 24px; font-weight: 700; }
     .dashboard-header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
 
-    .stats-grid {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 20px; margin-bottom: 32px;
-    }
-
-    .stat-card {
-        background: var(--panel); padding: 24px; border-radius: var(--radius);
-        border: 1px solid var(--panel-border); box-shadow: var(--shadow);
-        position: relative; overflow: hidden;
-    }
-    .stat-card::after {
-        content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100px;
-        background: linear-gradient(135deg, transparent, rgba(68,214,44,0.05));
-        border-radius: 0 0 0 100%; pointer-events: none;
-    }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
+    .stat-card { background: var(--panel); padding: 24px; border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); position: relative; overflow: hidden; }
+    .stat-card::after { content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(135deg, transparent, rgba(68,214,44,0.05)); border-radius: 0 0 0 100%; pointer-events: none; }
     .stat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .stat-icon {
-        width: 40px; height: 40px; border-radius: 10px;
-        background: rgba(68,214,44,0.1); color: var(--primary);
-        display: flex; align-items: center; justify-content: center; font-size: 20px;
-    }
+    .stat-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(68,214,44,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 20px; }
     .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
     .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
     .stat-sub { font-size: 12px; color: var(--primary); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
 
-    /* Charts & Tables */
     .grid-stack { display: grid; gap: 24px; margin-bottom: 24px; }
     .charts-row { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
-    
-    .card {
-        background: var(--panel); border-radius: var(--radius);
-        border: 1px solid var(--panel-border); box-shadow: var(--shadow);
-        display: flex; flex-direction: column;
-    }
-    .card-header {
-        padding: 20px 24px; border-bottom: 1px solid var(--panel-border);
-        display: flex; justify-content: space-between; align-items: center;
-    }
+    .card { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .card-header { padding: 20px 24px; border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center; }
     .card-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
     .card-body { padding: 24px; position: relative; }
-    
-    /* Tables */
+
     .table-responsive { overflow-x: auto; }
     table { width: 100%; border-collapse: separate; border-spacing: 0; }
     th { text-align: left; padding: 12px 24px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--panel-border); }
@@ -229,7 +130,9 @@ if ($stmt) {
     tr:hover td { background: rgba(255,255,255,0.02); }
     [data-theme="light"] tr:hover td { background: #f9fafb; }
 
-    /* Badges & Buttons */
+    /* Category Badge */
+    .cat-badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; margin-right: 4px; display: inline-block; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); color: var(--text-muted); }
+    
     .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; }
     .badge-success { background: rgba(68,214,44,0.15); color: var(--primary); }
     .badge-warning { background: rgba(255,152,0,0.15); color: #ff9800; }
@@ -241,11 +144,9 @@ if ($stmt) {
     .btn-primary { background: var(--primary); color: #000; }
     .btn-primary:hover { filter: brightness(1.1); }
 
-    /* Skeleton Loading */
     .skeleton { background: var(--panel-border); border-radius: 4px; animation: pulse 1.5s infinite; color: transparent !important; user-select: none; }
     @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }
 
-    /* Mobile Responsive */
     @media (max-width: 992px) {
         .admin-sidebar { transform: translateX(-100%); }
         .admin-sidebar.show { transform: translateX(0); }
@@ -290,7 +191,9 @@ if ($stmt) {
     <a href="charts_line.php" class="sidebar-item"><i class="bi bi-graph-up-arrow"></i> Revenue</a>
     <a href="charts_bar.php" class="sidebar-item"><i class="bi bi-bar-chart-fill"></i> Categories</a>
     <a href="charts_pie.php" class="sidebar-item"><i class="bi bi-pie-chart-fill"></i> Orders</a>
-    <a href="charts_geo.php" class="sidebar-item"><i class="bi bi-globe2"></i> Geography</a> <div class="sidebar-group-label">Management</div>
+    <a href="charts_geo.php" class="sidebar-item"><i class="bi bi-globe2"></i> Geography</a>
+
+    <div class="sidebar-group-label">Management</div>
     <a href="admin_products.php" class="sidebar-item"><i class="bi bi-box-seam"></i> Products</a>
     <a href="admin_users.php" class="sidebar-item"><i class="bi bi-people-fill"></i> Users</a>
     <a href="admin_sellers.php" class="sidebar-item"><i class="bi bi-shop"></i> Sellers</a>
@@ -298,7 +201,7 @@ if ($stmt) {
 
     <div class="sidebar-group-label">Settings</div>
     <a href="admin_profile.php" class="sidebar-item"><i class="bi bi-person-gear"></i> My Profile</a>
-    </aside>
+</aside>
 
 <main class="admin-main">
     <div class="dashboard-header fade-in">
@@ -316,33 +219,25 @@ if ($stmt) {
 
     <div class="stats-grid fade-in">
         <div class="stat-card">
-            <div class="stat-head">
-                <div class="stat-icon"><i class="bi bi-box"></i></div>
-            </div>
+            <div class="stat-head"><div class="stat-icon"><i class="bi bi-box"></i></div></div>
             <div class="stat-value" id="totalProducts"><span class="skeleton">000</span></div>
             <div class="stat-label">Total Products</div>
             <div class="stat-sub" id="productsInfo"><span class="skeleton">Stock info loading...</span></div>
         </div>
         <div class="stat-card">
-            <div class="stat-head">
-                <div class="stat-icon" style="color:#00d4ff; background:rgba(0,212,255,0.1)"><i class="bi bi-currency-dollar"></i></div>
-            </div>
+            <div class="stat-head"><div class="stat-icon" style="color:#00d4ff; background:rgba(0,212,255,0.1)"><i class="bi bi-currency-dollar"></i></div></div>
             <div class="stat-value">$<span id="totalRevenue"><span class="skeleton">0,000</span></span></div>
             <div class="stat-label">Total Revenue</div>
             <div class="stat-sub" style="color:#00d4ff"><i class="bi bi-arrow-up-short"></i> Lifetime Earnings</div>
         </div>
         <div class="stat-card">
-            <div class="stat-head">
-                <div class="stat-icon" style="color:#ff9800; background:rgba(255,152,0,0.1)"><i class="bi bi-bag"></i></div>
-            </div>
+            <div class="stat-head"><div class="stat-icon" style="color:#ff9800; background:rgba(255,152,0,0.1)"><i class="bi bi-bag"></i></div></div>
             <div class="stat-value" id="totalOrders"><span class="skeleton">000</span></div>
             <div class="stat-label">Total Orders</div>
             <div class="stat-sub" style="color:#ff9800">Processing & Completed</div>
         </div>
         <div class="stat-card">
-            <div class="stat-head">
-                <div class="stat-icon" style="color:#f44336; background:rgba(244,67,54,0.1)"><i class="bi bi-shop"></i></div>
-            </div>
+            <div class="stat-head"><div class="stat-icon" style="color:#f44336; background:rgba(244,67,54,0.1)"><i class="bi bi-shop"></i></div></div>
             <div class="stat-value" id="totalSellers"><span class="skeleton">00</span></div>
             <div class="stat-label">Active Sellers</div>
         </div>
@@ -350,17 +245,11 @@ if ($stmt) {
 
     <div class="grid-stack charts-row fade-in" style="animation-delay: 0.1s;">
         <div class="card">
-            <div class="card-header">
-                <h3>Revenue Trend</h3>
-            </div>
-            <div class="card-body">
-                <canvas id="revenueChart" height="250"></canvas>
-            </div>
+            <div class="card-header"><h3>Revenue Trend</h3></div>
+            <div class="card-body"><canvas id="revenueChart" height="250"></canvas></div>
         </div>
         <div class="card">
-            <div class="card-header">
-                <h3>Orders by Status</h3>
-            </div>
+            <div class="card-header"><h3>Orders by Status</h3></div>
             <div class="card-body" style="position: relative; height:300px; display:flex; align-items:center; justify-content:center;">
                 <canvas id="ordersChart"></canvas>
             </div>
@@ -374,17 +263,13 @@ if ($stmt) {
             </div>
             <div class="table-responsive">
                 <table>
-                    <thead>
-                        <tr><th>Name</th><th>Email</th><th>Requested</th><th>Actions</th></tr>
-                    </thead>
+                    <thead><tr><th>Name</th><th>Email</th><th>Requested</th><th>Actions</th></tr></thead>
                     <tbody>
                         <?php if (empty($pending_requests)): ?>
                             <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-muted);">No pending requests found.</td></tr>
                         <?php else: foreach ($pending_requests as $req): ?>
                             <tr>
-                                <td>
-                                    <div style="font-weight:600;"><?php echo htmlspecialchars($req['first_name'] . ' ' . $req['last_name']); ?></div>
-                                </td>
+                                <td><div style="font-weight:600;"><?php echo htmlspecialchars($req['first_name'] . ' ' . $req['last_name']); ?></div></td>
                                 <td style="color:var(--text-muted);"><?php echo htmlspecialchars($req['email']); ?></td>
                                 <td><span class="badge badge-warning"><?php echo htmlspecialchars(date('M d, Y', strtotime($req['created_at']))); ?></span></td>
                                 <td>
@@ -401,37 +286,29 @@ if ($stmt) {
     
     <div class="grid-stack charts-row fade-in" style="animation-delay: 0.3s;">
         <div class="card">
-            <div class="card-header">
-                <h3>Sales by Country</h3>
-            </div>
-            <div class="card-body">
-                <canvas id="geoChart" height="250"></canvas> 
-            </div>
+            <div class="card-header"><h3>Sales by Country</h3></div>
+            <div class="card-body"><canvas id="geoChart" height="250"></canvas></div>
         </div>
         
         <div class="card">
             <div class="card-header"><h3>Top Products</h3></div>
             <div class="table-responsive">
                 <table id="topProductsTable">
-                    <thead><tr><th>Product Name</th><th style="text-align:right">Units Sold</th></tr></thead>
-                    <tbody><tr><td colspan="2"><span class="skeleton">Loading data...</span></td></tr></tbody>
+                    <thead><tr><th>Product Name</th><th>Category</th><th style="text-align:right">Units Sold</th></tr></thead>
+                    <tbody><tr><td colspan="3"><span class="skeleton">Loading data...</span></td></tr></tbody>
                 </table>
             </div>
         </div>
     </div>
+
     <div class="grid-stack charts-row fade-in" style="animation-delay: 0.4s;">
         <div class="card">
             <div class="card-header"><h3>Product Categories</h3></div>
-            <div class="card-body">
-                <canvas id="categoryChart" height="200"></canvas>
-            </div>
+            <div class="card-body"><canvas id="categoryChart" height="200"></canvas></div>
         </div>
-        
         <div class="card">
             <div class="card-header"><h3>User Registration Trend</h3></div>
-            <div class="card-body">
-                <canvas id="usersChart" height="80"></canvas>
-            </div>
+            <div class="card-body"><canvas id="usersChart" height="80"></canvas></div>
         </div>
     </div>
 
@@ -439,13 +316,9 @@ if ($stmt) {
 
 <script>
 // --- UI Interactivity ---
-// Sidebar Toggle
 const sidebar = document.getElementById('sidebar');
 const toggleBtn = document.getElementById('sidebarToggle');
-toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('show');
-});
-// Close sidebar when clicking outside on mobile
+toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('show'); });
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
         sidebar.classList.remove('show');
@@ -468,38 +341,50 @@ themeBtn.addEventListener('click', () => {
     localStorage.setItem('theme', newTheme);
     updateThemeIcon(newTheme);
     fetch('theme_toggle.php?theme=' + newTheme);
-    
-    // Slight delay to allow CSS var update before chart update, or force update
     setTimeout(updateChartsTheme, 200);
 });
 
-// --- Data Fetching & Charts ---
+// --- HARDCODED DATA FOR CATEGORIES ---
 
-// Utility: Create Gradient
-function getGradient(ctx, colorStart, colorEnd) {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, colorStart);
-    gradient.addColorStop(1, colorEnd);
-    return gradient;
-}
-
-const chartDefaults = {
-    color: '#6b7280',
-    borderColor: '#374151'
+// 1. Map ID to Name
+const categoryMap = {
+    1: 'Accessories',
+    2: 'Phone',
+    3: 'Tablet',
+    4: 'Laptop',
+    5: 'Gaming'
 };
 
+// 2. Map Product ID to Array of Category IDs
+const productCategoryRelations = {
+    19: [1],
+    24: [1, 5],
+    25: [1, 5],
+    27: [1, 5],
+    28: [3, 5],
+    29: [2, 5],
+    30: [3],
+    31: [2, 5],
+    32: [4, 5],
+    34: [2],
+    2:  [3],
+    33: [4]
+};
+
+// --- Data Fetching & Charts ---
+
+const chartDefaults = { color: '#6b7280', borderColor: '#374151' };
 Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.color = "<?php echo $theme === 'dark' ? '#94a3b8' : '#6b7280'; ?>";
 Chart.defaults.borderColor = "<?php echo $theme === 'dark' ? '#242c38' : 'rgba(107, 114, 128, 0.1)'; ?>";
 
-let charts = {}; // Store instances
+let charts = {}; 
 
 async function loadDashboard() {
     try {
         const res = await fetch('includes/fetch_data.php?action=dashboard_stats');
         const data = await res.json();
         
-        // Update Stats with animation
         animateValue("totalProducts", 0, data.total_products || 0, 1000);
         document.getElementById('productsInfo').innerHTML = `Total Stock: ${(data.total_stock || 0).toLocaleString()}`;
         document.getElementById('totalRevenue').textContent = (data.total_revenue || 0).toLocaleString();
@@ -520,28 +405,42 @@ function animateValue(id, start, end, duration) {
     window.requestAnimationFrame(step);
 }
 
+// Populate Top Products Table with Decoded Categories
 async function loadTables() {
-    // Products Table
     const resProd = await fetch('includes/fetch_data.php?action=top_products');
     const products = await resProd.json();
     let html = '';
+    
     products.slice(0,5).forEach(p => {
+        const prodId = p.id || p.product_id; 
+        
+        let catHtml = '<span class="text-muted" style="font-size:11px;">Uncategorized</span>';
+        
+        // Lookup categories for this product
+        if (productCategoryRelations[prodId]) {
+            const catIds = productCategoryRelations[prodId];
+            const catNames = catIds.map(id => categoryMap[id]).filter(Boolean);
+            
+            if (catNames.length > 0) {
+                catHtml = catNames.map(name => `<span class="cat-badge">${name}</span>`).join('');
+            }
+        }
+
         html += `<tr>
             <td style="font-weight:500">${p.name}</td>
+            <td>${catHtml}</td>
             <td style="text-align:right"><span class="badge badge-success">${Number(p.total_qty).toLocaleString()}</span></td>
         </tr>`;
     });
     document.querySelector('#topProductsTable tbody').innerHTML = html;
 }
 
-// Global reference for the Revenue Chart to allow toggling
 let revenueChartCtx = document.getElementById('revenueChart').getContext('2d');
 
 async function loadCharts() {
-    // 1. Revenue Chart (Line)
+    // 1. Revenue
     const resRev = await fetch('includes/fetch_data.php?action=monthly_revenue');
     const revData = await resRev.json();
-    
     charts.revenue = new Chart(revenueChartCtx, {
         type: 'line',
         data: {
@@ -557,142 +456,104 @@ async function loadCharts() {
                     gradient.addColorStop(1, 'rgba(68, 214, 44, 0.0)');
                     return gradient;
                 },
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointBackgroundColor: '#44D62C'
+                fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#44D62C'
             }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } } }
     });
 
-    // 2. Orders Doughnut
+    // 2. Orders
     const resOrd = await fetch('includes/fetch_data.php?action=orders_summary');
     const ordData = await resOrd.json();
     charts.orders = new Chart(document.getElementById('ordersChart'), {
         type: 'doughnut',
         data: {
             labels: ordData.map(o => o.status),
-            datasets: [{
-                data: ordData.map(o => o.cnt),
-                backgroundColor: ['#44D62C', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'],
-                borderWidth: 0
-            }]
+            datasets: [{ data: ordData.map(o => o.cnt), backgroundColor: ['#44D62C', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: 0 }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } } },
-            cutout: '70%'
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } } }, cutout: '70%' }
     });
     
-    // 3. Geo Chart (NEW)
+    // 3. Geo
     const resGeo = await fetch('includes/fetch_data.php?action=geo_sales_distribution');
     const geoData = await resGeo.json();
-    
     charts.geo = new Chart(document.getElementById('geoChart'), {
         type: 'bar',
         data: {
-            // Assumes geoData returns an array with 'country' and 'sales' fields
             labels: geoData.map(g => g.country),
-            datasets: [{
-                label: 'Total Sales ($)',
-                data: geoData.map(g => g.sales),
-                backgroundColor: '#3b82f6', // Blue color for sales
-                borderColor: '#1e40af',
-                borderWidth: 1,
-                borderRadius: 4,
-            }]
+            datasets: [{ label: 'Total Sales ($)', data: geoData.map(g => g.sales), backgroundColor: '#3b82f6', borderColor: '#1e40af', borderWidth: 1, borderRadius: 4 }]
         },
-        options: {
-            indexAxis: 'y', // Makes it a horizontal bar chart
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    grid: { borderDash: [5, 5] },
-                    title: { display: true, text: 'Sales Amount' }
-                },
-                y: {
-                    grid: { display: false }
-                }
-            }
-        }
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { borderDash: [5, 5] }, title: { display: true, text: 'Sales Amount' } }, y: { grid: { display: false } } } }
     });
 
-    // 4. Category Bar (OLD 3)
-    const resCat = await fetch('includes/fetch_data.php?action=category_distribution');
-    const catData = await resCat.json();
+    // 4. CATEGORY CHART (USING LOCAL DATA)
+    
+    // Calculate totals based on 'productCategoryRelations'
+    let catCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    Object.values(productCategoryRelations).forEach(catIds => {
+        catIds.forEach(id => {
+            if (catCounts[id] !== undefined) catCounts[id]++;
+        });
+    });
+
+    // Convert to Chart Arrays
+    const catLabels = Object.keys(categoryMap).map(id => categoryMap[id]);
+    const catValues = Object.keys(categoryMap).map(id => catCounts[id]);
+
     charts.category = new Chart(document.getElementById('categoryChart'), {
         type: 'bar',
         data: {
-            labels: catData.map(c => c.category),
-            datasets: [{
-                label: 'Products',
-                data: catData.map(c => c.count),
-                backgroundColor: '#00d4ff',
-                borderRadius: 4
+            labels: catLabels,
+            datasets: [{ 
+                label: 'Products', 
+                data: catValues, 
+                backgroundColor: [
+                    '#8b5cf6', // Accessories
+                    '#3b82f6', // Phone
+                    '#06b6d4', // Tablet
+                    '#10b981', // Laptop
+                    '#44D62C'  // Gaming
+                ], 
+                borderRadius: 4 
             }]
         },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: { x: { grid: { display: false } }, y: { grid: { borderDash: [5, 5] } } }
+        options: { 
+            responsive: true, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                x: { grid: { display: false } }, 
+                y: { grid: { borderDash: [5, 5] }, beginAtZero: true, ticks: { stepSize: 1 } } 
+            } 
         }
     });
 
-    // 5. User Registration Trend (OLD 4)
+    // 5. Users
     const resUsers = await fetch('includes/fetch_data.php?action=user_registration_trend');
     const userData = await resUsers.json();
     charts.users = new Chart(document.getElementById('usersChart'), {
         type: 'line',
         data: {
             labels: userData.map(u => u.date),
-            datasets: [{
-                label: 'New Users',
-                data: userData.map(u => u.count),
-                borderColor: '#8b5cf6', // Violet
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 0
-            }]
+            datasets: [{ label: 'New Users', data: userData.map(u => u.count), borderColor: '#8b5cf6', borderWidth: 2, tension: 0.4, pointRadius: 0 }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { display: false }, y: { display: false } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
     });
 }
 
-// Toggle Revenue View (Daily vs Monthly)
 document.getElementById('revenueToggle').addEventListener('change', async (e) => {
     const action = e.target.value === 'daily' ? 'daily_revenue' : 'monthly_revenue';
     const res = await fetch(`includes/fetch_data.php?action=${action}`);
     const data = await res.json();
-    
-    // Update chart data
     charts.revenue.data.labels = data.map(r => r.ym || r.date);
     charts.revenue.data.datasets[0].data = data.map(r => r.amt);
     charts.revenue.update();
 });
 
 function updateChartsTheme() {
-    // Re-initialize charts to pick up the new CSS variables/theme defaults
     Object.values(charts).forEach(c => c.destroy());
     loadCharts(); 
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboard();
     loadTables();

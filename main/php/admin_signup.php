@@ -104,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
 <meta charset="utf-8">
+<link rel="icon" type="image/png" href="Uploads/logo1.png">
 <title>Admin Signup — Request Approval</title>
 <link rel="stylesheet" href="assets/css/admin.css">
 <style>

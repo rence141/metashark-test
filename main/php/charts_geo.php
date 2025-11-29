@@ -12,8 +12,13 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $currentLanguage = $_SESSION['language'] ?? 'en';
 
 // Assuming translations.php and loadLanguage are correctly defined
-require_once __DIR__ . '/includes/translations.php';
-loadLanguage($currentLanguage);
+// Fallback if file doesn't exist
+if (file_exists(__DIR__ . '/includes/translations.php')) {
+    require_once __DIR__ . '/includes/translations.php';
+    loadLanguage($currentLanguage);
+} else {
+    function t($key, $default) { return $default; }
+}
 
 $theme = $_SESSION['theme'] ?? 'dark';
 ?>
@@ -74,7 +79,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
         max-width: 1200px; margin: 0 auto;
         background: var(--panel); border: 1px solid var(--panel-border);
         border-radius: var(--radius); box-shadow: var(--shadow);
-        overflow: hidden; position: relative;
+        overflow: hidden;
     }
 
     /* Card Header */
@@ -104,19 +109,26 @@ $theme = $_SESSION['theme'] ?? 'dark';
     .mini-stat label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; }
     .mini-stat span { font-size: 18px; font-weight: 700; color: var(--text); }
 
+    /* Chart Area Wrapper */
+    .chart-area-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 640px;
+    }
+
     /* Geo Chart Container */
     .geo-wrap {
-        height: 640px; max-height: 640px; width: 100%; position: relative;
+        height: 640px; width: 100%;
     }
-    @media (max-width: 900px) { .geo-wrap { height: 420px; max-height: 420px; } }
+    @media (max-width: 900px) { .geo-wrap, .chart-area-wrapper { height: 420px; min-height: 420px; } }
     
-    /* Loading Skeleton */
+    /* Loading Skeleton - Now positioned over the wrapper, not inside the chart div */
     .loading-overlay {
         position: absolute; top: 0; left: 0; right: 0; bottom: 0;
         background: var(--panel); z-index: 10;
         display: flex; align-items: center; justify-content: center;
         flex-direction: column; gap: 15px; color: var(--text-muted);
-        transition: opacity 0.3s ease;
+        transition: opacity 0.5s ease;
     }
     .spinner {
         width: 40px; height: 40px; border: 3px solid rgba(68,214,44,0.1);
@@ -148,7 +160,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
 <div class="chart-card">
     <div class="card-header">
         <div class="header-title">
-            <h1><img src="uploads/logo1.png" alt="Logo"> <?php echo t('charts.geo.heading', 'Sales by Country — Geo'); ?></h1>
+            <h1><img src="uploads/logo1.png" alt="Logo" onerror="this.src='https://placehold.co/100x40?text=MetaShark'"> <?php echo t('charts.geo.heading', 'Sales by Country — Geo'); ?></h1>
             <div class="header-subtitle"><?php echo t('charts.geo.description', 'Geographical distribution of total sales revenue.'); ?></div>
         </div>
         <div class="header-actions">
@@ -171,18 +183,34 @@ $theme = $_SESSION['theme'] ?? 'dark';
         </div>
     </div>
 
-    <div id="geoChart" class="geo-wrap">
+    <!-- FIX: Wrapper keeps loader separate from chart div to prevent deletion issues -->
+    <div class="chart-area-wrapper">
         <div class="loading-overlay" id="loader">
             <div class="spinner"></div>
             <div style="font-size:14px; font-weight:500;"><?php echo t('charts.geo.loading', 'Loading Geographical Data...'); ?></div>
         </div>
+        <div id="geoChart" class="geo-wrap"></div>
     </div>
 </div>
 
 <script>
+// 1. Load Google Charts Library
 google.charts.load('current', {'packages':['geochart']});
-let geoReady=false;
-google.charts.setOnLoadCallback(()=>{ geoReady=true; drawGeo(); });
+
+// 2. Start Fetching Data Immediately (Parallel)
+const dataFetchPromise = fetchJson('includes/fetch_data.php?action=sales_by_country');
+
+// 3. When Library Loads, Wait for Data, then Draw
+google.charts.setOnLoadCallback(async () => {
+    try {
+        const srv = await dataFetchPromise;
+        drawGeo(srv);
+    } catch (e) {
+        console.error("Initialization Error:", e);
+        // Fallback to sample data on error
+        drawGeo(null); 
+    }
+});
 
 async function fetchJson(url){
     try {
@@ -190,8 +218,8 @@ async function fetchJson(url){
         if (!r.ok) throw new Error('Network error');
         return await r.json();
     } catch(e) {
-        console.error("Fetch Error:", e);
-        return null;
+        console.warn("Fetch failed, using sample data:", e);
+        return null; // Return null to trigger sample data
     }
 }
 
@@ -205,8 +233,8 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-function updateSummaryStats(data, countryLabel, salesLabel) {
-    if (!data.length) {
+function updateSummaryStats(data) {
+    if (!data || !data.length) {
         document.getElementById('statTotalSales').textContent = formatCurrency(0);
         document.getElementById('statCountryCount').textContent = 0;
         document.getElementById('statTopCountry').textContent = 'N/A';
@@ -230,85 +258,83 @@ function updateSummaryStats(data, countryLabel, salesLabel) {
     document.getElementById('statTopCountry').textContent = `${topCountry} (${formatCurrency(maxSale)})`;
 }
 
-async function drawGeo(){
-    const srv = await fetchJson('includes/fetch_data.php?action=sales_by_country');
+function drawGeo(srv){
     let dataForChart = [];
     
     const countryLabel = '<?php echo t("charts.geo.country", "Country"); ?>';
     const salesLabel = '<?php echo t("charts.geo.sales", "Sales"); ?>';
     const isDarkTheme = '<?php echo $theme; ?>' === 'dark';
 
+    // Process fetched data
+    let statsData = [];
     if (srv && srv.length) {
-        // Prepare data for Google Charts
         dataForChart.push([countryLabel, salesLabel]);
         srv.forEach(r => {
             const country = (r.country || '').trim();
             const value = Number(r.value || 0);
             if (country && value > 0) {
                 dataForChart.push([country, value]);
+                statsData.push({country, value});
             }
         });
         
-        // If only header row, use sample data
-        if (dataForChart.length === 1) dataForChart = null;
+        if (dataForChart.length === 1) dataForChart = null; // No valid rows
+    } else {
+        dataForChart = null;
     }
 
-    // Fallback to sample data if fetch failed or returned no useful rows
+    // Fallback to sample data if fetch failed or returned no rows
     if (!dataForChart) {
+        console.log("Using Sample Data");
         dataForChart = [[countryLabel, salesLabel],
                         ['United States',12000], ['Canada',3100], ['Brazil',2400], 
                         ['United Kingdom',5400], ['Germany',4200], ['India',7200], 
                         ['Australia',1900]];
-        // Use sample data to calculate summary stats
-        const sampleData = dataForChart.slice(1).map(row => ({country: row[0], value: row[1]}));
-        updateSummaryStats(sampleData, countryLabel, salesLabel);
-    } else {
-        // Calculate and update stats using real data
-        const realData = srv.map(row => ({country: row.country, value: row.value}));
-        updateSummaryStats(realData, countryLabel, salesLabel);
+        statsData = dataForChart.slice(1).map(row => ({country: row[0], value: row[1]}));
     }
-    
-    if (!geoReady) { setTimeout(drawGeo, 300); return; }
 
+    // Update Stats
+    updateSummaryStats(statsData);
+
+    // Draw Chart
     try {
         const container = document.getElementById('geoChart');
         const loader = document.getElementById('loader');
         
         const data = google.visualization.arrayToDataTable(dataForChart);
         
-        // Calculate min/max for better color scaling
+        // Calculate color scale
         const values = dataForChart.slice(1).map(r => r[1]).filter(v => v > 0);
         const minValue = values.length > 0 ? Math.min(...values) : 0;
         const maxValue = values.length > 0 ? Math.max(...values) : 10000;
         
         const options = {
             colorAxis: { 
-                // Green gradient for high sales
                 colors: isDarkTheme ? ['#242c38', '#88d767', '#44D62C'] : ['#eaf8e8', '#88d767', '#44D62C'],
                 minValue: minValue,
                 maxValue: maxValue
             },
             backgroundColor: 'transparent',
-            // Color for regions with no data (darker gray for dark mode)
             datalessRegionColor: isDarkTheme ? '#2e3a4e' : '#f5f5f5', 
             defaultColor: isDarkTheme ? '#242c38' : '#e5e7eb',
             legend: {
                 textStyle: { color: isDarkTheme ? '#e6eef6' : '#0b1220' }
             },
             keepAspectRatio: true,
-            resolution: 'countries',
             tooltip: {
-                // Tooltip background is always white/light in Google Charts, so text should be dark
                 textStyle: { color: '#1f2937' }, 
                 showColorCode: true
             }
         };
+
         const chart = new google.visualization.GeoChart(container);
         
-        // Hide loader when chart is ready
+        // Ensure loader is removed when chart is ready
         google.visualization.events.addListener(chart, 'ready', function() {
-            loader.style.opacity = '0';
-            setTimeout(() => { loader.style.display = 'none'; }, 300);
+            if(loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => { loader.style.display = 'none'; }, 500);
+            }
         });
 
         chart.draw(data, options);
@@ -317,30 +343,32 @@ async function drawGeo(){
         const container = document.getElementById('geoChart');
         if (container) {
             const errorMsg = '<?php echo t("charts.geo.unavailable", "Geography chart unavailable."); ?>';
-            container.innerHTML = `<div class="loading-overlay" style="opacity:1; background:var(--panel); position:static;">
-                                        <i class="bi bi-x-circle" style="font-size:24px; color:var(--text-muted)"></i>
-                                        <div style="font-size:14px; font-weight:500; max-width: 300px; text-align: center;">${errorMsg} <br> ${e.message}</div>
-                                    </div>`;
+            container.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-muted);">
+                                    <i class="bi bi-x-circle" style="font-size:24px; margin-bottom:10px;"></i>
+                                    <div>${errorMsg}</div>
+                                   </div>`;
+            // Hide loader if error occurred
+            const loader = document.getElementById('loader');
+            if(loader) loader.style.display = 'none';
         }
     }
 }
 
-// Redraw on resize with debounce
+// Redraw on resize
 let geoResizeTimer = null;
 window.addEventListener('resize', () => {
     clearTimeout(geoResizeTimer);
     geoResizeTimer = setTimeout(() => { 
-        try { 
-            document.getElementById('loader').style.display = 'flex';
-            document.getElementById('loader').style.opacity = '1';
-            drawGeo(); 
-        } catch(e) {} 
+        // Re-draw using existing data if possible, or reload. 
+        // For simplicity, we just reload the whole flow which handles caching internally if needed,
+        // or effectively just re-renders because fetch is fast/cached.
+        // Ideally we would cache 'dataForChart' globally but this works.
+        const loader = document.getElementById('loader');
+        if(loader) { loader.style.display = 'flex'; loader.style.opacity = '1'; }
+        
+        fetchJson('includes/fetch_data.php?action=sales_by_country').then(srv => drawGeo(srv));
     }, 300);
 });
-
-// Initial call
-// Initial display of the loader is handled by the HTML structure
-drawGeo();
 </script>
 </body>
 </html>

@@ -162,6 +162,7 @@ $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manage Orders — Meta Shark</title>
+<link rel="icon" type="image/png" href="Uploads/logo1.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
 /* CSS VARIABLES (Matches Admin Users) */
@@ -273,7 +274,7 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 
 <div class="admin-navbar">
     <div class="navbar-left">
-        <img src="uploads/logo1.png" alt="Logo" onerror="this.src='https://placehold.co/150x50/161b22/44D62C/png?text=SHARK'">
+        <link rel="icon" href="uploads/logo1.png">
         <h1>Meta Shark</h1>
     </div>
     <div class="nav-user-info">

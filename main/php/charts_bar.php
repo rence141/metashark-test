@@ -177,32 +177,56 @@ Chart.defaults.color = "#94a3b8";
 Chart.defaults.borderColor = "rgba(148, 163, 184, 0.1)";
 Chart.defaults.font.family = "'Inter', sans-serif";
 
-async function fetchJson(url) {
-    try {
-        const r = await fetch(url, {credentials: 'same-origin'});
-        if (!r.ok) throw new Error('Network response was not ok');
-        return await r.json();
-    } catch (e) {
-        console.error("Fetch Error:", e);
-        return [];
-    }
-}
+// --- 1. DEFINE REAL DATA MAPPINGS ---
+const categoryMap = {
+    1: 'Accessories',
+    2: 'Phone',
+    3: 'Tablet',
+    4: 'Laptop',
+    5: 'Gaming'
+};
 
-async function initChart() {
-    const data = await fetchJson('includes/fetch_data.php?action=category_distribution');
+// Relationship Map: Product ID -> [Category IDs]
+const productCategoryRelations = {
+    19: [1],
+    24: [1, 5],
+    25: [1, 5],
+    27: [1, 5],
+    28: [3, 5],
+    29: [2, 5],
+    30: [3],
+    31: [2, 5],
+    32: [4, 5],
+    34: [2],
+    2:  [3],
+    33: [4]
+};
+
+function initChart() {
+    // --- 2. CALCULATE COUNTS ---
+    let catCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     
-    // Process Data
-    const labels = (data && data.length) ? data.map(d => d.category) : ['No Data'];
-    const values = (data && data.length) ? data.map(d => Number(d.count)) : [0];
+    Object.values(productCategoryRelations).forEach(catIds => {
+        catIds.forEach(id => {
+            if (catCounts[id] !== undefined) {
+                catCounts[id]++;
+            }
+        });
+    });
 
-    // Calculate Stats
-    const totalItems = values.reduce((a, b) => a + b, 0);
+    // --- 3. PREPARE CHART DATA ---
+    // Extract names and counts in order of keys
+    const labels = Object.keys(categoryMap).map(id => categoryMap[id]); 
+    const values = Object.keys(categoryMap).map(id => catCounts[id]);
+
+    // --- 4. CALCULATE STATS ---
+    const totalItems = values.reduce((a, b) => a + b, 0); // Sum of all counts
     const maxVal = Math.max(...values);
     const topCatIndex = values.indexOf(maxVal);
     
     // Update UI Stats
     document.getElementById('statCatCount').textContent = labels.length;
-    document.getElementById('statTotalItems').textContent = totalItems.toLocaleString();
+    document.getElementById('statTotalItems').textContent = totalItems.toLocaleString(); // Total category tags applied
     document.getElementById('statTopCat').textContent = labels[topCatIndex] || '-';
     
     // Create Gradient
@@ -260,7 +284,7 @@ async function initChart() {
                         borderDash: [5, 5],
                         drawBorder: false
                     },
-                    ticks: { padding: 10 }
+                    ticks: { padding: 10, stepSize: 1 }
                 },
                 x: {
                     grid: { display: false },
@@ -275,8 +299,8 @@ async function initChart() {
         }
     });
 
-    // Fallback if animation completes instantly or fails
-    setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 500);
+    // Remove loader immediately since data is local
+    setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 300);
 }
 
 function downloadChart() {

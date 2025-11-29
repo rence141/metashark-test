@@ -77,7 +77,38 @@ function getUserDetails($conn, $id) {
     return $stmt->get_result()->fetch_assoc();
 }
 
-// --- Handle Actions ---
+// --- Handle User Update (Email/Password) ---
+if (isset($_POST['update_user_details'])) {
+    $id = (int)$_POST['user_id'];
+    $email = trim($_POST['email']);
+    $password = trim($_POST['password']);
+    
+    // Basic Validation
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        header("Location: admin_users.php?error=invalid_email");
+        exit;
+    }
+
+    if (!empty($password)) {
+        // Update Email AND Password
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $conn->prepare("UPDATE users SET email = ?, password = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $email, $hashed_password, $id);
+    } else {
+        // Update Email ONLY
+        $stmt = $conn->prepare("UPDATE users SET email = ? WHERE id = ?");
+        $stmt->bind_param("si", $email, $id);
+    }
+
+    if ($stmt->execute()) {
+        header("Location: admin_users.php?updated=1");
+    } else {
+        header("Location: admin_users.php?error=update_failed");
+    }
+    exit;
+}
+
+// --- Handle Role Change ---
 if (isset($_POST['change_role'], $_POST['user_id'], $_POST['new_role'])) {
     $stmt = $conn->prepare("UPDATE users SET role=? WHERE id=?");
     $stmt->bind_param("si", $_POST['new_role'], $_POST['user_id']);
@@ -86,6 +117,7 @@ if (isset($_POST['change_role'], $_POST['user_id'], $_POST['new_role'])) {
     exit;
 }
 
+// --- Handle Delete ---
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     if ($_GET['delete'] != $_SESSION['admin_id']) {
         $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
@@ -96,6 +128,7 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     exit;
 }
 
+// --- Handle Suspend ---
 if (isset($_GET['toggle_suspend'], $_GET['status']) && is_numeric($_GET['toggle_suspend'])) {
     $id = (int)$_GET['toggle_suspend'];
     $new_status = ((int)$_GET['status'] === 0) ? 1 : 0;
@@ -157,11 +190,12 @@ $users = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="Uploads/logo1.png">
 <title>Admin Users — Meta Shark</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
 /* CSS VARIABLES */
-:root{--primary:#44D62C;--bg:#f3f4f6;--panel:#fff;--panel-border:#e5e7eb;--text:#1f2937;--text-muted:#6b7280;--radius:12px;--shadow:0 4px 6px rgba(0,0,0,0.1);--danger:#f44336; --muted:#6b7280;}
+:root{--primary:#44D62C;--bg:#f3f4f6;--panel:#fff;--panel-border:#e5e7eb;--text:#1f2937;--text-muted:#6b7280;--radius:12px;--shadow:0 4px 6px rgba(0,0,0,0.1);--danger:#f44336; --info: #00d4ff; --muted:#6b7280;}
 [data-theme="dark"]{--bg:#0f1115;--panel:#161b22;--panel-border:#242c38;--text:#e6eef6;--text-muted:#94a3b8;--shadow:0 10px 15px rgba(0,0,0,0.5); --muted:#94a3b8;}
 *{margin:0;padding:0;box-sizing:border-box;} 
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
@@ -235,7 +269,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
 }
 
 .table-responsive { width: 100%; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 800px; }
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
 th,td { padding: 18px 25px; text-align: left; font-size: 14px; }
 th { background: rgba(68,214,44,0.05); color: var(--primary); font-weight: 700; border-bottom: 1px solid var(--panel-border); white-space: nowrap; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;}
 td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
@@ -244,7 +278,7 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 .filters{background:var(--panel);padding:20px;border-radius:var(--radius);border:1px solid var(--panel-border);box-shadow:var(--shadow);margin-bottom:25px;display:flex;gap:12px;flex-wrap:wrap;}
 .filters input,.filters select{padding:10px 15px;border:1px solid var(--panel-border);border-radius:8px;background:var(--bg);color:var(--text); outline:none;}
 
-/* --- NEW BUTTON STYLES (Requested) --- */
+/* --- UNIFIED BUTTON STYLES --- */
 .btn {
     padding: 8px 14px; 
     border-radius: 6px; 
@@ -268,6 +302,10 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 .btn-secondary { background: var(--bg); color: var(--text); border-color: var(--panel-border); }
 .btn-secondary:hover { background: var(--panel-border); }
 
+/* Edit (Blue Outline) */
+.btn-edit { background: rgba(0,212,255,0.1); color: var(--info); border: 1px solid var(--info); }
+.btn-edit:hover { background: var(--info); color: #000; }
+
 /* Suspend (Outline/Glass) */
 .btn-suspend { background: rgba(255,152,0,0.1); color: #ff9800; border: 1px solid #ff9800; }
 .btn-suspend:hover { background: #ff9800; color: #fff; }
@@ -280,6 +318,7 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 .btn-delete { background: rgba(244,67,54,0.1); color: var(--danger); border: 1px solid var(--danger); }
 .btn-delete:hover { background: var(--danger); color: #fff; }
 
+.btn-icon-only { padding: 0; width: 36px; height: 36px; border-radius: 6px; justify-content: center;}
 
 /* Badges */
 .badge{padding:6px 10px;border-radius:6px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
@@ -290,14 +329,42 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 .alert{padding:15px 25px;border-radius:8px;margin-bottom:25px;font-size:15px; font-weight: 500;}
 .alert-success{background:rgba(68,214,44,0.1);color:var(--primary);border:1px solid var(--primary);}
 .role-select{padding:6px 10px;border:1px solid var(--panel-border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px; cursor: pointer;}
+
+/* --- MODAL STYLES --- */
+.modal {
+    display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
+    overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+}
+.modal.show { display: flex; }
+.modal-content {
+    background-color: var(--panel); border: 1px solid var(--panel-border);
+    width: 90%; max-width: 500px; padding: 30px; border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    position: relative;
+}
+.close-modal {
+    position: absolute; top: 20px; right: 25px; color: var(--text-muted); font-size: 28px;
+    font-weight: bold; cursor: pointer; transition: 0.2s;
+}
+.close-modal:hover { color: var(--danger); }
+.modal h2 { margin-top: 0; color: var(--text); font-size: 22px; border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 8px; color: var(--text); font-weight: 600; font-size: 14px; }
+.form-group input {
+    width: 100%; padding: 12px; border: 1px solid var(--panel-border); border-radius: 8px;
+    background: var(--bg); color: var(--text); font-size: 14px;
+}
+.form-group input:focus { border-color: var(--primary); outline: none; }
+.form-note { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
 </style>
 </head>
 <body>
 
 <div class="admin-navbar">
     <div class="navbar-left">
-        <img src="uploads/logo1.png" alt="Logo" onerror="this.src='https://placehold.co/150x50/161b22/44D62C/png?text=SHARK'">
-        <h1>Meta Shark</h1>
+    <link rel="icon" type="image/png" href="Uploads/logo1.png">
+    <h1>Meta Shark</h1>
     </div>
     <div class="nav-user-info">
         <span style="color:var(--text-muted)">Welcome, <strong><?php echo htmlspecialchars($admin_name); ?></strong></span>
@@ -327,9 +394,10 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
     <div class="admin-main">
         <h2 style="margin-bottom:25px; font-size: 28px; font-weight: 700;">User Management</h2>
 
-        <?php if(isset($_GET['updated'])): ?><div class="alert alert-success">User role updated successfully.</div><?php endif; ?>
+        <?php if(isset($_GET['updated'])): ?><div class="alert alert-success">User details updated successfully.</div><?php endif; ?>
         <?php if(isset($_GET['deleted'])): ?><div class="alert alert-success">User deleted successfully.</div><?php endif; ?>
         <?php if(isset($_GET['suspended'])): ?><div class="alert alert-success">User suspended. Notification sent.</div><?php endif; ?>
+        <?php if(isset($_GET['error'])): ?><div class="alert" style="background:rgba(244,67,54,0.1);color:#f44336;border:1px solid #f44336;">Action failed. Invalid email or error.</div><?php endif; ?>
 
         <div class="filters">
             <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;flex:1">
@@ -355,7 +423,7 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
                             <th>ID</th><th>User Details</th><th>Contact</th><th>Role</th><th>Status</th><th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                      <tbody>
                         <?php if(empty($users)): ?>
                             <tr><td colspan="6" style="text-align:center;padding:50px;color:var(--text-muted)">No users found.</td></tr>
                         <?php else: foreach($users as $u): ?>
@@ -390,14 +458,27 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
                                 <td>
                                     <div style="display:flex; gap:6px;">
                                         <?php if($u['id'] != $_SESSION['admin_id']): ?>
+                                            
+                                            <button onclick="openEditModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars(addslashes($u['fullname'])); ?>', '<?php echo htmlspecialchars($u['email']); ?>')" class="btn btn-edit" title="Edit Email/Pass">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </button>
+
                                             <?php if(isset($u['is_suspended'])): ?>
                                                 <?php if(!$u['is_suspended']): ?>
-                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=0" class="btn btn-suspend" title="Suspend User"><i class="bi bi-pause-circle"> Suspend</i></a>
+                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=0" class="btn btn-suspend" title="Suspend User">
+                                                        <i class="bi bi-pause-circle"></i> Suspend
+                                                    </a>
                                                 <?php else: ?>
-                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=1" class="btn btn-activate" title="Activate User"><i class="bi bi-play-circle"> Activate</i></a>
+                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=1" class="btn btn-activate" title="Activate User">
+                                                        <i class="bi bi-play-circle"></i> Activate
+                                                    </a>
                                                 <?php endif; ?>
                                             <?php endif; ?>
-                                            <a href="admin_users.php?delete=<?php echo $u['id']; ?>" class="btn btn-delete" onclick="return confirm('Delete this user?')" title="Delete User"><i> Delete</i></a>
+                                            
+                                            <a href="admin_users.php?delete=<?php echo $u['id']; ?>" class="btn btn-delete" onclick="return confirm('Delete this user?')" title="Delete User">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>
+
                                         <?php else: echo '<span style="color:var(--text-muted); font-size:12px;">(You)</span>'; endif; ?>
                                     </div>
                                 </td>
@@ -409,5 +490,62 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
         </div>
     </div>
 </div>
+
+<!-- EDIT USER MODAL -->
+<div id="editUserModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeEditModal()">&times;</span>
+        <h2>Edit User Details</h2>
+        <form method="POST">
+            <input type="hidden" name="update_user_details" value="1">
+            <input type="hidden" id="edit_user_id" name="user_id">
+            
+            <div class="form-group">
+                <label>User Name (Read Only)</label>
+                <input type="text" id="edit_fullname" readonly style="opacity:0.7; cursor:not-allowed;">
+            </div>
+
+            <div class="form-group">
+                <label for="edit_email">Email Address</label>
+                <input type="email" id="edit_email" name="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_password">New Password</label>
+                <input type="password" id="edit_password" name="password" placeholder="Enter new password">
+                <div class="form-note">Leave blank to keep the current password.</div>
+            </div>
+
+            <div style="text-align:right; margin-top:20px;">
+                <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="margin-right:10px;"> Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('editUserModal');
+
+    function openEditModal(id, fullname, email) {
+        document.getElementById('edit_user_id').value = id;
+        document.getElementById('edit_fullname').value = fullname;
+        document.getElementById('edit_email').value = email;
+        document.getElementById('edit_password').value = ''; // Reset password field
+        modal.classList.add('show');
+    }
+
+    function closeEditModal() {
+        modal.classList.remove('show');
+    }
+
+    // Close when clicking outside
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeEditModal();
+        }
+    }
+</script>
+
 </body>
 </html>
