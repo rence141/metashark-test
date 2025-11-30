@@ -2,6 +2,9 @@
 session_start();
 include("db.php");
 
+// Get theme from session (default to dark)
+$theme = $_SESSION['theme'] ?? 'dark';
+
 // Get seller ID from URL parameter
 $seller_id = isset($_GET['seller_id']) ? (int)$_GET['seller_id'] : 0;
 $buyer_id = $_SESSION['user_id'] ?? 0;
@@ -65,21 +68,183 @@ if (isset($_SESSION['user_id'])) {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="<?php echo htmlspecialchars($theme); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($seller['seller_name'] ?: $seller['fullname']); ?> - Shop</title>
     <link rel="stylesheet" href="fonts/fonts.css">
      <link rel="icon" type="image/png" href="uploads/logo1.png">
+    <!-- Added Bootstrap Icons for Theme Toggle -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../../css/seller_shop.css">
     <?php include('theme_toggle.php'); ?>
+    <style>
+        /* Theme Toggle Button Styles */
+        .theme-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+        .theme-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #44D62C;
+            color: #44D62C;
+        }
+
+        /* --- Vouchers Styles (Default Dark) --- */
+        .vouchers-card {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .vouchers-card h2 {
+            color: #44D62C;
+            margin: 0 0 10px;
+        }
+        .voucher-list {
+            list-style: none; 
+            padding: 0; 
+            margin: 0;
+        }
+        .voucher-item {
+            padding: 10px 0; 
+            border-bottom: 1px solid #222; 
+            display: flex; 
+            justify-content: space-between; 
+            gap: 12px; 
+            flex-wrap: wrap;
+        }
+        .voucher-code {
+            font-weight: bold;
+            color: #fff;
+        }
+        .voucher-subtext {
+            color: #aaa; 
+            font-size: 0.9em;
+        }
+        .copy-btn {
+            margin-top: 6px; 
+            padding: 8px 12px; 
+            border: none; 
+            background: #44D62C; 
+            color: #000; 
+            border-radius: 6px; 
+            cursor: pointer;
+        }
+
+        /* --- Light Mode Overrides --- */
+        [data-theme="light"] body {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+        [data-theme="light"] .navbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        [data-theme="light"] .navbar h2 {
+            color: #1f2937;
+        }
+        [data-theme="light"] .menu li a, 
+        [data-theme="light"] .nav-right a {
+            color: #4b5563 !important;
+        }
+        [data-theme="light"] .theme-btn {
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
+        [data-theme="light"] .theme-btn:hover {
+            background: #f9fafb;
+            color: #44D62C;
+            border-color: #44D62C;
+        }
+        [data-theme="light"] .shop-title {
+            color: #111;
+        }
+        /* Override generic cards */
+        [data-theme="light"] .card {
+            background: #ffffff !important;
+            border-color: #e5e7eb !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        /* Override Product Cards explicitly */
+        [data-theme="light"] .product-card {
+            background: #ffffff !important;
+            border: 1px solid #e5e7eb !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            color: #1f2937;
+        }
+        [data-theme="light"] .product-info h3 {
+            color: #1f2937;
+        }
+        [data-theme="light"] .product-info .price {
+            color: #44D62C;
+            font-weight: 700;
+        }
+        [data-theme="light"] .product-info .stock {
+            color: #6b7280;
+        }
+        [data-theme="light"] .seller-header {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+        }
+        [data-theme="light"] .seller-info h1 {
+            color: #1f2937;
+        }
+        [data-theme="light"] .stat-label {
+            color: #6b7280;
+        }
+        [data-theme="light"] .stat-value {
+            color: #1f2937;
+        }
+        [data-theme="light"] .hamburger {
+            color: #1f2937;
+        }
+        
+        /* Voucher Card Light Mode */
+        [data-theme="light"] .vouchers-card {
+            background: #ffffff !important;
+            border: 1px solid #e5e7eb !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        [data-theme="light"] .voucher-item {
+            border-bottom-color: #e5e7eb;
+        }
+        [data-theme="light"] .voucher-code {
+            color: #1f2937;
+        }
+        [data-theme="light"] .voucher-subtext {
+            color: #6b7280;
+        }
+    </style>
 </head>
 <body>
     <!-- NAVBAR -->
     <div class="navbar">
         <h2>Meta Shark</h2>
         <div class="nav-right">
+            <!-- THEME TOGGLE BUTTON -->
+            <button id="themeBtn" class="theme-btn" title="Switch Theme">
+                <?php if ($theme === 'dark'): ?>
+                    <i class="bi bi-moon-stars-fill"></i>
+                <?php else: ?>
+                    <i class="bi bi-sun-fill"></i>
+                <?php endif; ?>
+            </button>
+
             <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
                 <?php
                 // Check user role to determine profile page
@@ -116,17 +281,17 @@ if (isset($_SESSION['user_id'])) {
             <?php endif; ?>
         </div>
         <ul class="menu" id="menu">
-            <li><a href="shop.php" style="color: white; text-decoration: none;">Home</a></li>
+            <li><a href="shop.php" style="color: inherit; text-decoration: none;">Home</a></li>
             <?php if(isset($_SESSION['user_id'])): ?>
-                <li><a href="carts_users.php" style="color: white; text-decoration: none;">Cart (<?php echo $cart_count; ?>)</a></li>
+                <li><a href="carts_users.php" style="color: inherit; text-decoration: none;">Cart (<?php echo $cart_count; ?>)</a></li>
                 <?php 
                 $user_role = $_SESSION['role'] ?? 'buyer';
                 $profile_page = ($user_role === 'seller' || $user_role === 'admin') ? 'seller_profile.php' : 'profile.php';
                 ?>
-                <li><a href="<?php echo $profile_page; ?>" style="color: white; text-decoration: none;">Profile</a></li>
-                <li><a href="logout.php" style="color: white; text-decoration: none;">Logout</a></li>
+                <li><a href="<?php echo $profile_page; ?>" style="color: inherit; text-decoration: none;">Profile</a></li>
+                <li><a href="logout.php" style="color: inherit; text-decoration: none;">Logout</a></li>
             <?php else: ?>
-                <li><a href="login_users.php" style="color: white; text-decoration: none;">Login</a></li>
+                <li><a href="login_users.php" style="color: inherit; text-decoration: none;">Login</a></li>
             <?php endif; ?>
         </ul>
     </div>
@@ -170,14 +335,15 @@ if (isset($_SESSION['user_id'])) {
 
         <!-- Store Vouchers (if any) -->
         <?php if (!empty($store_vouchers)): ?>
-            <div class="card" style="background:#111; border:1px solid #333; border-radius:10px; padding:16px; margin:16px 0;">
-                <h2 style="color:#44D62C; margin:0 0 10px;">Store Vouchers</h2>
-                <ul style="list-style:none; padding:0; margin:0;">
+            <!-- Replaced inline styles with class 'vouchers-card' -->
+            <div class="vouchers-card">
+                <h2>Store Vouchers</h2>
+                <ul class="voucher-list">
                     <?php foreach ($store_vouchers as $v): ?>
-                        <li style="padding:10px 0; border-bottom:1px solid #222; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                        <li class="voucher-item">
                             <div>
-                                <div style="font-weight:bold;">Code: <?php echo htmlspecialchars($v['code']); ?></div>
-                                <div style="color:#aaa; font-size:0.9em;">
+                                <div class="voucher-code">Code: <?php echo htmlspecialchars($v['code']); ?></div>
+                                <div class="voucher-subtext">
                                     <?php echo $v['discount_type'] === 'percentage' ? (float)$v['discount_value'] . '% off' : '₱' . number_format((float)$v['discount_value'], 2) . ' off'; ?>
                                     <?php if ($v['min_purchase'] > 0): ?>
                                         · Min spend ₱<?php echo number_format((float)$v['min_purchase'], 2); ?>
@@ -185,8 +351,8 @@ if (isset($_SESSION['user_id'])) {
                                 </div>
                             </div>
                             <div style="text-align:right;">
-                                <div style="color:#aaa;">Expires: <?php echo htmlspecialchars($v['expiry_date']); ?></div>
-                                <button onclick="navigator.clipboard.writeText('<?php echo htmlspecialchars($v['code']); ?>'); alert('Voucher copied!');" style="margin-top:6px; padding:8px 12px; border:none; background:#44D62C; color:#000; border-radius:6px; cursor:pointer;">Copy Code</button>
+                                <div class="voucher-subtext">Expires: <?php echo htmlspecialchars($v['expiry_date']); ?></div>
+                                <button class="copy-btn" onclick="navigator.clipboard.writeText('<?php echo htmlspecialchars($v['code']); ?>'); alert('Voucher copied!');">Copy Code</button>
                             </div>
                         </li>
                     <?php endforeach; ?>
@@ -260,6 +426,24 @@ if (isset($_SESSION['user_id'])) {
                     });
                 });
             }
+        });
+
+        // Theme Toggle Logic
+        const themeBtn = document.getElementById('themeBtn');
+        const html = document.documentElement;
+        
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            html.setAttribute('data-theme', newTheme);
+            themeBtn.innerHTML = newTheme === 'dark' ? '<i class="bi bi-moon-stars-fill"></i>' : '<i class="bi bi-sun-fill"></i>';
+            
+            // Save to local storage
+            localStorage.setItem('theme', newTheme);
+            
+            // Update session via AJAX (optional, but good for persistence)
+            fetch('theme_toggle.php?theme=' + newTheme);
         });
 
         // Enhanced Add to Cart functionality

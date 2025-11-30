@@ -7,8 +7,44 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     exit;
 }
 
-require __DIR__ . '/../../vendor/autoload.php';
-include("db.php"); // Ensure this file provides $conn
+// Load Composer dependencies
+require_once __DIR__ . '/../../vendor/autoload.php';
+
+// --- DATABASE CONNECTION LOGIC ---
+
+// 1. Try loading local db.php
+if (file_exists(__DIR__ . '/db.php')) {
+    require_once __DIR__ . '/db.php';
+}
+
+// 2. If $conn is missing, try global db_connect.php (used by dashboard)
+if (!isset($conn) && file_exists(__DIR__ . '/../../includes/db_connect.php')) {
+    require_once __DIR__ . '/../../includes/db_connect.php';
+}
+
+// 3. If $conn is STILL missing, create a manual connection fallback
+if (!isset($conn)) {
+    $host = "localhost";
+    $user = "root";
+    $pass = "003421.!"; 
+    $dbname = "MetaAccesories";
+    $port = 3307;
+
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $conn = @new mysqli($host, $user, $pass, $dbname, $port);
+}
+
+// 4. Final check: Die if connection failed
+if (!isset($conn) || $conn->connect_error) {
+    $errorMsg = isset($conn) ? $conn->connect_error : "Variable \$conn is not defined.";
+    die("Critical Database Error: Could not connect to database. " . $errorMsg);
+}
+
+// Ensure Charset
+$conn->set_charset("utf8mb4");
+
+// --- END DATABASE CONNECTION ---
+
 
 // Check if Google session data is available
 if (!isset($_SESSION['google_email']) || !isset($_SESSION['google_name'])) {
@@ -51,21 +87,21 @@ if ($result->num_rows == 0) {
     $user_id = $user['id'];
     $role = $user['role'] ?? 'buyer';
     
-   // 2. CRITICAL SECURITY CHECK: Check for suspension status
-   if (isset($user['is_suspended']) && $user['is_suspended'] == 1) {
-    // Log the denial
-    error_log("ACCESS DENIED: Suspended user attempted login: ID {$user_id}, Email {$email}");
+    // 2. CRITICAL SECURITY CHECK: Check for suspension status
+    if (isset($user['is_suspended']) && $user['is_suspended'] == 1) {
+        // Log the denial
+        error_log("ACCESS DENIED: Suspended user attempted login: ID {$user_id}, Email {$email}");
 
-    // Clear temporary Google session data and local session
-    unset($_SESSION['google_email']);
-    unset($_SESSION['google_name']);
-    
-    session_destroy(); // Ensure existing session is cleared
-    
-    // 🛑 NEW REDIRECT: Send user to a professional suspension notice page
-    header("Location: http://localhost/SaysonCotest/main/php/suspended_account.php"); 
-    exit;
-}
+        // Clear temporary Google session data and local session
+        unset($_SESSION['google_email']);
+        unset($_SESSION['google_name']);
+        
+        session_destroy(); // Ensure existing session is cleared
+        
+        // 🛑 NEW REDIRECT: Send user to a professional suspension notice page
+        header("Location: http://localhost/SaysonCotest/main/php/suspended_account.php"); 
+        exit;
+    }
 }
 
 // 3. Login Setup (Only reached if the user is new or is not suspended)

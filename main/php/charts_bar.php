@@ -30,7 +30,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
             --text: #1f2937;
             --text-muted: #6b7280;
             --radius: 16px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         [data-theme="dark"] {
@@ -42,8 +42,8 @@ $theme = $_SESSION['theme'] ?? 'dark';
             --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
-        body { background: var(--bg); color: var(--text); padding: 40px 20px; min-height: 100vh; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; outline: none; }
+        body { background: var(--bg); color: var(--text); padding: 40px 20px; min-height: 100vh; transition: background 0.3s ease; }
         a { text-decoration: none; color: inherit; transition: 0.2s; }
 
         /* Navigation Header */
@@ -59,6 +59,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
             display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
             background: var(--panel); border: 1px solid var(--panel-border);
             border-radius: 8px; font-weight: 500; font-size: 14px; color: var(--text);
+            box-shadow: var(--shadow);
         }
         .btn-back:hover { border-color: var(--primary); color: var(--primary); }
 
@@ -76,8 +77,8 @@ $theme = $_SESSION['theme'] ?? 'dark';
             display: flex; justify-content: space-between; align-items: flex-end;
             background: rgba(255,255,255,0.01);
         }
-        .header-title h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
-        .header-title h1 img { height: 28px; }
+        .header-title h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 12px; margin-bottom: 0; }
+        .header-title h1 img { height: 28px; filter: drop-shadow(0 0 5px var(--primary-glow)); }
         .header-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
         
         .header-actions { display: flex; gap: 12px; }
@@ -88,10 +89,45 @@ $theme = $_SESSION['theme'] ?? 'dark';
         }
         .btn-action:hover { background: var(--primary); color: #000; }
 
+        /* Chart & Details Layout */
+        .chart-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+        
         /* Canvas Area */
         .canvas-container {
-            padding: 32px; height: 500px; width: 100%; position: relative;
+            padding: 32px; height: 400px; width: 100%; position: relative;
+            border-bottom: 1px solid var(--panel-border);
         }
+
+        /* Detailed Table Section */
+        .details-container {
+            padding: 32px;
+        }
+        .section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        /* UPDATED: Added horizontal padding (12px) to th and td */
+        th { text-align: left; color: var(--text-muted); font-size: 12px; text-transform: uppercase; padding: 12px 12px; border-bottom: 1px solid var(--panel-border); }
+        td { padding: 16px 12px; border-bottom: 1px solid var(--panel-border); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        
+        .cat-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; }
+        
+        .progress-bar-bg { 
+            width: 100px; 
+            height: 6px; 
+            background: var(--panel-border); 
+            border-radius: 3px; 
+            overflow: hidden; 
+            display: inline-block; 
+            vertical-align: middle; 
+            margin-right: 16px;
+        }
+        
+        .progress-bar-fill { height: 100%; border-radius: 3px; }
+        .share-text { font-size: 12px; color: var(--text-muted); font-family: monospace; }
 
         /* Loading Skeleton */
         .loading-overlay {
@@ -113,12 +149,15 @@ $theme = $_SESSION['theme'] ?? 'dark';
             background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--panel-border);
         }
         .mini-stat { display: flex; flex-direction: column; }
-        .mini-stat label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; }
+        .mini-stat label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; opacity: 0.7; }
         .mini-stat span { font-size: 18px; font-weight: 700; color: var(--text); }
 
         @media (max-width: 768px) {
-            .canvas-container { height: 350px; padding: 16px; }
+            .canvas-container { height: 300px; padding: 16px; }
             .card-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .stats-strip { flex-wrap: wrap; gap: 20px; }
+            .details-container { padding: 16px; }
+            .progress-bar-bg { width: 60px; }
         }
     </style>
 </head>
@@ -128,11 +167,9 @@ $theme = $_SESSION['theme'] ?? 'dark';
     <div class="breadcrumb">
         <a href="admin_dashboard.php">Dashboard</a>
         <i class="bi bi-chevron-right"></i>
-        <a href="charts_overview.php">Charts</a>
-        <i class="bi bi-chevron-right"></i>
-        <span class="active">Categories</span>
+        <span class="active">Category Analytics</span>
     </div>
-    <a href="charts_overview.php" class="btn-back"><i class="bi bi-arrow-left"></i> Back to Overview</a>
+    <a href="admin_dashboard.php" class="btn-back"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
 </div>
 
 <div class="chart-card">
@@ -142,7 +179,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
             <div class="header-subtitle">Distribution of stock across different product types</div>
         </div>
         <div class="header-actions">
-            <button class="btn-action" onclick="downloadChart()"><i class="bi bi-download"></i> Save Image</button>
+            <button class="btn-action" onclick="downloadChart()"><i class="bi bi-download"></i> Save Report</button>
         </div>
     </div>
 
@@ -152,7 +189,7 @@ $theme = $_SESSION['theme'] ?? 'dark';
             <span id="statCatCount">...</span>
         </div>
         <div class="mini-stat">
-            <label>Total Items</label>
+            <label>Total Assignments</label>
             <span id="statTotalItems">...</span>
         </div>
         <div class="mini-stat">
@@ -161,20 +198,48 @@ $theme = $_SESSION['theme'] ?? 'dark';
         </div>
     </div>
 
-    <div class="canvas-container">
-        <div class="loading-overlay" id="loader">
-            <div class="spinner"></div>
-            <div style="font-size:14px; font-weight:500;">Analyzing Data...</div>
+    <div class="chart-layout">
+        <!-- Chart -->
+        <div class="canvas-container">
+            <div class="loading-overlay" id="loader">
+                <div class="spinner"></div>
+                <div style="font-size:14px; font-weight:500;">Analyzing Data...</div>
+            </div>
+            <canvas id="barChart"></canvas>
         </div>
-        <canvas id="barChart"></canvas>
+
+        <!-- Detailed Breakdown Table -->
+        <div class="details-container">
+            <div class="section-title"><i class="bi bi-table"></i> Detailed Breakdown</div>
+            <div style="overflow-x: auto;">
+                <table id="detailsTable">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th style="text-align: right;">Product Count</th>
+                            <th style="width: 200px;">Share of Inventory</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+                <strong>Insights:</strong> <span id="insightText">Loading analysis...</span>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
 // Setup Utils
 const ctx = document.getElementById('barChart').getContext('2d');
-Chart.defaults.color = "#94a3b8";
-Chart.defaults.borderColor = "rgba(148, 163, 184, 0.1)";
+const isDark = "<?php echo $theme; ?>" === 'dark';
+
+// Match Dashboard Chart Defaults
+Chart.defaults.color = isDark ? "#94a3b8" : "#6b7280";
+Chart.defaults.borderColor = isDark ? "#242c38" : "rgba(107, 114, 128, 0.1)";
 Chart.defaults.font.family = "'Inter', sans-serif";
 
 // --- 1. DEFINE REAL DATA MAPPINGS ---
@@ -215,26 +280,75 @@ function initChart() {
     });
 
     // --- 3. PREPARE CHART DATA ---
-    // Extract names and counts in order of keys
     const labels = Object.keys(categoryMap).map(id => categoryMap[id]); 
     const values = Object.keys(categoryMap).map(id => catCounts[id]);
 
     // --- 4. CALCULATE STATS ---
-    const totalItems = values.reduce((a, b) => a + b, 0); // Sum of all counts
+    const totalItems = values.reduce((a, b) => a + b, 0); 
     const maxVal = Math.max(...values);
     const topCatIndex = values.indexOf(maxVal);
+    const minVal = Math.min(...values);
+    const minCatIndex = values.indexOf(minVal);
     
     // Update UI Stats
     document.getElementById('statCatCount').textContent = labels.length;
-    document.getElementById('statTotalItems').textContent = totalItems.toLocaleString(); // Total category tags applied
+    document.getElementById('statTotalItems').textContent = totalItems.toLocaleString(); 
     document.getElementById('statTopCat').textContent = labels[topCatIndex] || '-';
+    if(labels[topCatIndex]) {
+        document.getElementById('statTopCat').style.color = '#44D62C';
+    }
+
+    // --- 5. GENERATE TABLE & INSIGHTS ---
+    const tableBody = document.querySelector('#detailsTable tbody');
+    let tableHTML = '';
+
+    // Sort for table (highest first)
+    const sortedIndices = values.map((val, i) => ({ i, val })).sort((a, b) => b.val - a.val);
+
+    sortedIndices.forEach(item => {
+        const i = item.i;
+        const label = labels[i];
+        const val = values[i];
+        const pct = totalItems > 0 ? ((val / totalItems) * 100).toFixed(1) : 0;
+        const color = '#44D62C';
+
+        tableHTML += `
+            <tr>
+                <td>
+                    <span class="cat-indicator" style="background: ${color}"></span>
+                    <span style="font-weight: 500">${label}</span>
+                </td>
+                <td style="text-align: right; font-weight: 600;">${val}</td>
+                <td>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${pct}%; background: ${color}"></div>
+                    </div>
+                    <span class="share-text" style="margin-left: 12px;">${pct}%</span>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = tableHTML;
+
+    // Generate Insight Text
+    const topCat = labels[topCatIndex];
+    const lowCat = labels[minCatIndex];
+    const avgItems = (totalItems / labels.length).toFixed(1);
     
+    const insightText = `
+        The <strong>${topCat}</strong> category dominates your inventory with ${maxVal} items, accounting for ${((maxVal/totalItems)*100).toFixed(0)}% of total products. 
+        Conversely, <strong>${lowCat}</strong> has the fewest items (${minVal}). 
+        On average, you have about ${avgItems} products per category.
+    `;
+    document.getElementById('insightText').innerHTML = insightText;
+
     // Create Gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, '#44D62C');
     gradient.addColorStop(1, 'rgba(68, 214, 44, 0.05)');
 
-    // Render Chart
+    // --- 6. RENDER CHART ---
     new Chart(ctx, {
         type: 'bar',
         data: {
@@ -256,23 +370,16 @@ function initChart() {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(22, 27, 34, 0.9)',
-                    titleColor: '#fff',
-                    bodyColor: '#e6eef6',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    backgroundColor: isDark ? 'rgba(22, 27, 34, 0.95)' : '#fff',
+                    titleColor: isDark ? '#fff' : '#111',
+                    bodyColor: isDark ? '#e6eef6' : '#444',
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
                     borderWidth: 1,
                     padding: 12,
                     displayColors: false,
                     callbacks: {
                         label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += context.parsed.y + " units";
-                            }
-                            return label;
+                            return ` ${context.parsed.y} Products`;
                         }
                     }
                 }
@@ -282,7 +389,8 @@ function initChart() {
                     beginAtZero: true,
                     grid: {
                         borderDash: [5, 5],
-                        drawBorder: false
+                        drawBorder: false,
+                        color: isDark ? "#242c38" : "rgba(107, 114, 128, 0.1)"
                     },
                     ticks: { padding: 10, stepSize: 1 }
                 },
@@ -299,13 +407,15 @@ function initChart() {
         }
     });
 
-    // Remove loader immediately since data is local
+    // Remove loader fallback
     setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 300);
 }
 
 function downloadChart() {
     const link = document.createElement('a');
-    link.download = 'meta-shark-categories.png';
+    link.download = 'meta-shark-category-report.png';
+    // Note: To capture the whole card (including table), we'd need html2canvas. 
+    // For now, this just downloads the chart canvas.
     link.href = document.getElementById('barChart').toDataURL('image/png', 1.0);
     link.click();
 }

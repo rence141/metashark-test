@@ -343,6 +343,8 @@ $avatar_path = 'uploads/avatars/' . htmlspecialchars($avatar_filename);
     .btn-submit:hover { 
         background: #55f042; 
     }
+    .sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
+
 
     /* Alerts */
     .alert { padding: 14px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
@@ -365,25 +367,27 @@ $avatar_path = 'uploads/avatars/' . htmlspecialchars($avatar_filename);
         </div>
     </div>
 
-    <div class="admin-sidebar">
-        <a href="admin_dashboard.php" class="sidebar-item"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        
-        <div class="sidebar-heading">Charts</div>
-        <a href="charts_overview.php" class="sidebar-item"><i class="bi bi-graph-up"></i> Overview</a>
-        <a href="charts_line.php" class="sidebar-item"><i class="bi bi-bar-chart-line"></i> Revenue</a>
-        <a href="charts_bar.php" class="sidebar-item"><i class="bi bi-bar-chart"></i> Categories</a>
-        <a href="charts_pie.php" class="sidebar-item"><i class="bi bi-pie-chart"></i> Orders</a>
-        <a href="charts_geo.php" class="sidebar-item"><i class="bi bi-globe2"></i> Geography</a>
-        
-        <div class="sidebar-heading">Management</div>
-        <a href="admin_products.php" class="sidebar-item"><i class="bi bi-box"></i> Products</a>
-        <a href="admin_users.php" class="sidebar-item"><i class="bi bi-people"></i> Users</a>
-        <a href="admin_sellers.php" class="sidebar-item"><i class="bi bi-shop"></i> Sellers</a>
-        <a href="admin_orders.php" class="sidebar-item"><i class="bi bi-bag"></i> Orders</a>
+    <aside class="admin-sidebar" id="sidebar">
+    <div class="sidebar-item"><i class="bi bi-grid-1x2-fill"></i> Dashboard</div>
+    
+    <div class="sidebar-group-label">Analytics</div>
+    <a href="charts_overview.php" class="sidebar-item"><i class="bi bi-activity"></i> Overview Chart</a>
+    <a href="charts_line.php" class="sidebar-item"><i class="bi bi-graph-up-arrow"></i> Revenue Chart</a>
+    <a href="charts_bar.php" class="sidebar-item"><i class="bi bi-bar-chart-fill"></i> Categories Chart</a>
+    <a href="charts_pie.php" class="sidebar-item"><i class="bi bi-pie-chart-fill"></i> Orders Chart</a>
+    <a href="charts_geo.php" class="sidebar-item"><i class="bi bi-globe2"></i> Geography Chart</a>
 
-        <div class="sidebar-heading">Settings</div>
-        <a href="admin_profile.php" class="sidebar-item active"><i class="bi bi-person-gear"></i> My Profile</a>
-    </div>
+    <div class="sidebar-group-label">Management and Access</div>
+    <a href="pending_requests.php" class="sidebar-item"><i class="bi bi-shield-lock"></i> Requests</a>
+    <a href="admin_products.php" class="sidebar-item"><i class="bi bi-box-seam"></i> Products</a>
+    <a href="admin_users.php" class="sidebar-item"><i class="bi bi-people-fill"></i> Users</a>
+    <a href="admin_sellers.php" class="sidebar-item"><i class="bi bi-shop"></i> Sellers</a>
+    <a href="admin_orders.php" class="sidebar-item"><i class="bi bi-bag-check-fill"></i> Orders</a>
+
+    <div class="sidebar-group-label">Settings</div>
+    <a href="admin_profile.php" class="sidebar-item active"><i class="bi bi-person-gear"></i> My Profile</a>
+</aside>
+
 
     <div class="admin-main">
         <h2 style="margin-bottom:25px"><i class="bi bi-person-badge"></i> Account Settings</h2>

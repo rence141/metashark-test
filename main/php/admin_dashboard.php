@@ -8,13 +8,80 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
+// --- INTERNAL AJAX HANDLER FOR USER GROWTH (Updated for Active, Suspended, Deleted) ---
+if (isset($_GET['ajax_action']) && $_GET['ajax_action'] === 'user_growth') {
+    header('Content-Type: application/json');
+    $days = 90; 
+    $data = [];
+    
+    // 1. Get baseline counts
+    $sqlBase = "SELECT 
+                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 0 THEN 1 ELSE 0 END) as active,
+                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 1 THEN 1 ELSE 0 END) as suspended,
+                    SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted
+                FROM users 
+                WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)";
+                
+    $stmt = $conn->prepare($sqlBase);
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $resBase = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $runningActive = $resBase['active'] ?? 0;
+    $runningSuspended = $resBase['suspended'] ?? 0;
+    $runningDeleted = $resBase['deleted'] ?? 0;
+
+    // 2. Get daily growth grouped by status
+    $sqlTrend = "SELECT 
+                    DATE(created_at) as date, 
+                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 0 THEN 1 ELSE 0 END) as active_new,
+                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 1 THEN 1 ELSE 0 END) as suspended_new,
+                    SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted_new
+                 FROM users 
+                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) 
+                 GROUP BY DATE(created_at) 
+                 ORDER BY date ASC";
+                 
+    $stmt = $conn->prepare($sqlTrend);
+    $stmt->bind_param('i', $days);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    while ($row = $result->fetch_assoc()) {
+        $runningActive += (int)$row['active_new'];
+        $runningSuspended += (int)$row['suspended_new'];
+        $runningDeleted += (int)$row['deleted_new'];
+        
+        $data[] = [
+            'date' => date('M d', strtotime($row['date'])),
+            'total' => $runningActive + $runningSuspended + $runningDeleted,
+            'active' => $runningActive,
+            'suspended' => $runningSuspended,
+            'deleted' => $runningDeleted
+        ];
+    }
+    
+    if (empty($data)) {
+        $data[] = [
+            'date' => date('M d'), 
+            'total' => $runningActive + $runningSuspended + $runningDeleted, 
+            'active' => $runningActive, 
+            'suspended' => $runningSuspended,
+            'deleted' => $runningDeleted
+        ];
+    }
+
+    echo json_encode($data);
+    exit;
+}
+// --- END INTERNAL AJAX ---
+
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $theme = $_SESSION['theme'] ?? 'dark';
 
-// Logic for Admin Initial (for the avatar)
 $admin_initial = strtoupper(substr($admin_name, 0, 1));
 
-// Pre-fetch Pending Requests
 $pending_requests = [];
 $stmt = $conn->prepare("SELECT id, first_name, last_name, email, created_at, token FROM admin_requests WHERE status = 'pending' ORDER BY created_at DESC LIMIT 10");
 if ($stmt) {
@@ -147,6 +214,80 @@ if ($stmt) {
     .skeleton { background: var(--panel-border); border-radius: 4px; animation: pulse 1.5s infinite; color: transparent !important; user-select: none; }
     @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }
 
+    /* --- PRINT STYLES (FIXED OVERFLOW) --- */
+    @media print {
+        /* Hide navigation and controls */
+        .admin-sidebar, .admin-navbar, .sidebar-toggle, #revenueToggle, #exportAction { 
+            display: none !important; 
+        }
+        
+        /* Reset Main Container */
+        .admin-main { 
+            margin: 0 !important; 
+            padding: 10px !important; 
+            width: 100% !important; 
+            max-width: 100% !important;
+            min-height: auto !important;
+        }
+        
+        body { 
+            background: white !important; 
+            color: black !important; 
+            -webkit-print-color-adjust: exact; 
+            overflow: visible !important;
+            width: 100% !important;
+        }
+        
+        /* Force Stacked Layout (Fix Horizontal Overflow) */
+        .stats-grid, .grid-stack, .charts-row { 
+            display: block !important; 
+            width: 100% !important;
+            grid-template-columns: 1fr !important;
+        }
+        
+        /* Fix Cards */
+        .stat-card, .card { 
+            box-shadow: none !important; 
+            border: 1px solid #ccc !important; 
+            break-inside: avoid; 
+            page-break-inside: avoid;
+            background: #fff !important; 
+            margin-bottom: 15px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Fix Charts */
+        .card-body {
+            padding: 10px !important;
+            height: auto !important;
+            max-height: 300px !important;
+        }
+        
+        canvas { 
+            max-height: 250px !important; 
+            width: 100% !important; 
+            height: auto !important;
+        }
+        
+        /* Fix Typography */
+        h2, h3, .stat-value, .stat-label { 
+            color: #000 !important; 
+        }
+        
+        /* Fix Table Overflow */
+        .table-responsive {
+            overflow: visible !important;
+            width: 100% !important;
+        }
+        
+        /* Ensure Backgrounds Print */
+        * {
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+        }
+    }
+
     @media (max-width: 992px) {
         .admin-sidebar { transform: translateX(-100%); }
         .admin-sidebar.show { transform: translateX(0); }
@@ -193,7 +334,8 @@ if ($stmt) {
     <a href="charts_pie.php" class="sidebar-item"><i class="bi bi-pie-chart-fill"></i> Orders</a>
     <a href="charts_geo.php" class="sidebar-item"><i class="bi bi-globe2"></i> Geography</a>
 
-    <div class="sidebar-group-label">Management</div>
+    <div class="sidebar-group-label">Management and Access</div>
+    <a href="pending_requests.php" class="sidebar-item"><i class="bi bi-shield-lock"></i> Requests</a>
     <a href="admin_products.php" class="sidebar-item"><i class="bi bi-box-seam"></i> Products</a>
     <a href="admin_users.php" class="sidebar-item"><i class="bi bi-people-fill"></i> Users</a>
     <a href="admin_sellers.php" class="sidebar-item"><i class="bi bi-shop"></i> Sellers</a>
@@ -210,6 +352,13 @@ if ($stmt) {
             <p>Welcome back, here's what's happening with your store today.</p>
         </div>
         <div style="display:flex; gap:8px;">
+            <!-- Added Export Dropdown -->
+            <select id="exportAction" class="btn-xs btn-outline" style="background:var(--panel);">
+                <option value="" disabled selected>Export Statistics</option>
+                <option value="print">Print Dashboard</option>
+                <option value="csv">Download CSV Data</option>
+            </select>
+
             <select id="revenueToggle" class="btn-xs btn-outline" style="background:var(--panel);">
                 <option value="monthly">Monthly View</option>
                 <option value="daily">Daily View</option>
@@ -255,34 +404,6 @@ if ($stmt) {
             </div>
         </div>
     </div>
-
-    <div class="grid-stack fade-in" style="animation-delay: 0.2s;">
-        <div class="card">
-            <div class="card-header">
-                <h3><i class="bi bi-shield-lock" style="color:var(--primary); margin-right:8px;"></i> Pending Admin Requests</h3>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead><tr><th>Name</th><th>Email</th><th>Requested</th><th>Actions</th></tr></thead>
-                    <tbody>
-                        <?php if (empty($pending_requests)): ?>
-                            <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-muted);">No pending requests found.</td></tr>
-                        <?php else: foreach ($pending_requests as $req): ?>
-                            <tr>
-                                <td><div style="font-weight:600;"><?php echo htmlspecialchars($req['first_name'] . ' ' . $req['last_name']); ?></div></td>
-                                <td style="color:var(--text-muted);"><?php echo htmlspecialchars($req['email']); ?></td>
-                                <td><span class="badge badge-warning"><?php echo htmlspecialchars(date('M d, Y', strtotime($req['created_at']))); ?></span></td>
-                                <td>
-                                    <a href="admin_requests_handler.php?token=<?php echo urlencode($req['token']); ?>&action=approve" class="btn-xs btn-primary" target="_blank">Approve</a>
-                                    <a href="admin_requests_handler.php?token=<?php echo urlencode($req['token']); ?>&action=reject" class="btn-xs btn-outline" style="margin-left:5px; border-color:var(--panel-border); color:var(--text-muted);" target="_blank">Reject</a>
-                                </td>
-                            </tr>
-                        <?php endforeach; endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
     
     <div class="grid-stack charts-row fade-in" style="animation-delay: 0.3s;">
         <div class="card">
@@ -308,7 +429,7 @@ if ($stmt) {
         </div>
         <div class="card">
             <!-- Updated Header to Reflect Multi-line Chart -->
-            <div class="card-header"><h3>Total User Base Growth</h3></div>
+            <div class="card-header"><h3>User Stats (Active vs Suspended vs Deleted)</h3></div>
             <div class="card-body"><canvas id="usersChart" height="80"></canvas></div>
         </div>
     </div>
@@ -344,6 +465,48 @@ themeBtn.addEventListener('click', () => {
     fetch('theme_toggle.php?theme=' + newTheme);
     setTimeout(updateChartsTheme, 200);
 });
+
+// --- Handle Export Actions ---
+document.getElementById('exportAction').addEventListener('change', function() {
+    const action = this.value;
+    if (action === 'print') {
+        window.print();
+    } else if (action === 'csv') {
+        downloadDashboardCSV();
+    }
+    this.value = ""; // Reset selection
+});
+
+function downloadDashboardCSV() {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Gather data
+    const prod = document.getElementById('totalProducts').innerText;
+    const rev = document.getElementById('totalRevenue').innerText;
+    const ord = document.getElementById('totalOrders').innerText;
+    const sell = document.getElementById('totalSellers').innerText;
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Meta Shark Dashboard Report\n";
+    csvContent += "Generated Date," + today + "\n\n";
+    
+    csvContent += "SUMMARY STATISTICS\n";
+    csvContent += "Total Products," + prod + "\n";
+    csvContent += "Total Revenue," + rev + "\n";
+    csvContent += "Total Orders," + ord + "\n";
+    csvContent += "Active Sellers," + sell + "\n\n";
+
+    // Note: Detailed chart data exporting would ideally use data from the 'charts' object
+    // For simplicity, we export what is readily available in text
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "meta_shark_report_" + today + ".csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
 // --- HARDCODED DATA FOR CATEGORIES ---
 
@@ -575,21 +738,18 @@ async function loadCharts() {
     // 5. USER REGISTRATION TREND (Overlapping Filled Areas + Total)
     // ---------------------------------------------------------
     try {
-        // Fetch 90 days of data (approx 3 months back from Nov = Sept start)
-        const resUsers = await fetch('includes/fetch_data.php?action=user_registration_trend&days=90');
+        // Fetch data from internal AJAX handler
+        const resUsers = await fetch('admin_dashboard.php?ajax_action=user_growth');
         
         if (resUsers.ok) {
             const userData = await resUsers.json();
             
             const labels = userData.length ? userData.map(u => u.date) : ['No Data'];
+            
+            const totalPoints = userData.length ? userData.map(u => u.total) : [0];
             const activePoints = userData.length ? userData.map(u => u.active) : [0];
             const suspendedPoints = userData.length ? userData.map(u => u.suspended) : [0];
             const deletedPoints = userData.length ? userData.map(u => u.deleted) : [0];
-            
-            // CALCULATE TOTAL DYNAMICALLY (Active + Suspended + Deleted)
-            const totalPoints = userData.length 
-                ? userData.map(u => (Number(u.active)||0) + (Number(u.suspended)||0) + (Number(u.deleted)||0)) 
-                : [0];
 
             const userCtx = document.getElementById('usersChart');
             if (userCtx) {
@@ -602,7 +762,7 @@ async function loadCharts() {
                             {
                                 label: 'Total',
                                 data: totalPoints,
-                                borderColor: '#94a3b8', // Slate 400 (visible but neutral)
+                                borderColor: '#94a3b8', // Slate Gray
                                 borderWidth: 2,
                                 borderDash: [3, 3], // Dashed line
                                 fill: false, // Do not fill area for total
@@ -611,15 +771,15 @@ async function loadCharts() {
                                 pointHoverRadius: 4,
                                 order: 0 // Ensure it draws on top of filled areas
                             },
-                            // 1. Active Users (Purple)
+                            // 1. Active Users (Purple Filled Area)
                             {
-                                label: 'New/Active',
+                                label: 'Active',
                                 data: activePoints,
-                                borderColor: '#8b5cf6',
+                                borderColor: '#8b5cf6', // Purple
                                 backgroundColor: (ctx) => {
                                     const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150);
-                                    gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
-                                    gradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+                                    gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
+                                    gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
                                     return gradient;
                                 },
                                 borderWidth: 2,
@@ -629,15 +789,15 @@ async function loadCharts() {
                                 pointHoverRadius: 4,
                                 order: 1
                             },
-                            // 2. Suspended Users (Orange/Red)
+                            // 2. Suspended Users (Orange Filled Area)
                             {
                                 label: 'Suspended',
                                 data: suspendedPoints,
                                 borderColor: '#f97316', // Orange
                                 backgroundColor: (ctx) => {
                                     const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150);
-                                    gradient.addColorStop(0, 'rgba(249, 115, 22, 0.4)');
-                                    gradient.addColorStop(1, 'rgba(249, 115, 22, 0.05)');
+                                    gradient.addColorStop(0, 'rgba(249, 115, 22, 0.5)');
+                                    gradient.addColorStop(1, 'rgba(249, 115, 22, 0.0)');
                                     return gradient;
                                 },
                                 borderWidth: 2,
@@ -647,15 +807,15 @@ async function loadCharts() {
                                 pointHoverRadius: 4,
                                 order: 2
                             },
-                            // 3. Deleted Users (Gray/Dark Red)
+                            // 3. Deleted Users (Red Filled Area)
                             {
                                 label: 'Deleted',
                                 data: deletedPoints,
                                 borderColor: '#ef4444', // Red
                                 backgroundColor: (ctx) => {
                                     const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150);
-                                    gradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
-                                    gradient.addColorStop(1, 'rgba(239, 68, 68, 0.05)');
+                                    gradient.addColorStop(0, 'rgba(239, 68, 68, 0.5)');
+                                    gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
                                     return gradient;
                                 },
                                 borderWidth: 2,
@@ -670,23 +830,22 @@ async function loadCharts() {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
                         plugins: {
                             legend: { 
                                 display: true, 
-                                labels: { 
-                                    boxWidth: 8, 
-                                    usePointStyle: true,
-                                    font: { size: 10 }
-                                } 
+                                labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } 
                             },
                             tooltip: {
-                                intersect: false,
-                                mode: 'index',
-                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                 titleColor: '#1f2937',
                                 bodyColor: '#1f2937',
                                 borderColor: '#e5e7eb',
-                                borderWidth: 1
+                                borderWidth: 1,
+                                padding: 10
                             }
                         },
                         scales: {
@@ -698,7 +857,7 @@ async function loadCharts() {
             }
         }
     } catch (e) { 
-        console.error("User Trend Error:", e); 
+        console.error("User Growth Error:", e); 
     }
 }
 

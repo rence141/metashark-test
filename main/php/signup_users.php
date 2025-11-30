@@ -8,13 +8,15 @@ error_reporting(E_ALL);
 ob_start();
 
 $error = "";
+$success = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $fullname = $_POST['fullname'];
-    $email = $_POST['email'];
-    $phone = $_POST['phone'];
-    $password = $_POST['password'];
-    $confirm = $_POST['confirm_password'];
+    $fullname = $_POST['fullname'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $country = $_POST['country'] ?? ''; // Capture country instead of region
+    $password = $_POST['password'] ?? '';
+    $confirm = $_POST['confirm_password'] ?? '';
 
     if ($password !== $confirm) {
         $error = "Passwords do not match!";
@@ -24,18 +26,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($conn->connect_error) {
             $error = "Connection failed: " . $conn->connect_error;
         } else {
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
-            // Use prepared statement to prevent SQL injection
-            $sql = "INSERT INTO users (fullname, email, phone, password) VALUES (?, ?, ?, ?)";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssss", $fullname, $email, $phone, $hashed);
-            
-            if ($stmt->execute()) {
-                $success = "Signup successful!";
+            // Check if email exists
+            $check = $conn->prepare("SELECT id FROM users WHERE email = ?");
+            $check->bind_param("s", $email);
+            $check->execute();
+            $check->store_result();
+
+            if ($check->num_rows > 0) {
+                $error = "Email already registered!";
             } else {
-                $error = "Error: " . $conn->error;
+                $hashed = password_hash($password, PASSWORD_DEFAULT);
+                // Update SQL to include country
+                $sql = "INSERT INTO users (fullname, email, phone, country, password) VALUES (?, ?, ?, ?, ?)";
+                $stmt = $conn->prepare($sql);
+                if ($stmt) {
+                    $stmt->bind_param("sssss", $fullname, $email, $phone, $country, $hashed);
+                    
+                    if ($stmt->execute()) {
+                        $success = "Signup successful! You can now login.";
+                    } else {
+                        $error = "Error: " . $stmt->error;
+                    }
+                    $stmt->close();
+                } else {
+                    $error = "Database error: " . $conn->error;
+                }
             }
-            $stmt->close();
+            $check->close();
             $conn->close();
         }
     }
@@ -180,8 +197,9 @@ body::before {
   margin: 10px 0;
 }
 
-/* Input Fields */
-.form-container input {
+/* Input Fields & Selects */
+.form-container input,
+.form-container select {
   width: 100%;
   padding: 16px 22px;
   border: 2px solid #e1e5e9;
@@ -190,17 +208,46 @@ body::before {
   background: #f8f9fa;
   transition: all 0.3s ease;
   outline: none;
+  color: #333; /* Default text color for inputs */
+  appearance: none; /* Removes default arrow for select to ensure custom styling */
 }
 
-.input-row input {
+/* Add custom arrow for select */
+.form-container select {
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px top 50%;
+    background-size: 12px auto;
+}
+
+.theme-dark .form-container input,
+.theme-dark .form-container select {
+    background-color: #2b2b2b;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+/* Dark mode arrow for select */
+.theme-dark .form-container select {
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e0e0e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+}
+
+.input-row input,
+.input-row select {
   flex: 1;
 }
 
-.form-container input:focus {
+.form-container input:focus,
+.form-container select:focus {
   border-color: #00d4ff;
   background: white;
   box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
   transform: translateY(-2px);
+}
+
+.theme-dark .form-container input:focus,
+.theme-dark .form-container select:focus {
+    background: #333;
 }
 
 .form-container input::placeholder {
@@ -354,7 +401,8 @@ body::before {
     gap: 10px;
   }
   
-  .input-row input {
+  .input-row input,
+  .input-row select {
     width: 100%;
   }
 }
@@ -718,7 +766,36 @@ window.ThemeSystem = ThemeSystem;
         <input type="text" name="fullname" placeholder="Full Name" required>
         <input type="email" name="email" placeholder="Email" required>
       </div>
-      <input type="text" name="phone" placeholder="Phone Number" maxlength="15" required>
+      
+      <!-- Grouped Phone and Country -->
+      <div class="input-row">
+        <input type="text" name="phone" placeholder="Phone Number" maxlength="15" required>
+        <select name="country" required>
+            <option value="" disabled selected>Select Country</option>
+            <option value="Philippines">Philippines</option>
+            <option value="United States">United States</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="Canada">Canada</option>
+            <option value="Australia">Australia</option>
+            <option value="Japan">Japan</option>
+            <option value="South Korea">South Korea</option>
+            <option value="China">China</option>
+            <option value="Singapore">Singapore</option>
+            <option value="Germany">Germany</option>
+            <option value="France">France</option>
+            <option value="Italy">Italy</option>
+            <option value="Spain">Spain</option>
+            <option value="Russia">Russia</option>
+            <option value="Brazil">Brazil</option>
+            <option value="India">India</option>
+            <option value="Mexico">Mexico</option>
+            <option value="Indonesia">Indonesia</option>
+            <option value="Malaysia">Malaysia</option>
+            <option value="Thailand">Thailand</option>
+            <option value="Vietnam">Vietnam</option>
+        </select>
+      </div>
+
       <div class="input-row">
         <input type="password" name="password" placeholder="Password" required>
         <input type="password" name="confirm_password" placeholder="Confirm Password" required>

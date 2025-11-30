@@ -309,7 +309,7 @@ if ($chat_user) {
     
     <aside class="sidebar">
         <div class="sidebar-header">
-            <h1>Chats</h1>
+            <h1>Metachat</h1>
             <div style="display:flex; gap:10px;">
                 <button onclick="toggleTheme()" class="icon-btn" title="Toggle Theme">
                     <i id="themeIcon" class="bi <?php echo ($theme === 'dark') ? 'bi-moon-stars' : 'bi-sun'; ?>"></i>

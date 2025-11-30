@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="uploads/logo1.png">
 <title>Admin Login</title>
 <link rel="stylesheet" href="assets/css/admin.css">
 </head>
