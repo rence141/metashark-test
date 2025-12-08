@@ -2,6 +2,7 @@
 session_start();
 $theme = $_SESSION['theme'] ?? 'dark';
 include("db.php");
+include('navbar.php');
 
 // Handle Add to Cart AJAX
 if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
@@ -45,20 +46,6 @@ if (isset($_POST['add_to_cart']) && isset($_SESSION['user_id'])) {
   
 </head>
 <body>
-
-  <!-- Navbar -->
-  <nav class="navbar">
-    <div class="container">
-      <ul class="nav-links">
-        <li><a href="../../index.html">Home</a></li>
-        <li><a href="phone.php">Phones</a></li>
-        <li><a href="Tablets.php">Tablets</a></li>
-        <li><a href="accessories.php">Accessories</a></li>
-        <li><a href="laptop.php">Laptops</a></li>
-        <li><a href="gaming.php">Gaming</a></li>
-      </ul>
-    </div>
-  </nav>
 
   <!-- Banner -->
   <div class="banner">

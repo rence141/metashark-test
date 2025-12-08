@@ -14,6 +14,9 @@ if (!isset($_SESSION['admin_id'])) {
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $theme = $_SESSION['theme'] ?? 'dark';
 
+// Generate Initial for Profile Avatar
+$admin_initial = strtoupper(substr($admin_name, 0, 1));
+
 // INCLUDE EMAIL SCRIPT
 $email_file = __DIR__ . '/includes/email.php';
 if (!file_exists($email_file)) {
@@ -69,6 +72,16 @@ if (!function_exists('triggerUnsuspensionEmail')) {
     }
 }
 
+// --- Ensure suspension columns exist (suspension_reason, suspended_at) ---
+$colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'suspension_reason'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE users ADD COLUMN suspension_reason TEXT NULL");
+}
+$colCheck = $conn->query("SHOW COLUMNS FROM users LIKE 'suspended_at'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE users ADD COLUMN suspended_at DATETIME NULL");
+}
+
 // --- Utility: fetch user details ---
 function getUserDetails($conn, $id) {
     $stmt = $conn->prepare("SELECT email, fullname FROM users WHERE id = ? LIMIT 1");
@@ -78,12 +91,14 @@ function getUserDetails($conn, $id) {
 }
 
 // --- Handle Actions ---
-if (isset($_GET['suspend']) && is_numeric($_GET['suspend'])) {
-    $id = (int)$_GET['suspend'];
+if (isset($_POST['suspend_seller']) && is_numeric($_POST['seller_id'])) {
+    $id = (int)$_POST['seller_id'];
+    $reason = trim($_POST['reason'] ?? '');
+    if ($reason === '') $reason = 'Policy violation or security review';
     
-    // Change role to 'suspended_seller'
-    $stmt = $conn->prepare("UPDATE users SET role = 'suspended_seller' WHERE id = ? AND role = 'seller'");
-    $stmt->bind_param("i", $id);
+    // Keep role as seller (ENUM safe) but mark inactive; also support legacy suspended_seller if present
+    $stmt = $conn->prepare("UPDATE users SET role = 'seller', is_active_seller = 0, suspension_reason = ?, suspended_at = NOW() WHERE id = ? AND role IN ('seller','suspended_seller')");
+    $stmt->bind_param("si", $reason, $id);
     
     if ($stmt->execute() && $stmt->affected_rows > 0) {
         $u = getUserDetails($conn, $id);
@@ -93,11 +108,11 @@ if (isset($_GET['suspend']) && is_numeric($_GET['suspend'])) {
     }
 }
 
-if (isset($_GET['unsuspend']) && is_numeric($_GET['unsuspend'])) {
-    $id = (int)$_GET['unsuspend'];
+if (isset($_POST['unsuspend_seller']) && is_numeric($_POST['seller_id'])) {
+    $id = (int)$_POST['seller_id'];
     
-    // Change role back to 'seller'
-    $stmt = $conn->prepare("UPDATE users SET role = 'seller' WHERE id = ? AND role = 'suspended_seller'");
+    // Reactivate seller (set active flag, reset role to seller)
+    $stmt = $conn->prepare("UPDATE users SET role = 'seller', is_active_seller = 1, suspension_reason = NULL, suspended_at = NULL WHERE id = ? AND role IN ('seller','suspended_seller')");
     $stmt->bind_param("i", $id);
     
     if ($stmt->execute() && $stmt->affected_rows > 0) {
@@ -110,9 +125,10 @@ if (isset($_GET['unsuspend']) && is_numeric($_GET['unsuspend'])) {
 
 // --- Fetch Sellers Data ---
 $sellers = []; 
-$sql = "SELECT u.id, u.fullname, u.email, u.role, 
+$sql = "SELECT u.id, u.fullname, u.email, u.role, u.is_active_seller,
         COALESCE(u.seller_name, '') as seller_name, 
         COALESCE(u.seller_rating, 0) as seller_rating,
+        u.suspension_reason, u.suspended_at,
         COUNT(DISTINCT p.id) as product_count,
         COALESCE(SUM(CASE WHEN (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) THEN o.total_price ELSE 0 END), 0) as total_revenue,
         COUNT(DISTINCT CASE WHEN (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) THEN o.id ELSE NULL END) as order_count
@@ -120,7 +136,7 @@ $sql = "SELECT u.id, u.fullname, u.email, u.role,
         LEFT JOIN products p ON u.id = p.seller_id
         LEFT JOIN orders o ON u.id = o.seller_id
         WHERE u.role IN ('seller', 'suspended_seller') 
-        GROUP BY u.id, u.fullname, u.email, u.role, u.seller_name, u.seller_rating
+        GROUP BY u.id, u.fullname, u.email, u.role, u.is_active_seller, u.seller_name, u.seller_rating, u.suspension_reason, u.suspended_at
         ORDER BY total_revenue DESC";
 
 $result = $conn->query($sql);
@@ -143,239 +159,295 @@ if ($result) {
 <!DOCTYPE html>
 <html lang="en" data-theme="<?php echo htmlspecialchars($theme); ?>">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" type="image/png" href="Uploads/logo1.png">
-<title>Manage Sellers — Meta Shark</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<style>
-/* CSS VARIABLES */
-:root{--primary:#44D62C;--bg:#f3f4f6;--panel:#fff;--panel-border:#e5e7eb;--text:#1f2937;--text-muted:#6b7280;--radius:12px;--shadow:0 4px 6px rgba(0,0,0,0.1);--danger:#f44336; --muted:#6b7280;}
-[data-theme="dark"]{--bg:#0f1115;--panel:#161b22;--panel-border:#242c38;--text:#e6eef6;--text-muted:#94a3b8;--shadow:0 10px 15px rgba(0,0,0,0.5); --muted:#94a3b8;}
-*{margin:0;padding:0;box-sizing:border-box;} 
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="Uploads/logo1.png">
+    <title>Manage Sellers — Meta Shark</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+    /* --- MASTER CSS (Matches Dashboard) --- */
+    :root {
+        --primary: #44D62C;
+        --primary-glow: rgba(68, 214, 44, 0.3);
+        --accent: #00ff88;
+        --bg: #f3f4f6;
+        --panel: #ffffff;
+        --panel-border: #e5e7eb;
+        --text: #1f2937;
+        --text-muted: #6b7280;
+        --radius: 16px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --danger: #f44336; 
+        --info: #00d4ff;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --sidebar-width: 260px;
+    }
 
-/* LAYOUT STRUCTURE */
-.admin-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
+    [data-theme="dark"] {
+        --bg: #0f1115;
+        --panel: #161b22;
+        --panel-border: #242c38;
+        --text: #e6eef6;
+        --text-muted: #94a3b8;
+        --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
 
-/* Navbar */
-.admin-navbar {
-    position: fixed; top: 0; left: 0; right: 0;
-    height: 80px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--panel-border);
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 30px;
-    z-index: 1000;
-}
-.navbar-left{display:flex;align-items:center;gap:20px;}
-.navbar-left img{ height: 50px; width: auto; }
-.navbar-left h1{ font-size: 24px; margin: 0; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
-.nav-user-info{display:flex;align-items:center;gap:20px;font-size:15px;}
-.nav-user-info a {color: var(--text); text-decoration: none; font-weight: 500;}
+    * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    a { text-decoration: none; color: inherit; transition: 0.2s; }
 
-/* Layout Container */
-.layout-container {
-    display: flex;
-    margin-top: 80px; 
-    min-height: calc(100vh - 80px);
-}
+    /* --- Animations --- */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
 
-/* Sidebar */
-.admin-sidebar {
-    width: 250px;
-    background: var(--panel);
-    border-right: 1px solid var(--panel-border);
-    flex-shrink: 0;
-    position: fixed;
-    height: calc(100vh - 80px);
-    overflow-y: auto;
-}
-.sidebar-item{display:flex;align-items:center;gap:12px;padding:15px 25px;color:var(--text-muted);text-decoration:none;font-weight:500;border-left:4px solid transparent; font-size: 15px;}
-.sidebar-item:hover,.sidebar-item.active{background:var(--bg);color:var(--primary);border-left-color:var(--primary);}
+    /* --- Navbar --- */
+    .admin-navbar {
+        position: fixed; top: 0; left: 0; right: 0; height: 70px;
+        background: var(--panel); border-bottom: 1px solid var(--panel-border);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 24px; z-index: 50; backdrop-filter: blur(10px);
+        box-shadow: var(--shadow);
+    }
+    .navbar-left { display: flex; align-items: center; gap: 16px; }
+    .logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
+    .logo-area img { height: 32px; filter: drop-shadow(0 0 5px var(--primary-glow)); }
+    .sidebar-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
 
-/* Main Content */
-.admin-main {
-    flex-grow: 1;
-    margin-left: 250px;
-    padding: 30px;
-    width: calc(100% - 250px);
-}
+    /* --- Profile Widget --- */
+    .navbar-profile-link { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; transition: var(--transition); color: var(--text); }
+    .navbar-profile-link:hover { background: rgba(68,214,44,0.1); color: var(--primary); }
+    .profile-info-display { text-align: right; line-height: 1.2; display: none; }
+    @media (min-width: 640px) { .profile-info-display { display: block; } }
+    .profile-name { font-size: 14px; font-weight: 600; color: var(--text); transition: color 0.2s; }
+    .navbar-profile-link:hover .profile-name { color: var(--primary); }
+    .profile-role { font-size: 11px; color: var(--text-muted); }
+    .profile-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #000; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--primary); box-shadow: 0 0 8px var(--primary-glow); flex-shrink: 0; }
 
-/* Table Card */
-.table-card {
-    background: var(--panel);
-    border-radius: var(--radius);
-    border: 1px solid var(--panel-border);
-    box-shadow: var(--shadow);
-    width: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-.table-card h3 {
-    padding: 20px;
-    border-bottom: 1px solid var(--panel-border);
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    background: rgba(68,214,44,0.02);
-    color: var(--text);
-}
+    /* --- Sidebar --- */
+    .admin-sidebar { position: fixed; left: 0; top: 70px; bottom: 0; width: var(--sidebar-width); background: var(--panel); border-right: 1px solid var(--panel-border); padding: 24px 16px; overflow-y: auto; transition: var(--transition); z-index: 40; }
+    .sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
+    .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-muted); font-weight: 500; font-size: 14px; transition: var(--transition); margin-bottom: 4px; }
+    .sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    [data-theme="light"] .sidebar-item:hover { background: #f3f4f6; }
+    .sidebar-item.active { background: linear-gradient(90deg, rgba(68,214,44,0.15), transparent); color: var(--primary); border-left: 3px solid var(--primary); }
+    .sidebar-item i { font-size: 18px; }
 
-.table-responsive { width: 100%; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 900px; }
-th,td { padding: 18px 25px; text-align: left; font-size: 14px; }
-th { background: rgba(68,214,44,0.05); color: var(--primary); font-weight: 700; border-bottom: 1px solid var(--panel-border); white-space: nowrap; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;}
-td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
+    /* --- Main Content --- */
+    .admin-main { margin-left: var(--sidebar-width); margin-top: 70px; padding: 32px; min-height: calc(100vh - 70px); transition: var(--transition); }
 
-/* Components & BUTTONS */
-.btn {
-    padding: 8px 14px; 
-    border-radius: 6px; 
-    display: inline-flex; 
-    align-items: center; 
-    gap: 6px; 
-    font-size: 13px; 
-    font-weight: 600; 
-    white-space: nowrap; 
-    text-decoration: none;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: 0.2s;
-}
+    /* --- Table Styles --- */
+    .table-card { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+    .table-card h3 { padding: 20px 24px; border-bottom: 1px solid var(--panel-border); margin: 0; font-size: 16px; font-weight: 600; background: rgba(68,214,44,0.02); color: var(--text); }
+    
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
+    th { text-align: left; padding: 12px 24px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--panel-border); white-space: nowrap; }
+    td { padding: 16px 24px; border-bottom: 1px solid var(--panel-border); font-size: 14px; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    [data-theme="light"] tr:hover td { background: #f9fafb; }
 
-.sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
+    /* --- Utilities & Buttons --- */
+    .btn { padding: 8px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: 0.2s; }
+    
+    .btn-suspend { background: rgba(255,152,0,0.1); color: #ff9800; border: 1px solid #ff9800; }
+    .btn-suspend:hover { background: #ff9800; color: #fff; }
 
+    .btn-activate { background: rgba(68,214,44,0.1); color: var(--primary); border: 1px solid var(--primary); }
+    .btn-activate:hover { background: var(--primary); color: #000; }
 
-/* Suspend (Outline/Glass - Orange) */
-.btn-suspend { background: rgba(255,152,0,0.1); color: #ff9800; border: 1px solid #ff9800; }
-.btn-suspend:hover { background: #ff9800; color: #fff; }
+    .btn-xs { padding: 6px 12px; font-size: 12px; }
+    .btn-outline { border-color: var(--panel-border); color: var(--text); background: transparent; }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
 
-/* Activate (Outline/Glass - Green) */
-.btn-activate { background: rgba(68,214,44,0.1); color: var(--primary); border: 1px solid var(--primary); }
-.btn-activate:hover { background: var(--primary); color: #000; }
+    /* Badges */
+    .status-badge { padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
+    .status-active { background: rgba(68,214,44,0.15); color: var(--primary); border: 1px solid rgba(68,214,44,0.3); }
+    .status-suspended { background: rgba(255,152,0,0.15); color: #ff9800; border: 1px solid rgba(255,152,0,0.3); }
 
-.btn-icon-only { padding: 0; width: 36px; height: 36px; border-radius: 6px; justify-content: center;}
+    .alert { padding: 15px 25px; border-radius: 8px; margin-bottom: 25px; font-size: 15px; font-weight: 500; }
+    .alert-success { background: rgba(68,214,44,0.1); color: var(--primary); border: 1px solid var(--primary); }
 
-/* Badges */
-.status-badge { padding: 4px 10px; border-radius: 4px; font-weight: 700; font-size: 11px; text-transform: uppercase; }
-.status-active { background: rgba(68,214,44,0.15); color: var(--primary); border: 1px solid rgba(68,214,44,0.3); }
-.status-suspended { background: rgba(255,152,0,0.15); color: #ff9800; border: 1px solid rgba(255,152,0,0.3); }
-
-.alert{padding:15px 25px;border-radius:8px;margin-bottom:25px;font-size:15px; font-weight: 500;}
-.alert-success{background:rgba(68,214,44,0.1);color:var(--primary);border:1px solid var(--primary);}
-</style>
+    @media (max-width: 992px) {
+        .admin-sidebar { transform: translateX(-100%); }
+        .admin-sidebar.show { transform: translateX(0); }
+        .admin-main { margin-left: 0; }
+        .sidebar-toggle { display: block; }
+    }
+    </style>
 </head>
 <body>
 
-<div class="admin-navbar">
+<nav class="admin-navbar">
     <div class="navbar-left">
-        <img src="uploads/logo1.png" alt="Logo" onerror="this.src='https://placehold.co/150x50/161b22/44D62C/png?text=SHARK'">
-        <h1>Meta Shark</h1>
-    </div>
-    <div class="nav-user-info">
-        <span style="color:var(--text-muted)">Welcome, <strong><?php echo htmlspecialchars($admin_name); ?></strong></span>
-        <a href="admin_dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <a href="admin_logout.php" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</div>
-
-<div class="layout-container">
-    <aside class="admin-sidebar" id="sidebar">
-    <div class="sidebar-item"><i class="bi bi-grid-1x2-fill"></i> Dashboard</div>
-    
-    <div class="sidebar-group-label">Analytics</div>
-    <a href="charts_overview.php" class="sidebar-item"><i class="bi bi-activity"></i> Overview Chart</a>
-    <a href="charts_line.php" class="sidebar-item"><i class="bi bi-graph-up-arrow"></i> Revenue Chart</a>
-    <a href="charts_bar.php" class="sidebar-item"><i class="bi bi-bar-chart-fill"></i> Categories Chart</a>
-    <a href="charts_pie.php" class="sidebar-item"><i class="bi bi-pie-chart-fill"></i> Orders Chart</a>
-    <a href="charts_geo.php" class="sidebar-item"><i class="bi bi-globe2"></i> Geography Chart</a>
-
-    <div class="sidebar-group-label">Management and Access</div>
-    <a href="pending_requests.php" class="sidebar-item"><i class="bi bi-shield-lock"></i> Requests</a>
-    <a href="admin_products.php" class="sidebar-item"><i class="bi bi-box-seam"></i> Products</a>
-    <a href="admin_users.php" class="sidebar-item"><i class="bi bi-people-fill"></i> Users</a>
-    <a href="admin_sellers.php" class="sidebar-item active"><i class="bi bi-shop"></i> Sellers</a>
-    <a href="admin_orders.php" class="sidebar-item"><i class="bi bi-bag-check-fill"></i> Orders</a>
-
-    <div class="sidebar-group-label">Settings</div>
-    <a href="admin_profile.php" class="sidebar-item"><i class="bi bi-person-gear"></i> My Profile</a>
-</aside>
-
-
-    <div class="admin-main">
-        <h2 style="margin-bottom:25px; font-size: 28px; font-weight: 700;">Shop Management</h2>
-
-        <?php if (isset($_GET['suspended'])): ?>
-            <div class="alert alert-success">Shop <strong>suspended</strong> successfully. Notification sent.</div>
-        <?php endif; ?>
-        <?php if (isset($_GET['unsuspended'])): ?>
-            <div class="alert alert-success">Shop <strong>reactivated</strong> successfully.</div>
-        <?php endif; ?>
-
-        <div class="table-card">
-            <h3>Active & Suspended Sellers (<?php echo count($sellers); ?>)</h3>
-            
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Seller Details</th>
-                            <th>Shop Name</th>
-                            <th>Status</th>
-                            <th>Perf</th>
-                            <th>Inventory</th>
-                            <th>Sales</th>
-                            <th>Revenue</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($sellers)): ?>
-                            <tr><td colspan="9" style="text-align:center;padding:50px;color:var(--text-muted)">No Sellers found.</td></tr>
-                        <?php else: foreach ($sellers as $s): ?>
-                            <tr>
-                                <td><span style="font-family:monospace; font-weight:700">#<?php echo $s['id']; ?></span></td>
-                                <td>
-                                    <div style="font-weight:600"><?php echo htmlspecialchars($s['fullname']); ?></div>
-                                    <div style="font-size:12px; color:var(--text-muted)"><?php echo htmlspecialchars($s['email']); ?></div>
-                                </td>
-                                <td>
-                                    <?php echo htmlspecialchars($s['seller_name'] ?: 'N/A'); ?>
-                                </td>
-                                <td>
-                                    <?php if ($s['role'] === 'seller'): ?>
-                                        <span class="status-badge status-active">Active</span>
-                                    <?php else: ?>
-                                        <span class="status-badge status-suspended">Suspended</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span style="color:#ffc107">★</span> <?php echo number_format($s['seller_rating'] ?? 0, 1); ?>
-                                </td>
-                                <td><?php echo $s['product_count']; ?> Items</td>
-                                <td><?php echo $s['order_count']; ?> Orders</td>
-                                <td style="font-weight:700; color:var(--primary)">$<?php echo number_format($s['total_revenue'], 2); ?></td>
-                                <td>
-                                    <?php if ($s['role'] === 'seller'): ?>
-                                        <a href="admin_sellers.php?suspend=<?php echo $s['id']; ?>" class="btn btn-suspend" onclick="return confirm('WARNING: Suspending this seller will hide all their listings. Continue?')" title="Suspend Shop">
-                                            <i class="bi bi-pause-circle"></i> Suspend
-                                        </a>
-                                    <?php else: ?>
-                                        <a href="admin_sellers.php?unsuspend=<?php echo $s['id']; ?>" class="btn btn-activate" title="Reactivate Shop">
-                                            <i class="bi bi-play-circle"></i> Activate
-                                        </a>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; endif; ?>
-                    </tbody>
-                </table>
-            </div>
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+        <div class="logo-area">
+            <img src="uploads/logo1.png" alt="Meta Shark">
+            <span>META SHARK</span>
         </div>
     </div>
-</div>
+    <div style="display:flex; align-items:center; gap:16px;">
+        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
+            <i class="bi bi-moon-stars"></i>
+        </button>
+        
+        <a href="admin_profile.php" class="navbar-profile-link">
+            <div class="profile-info-display">
+                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
+                <div class="profile-role" style="color:var(--primary);">Administrator</div>
+            </div>
+            <div class="profile-avatar">
+                <?php echo $admin_initial; ?>
+            </div>
+        </a>
+        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+</nav>
+
+<?php include 'admin_sidebar.php'; ?>
+
+<main class="admin-main">
+    <div class="fade-in" style="margin-bottom:25px;">
+        <h2 style="font-size: 24px; font-weight: 700;">Shop Management</h2>
+    </div>
+
+    <?php if (isset($_GET['suspended'])): ?>
+        <div class="alert alert-success fade-in">Shop <strong>suspended</strong> successfully. Notification sent.</div>
+    <?php endif; ?>
+    <?php if (isset($_GET['unsuspended'])): ?>
+        <div class="alert alert-success fade-in">Shop <strong>reactivated</strong> successfully.</div>
+    <?php endif; ?>
+
+    <div class="table-card fade-in" style="animation-delay: 0.1s;">
+        <h3>Active & Suspended Sellers (<?php echo count($sellers); ?>)</h3>
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Seller Details</th>
+                        <th>Shop Name</th>
+                        <th>Status</th>
+                        <th>Perf</th>
+                        <th>Inventory</th>
+                        <th>Sales</th>
+                        <th>Revenue</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($sellers)): ?>
+                        <tr><td colspan="9" style="text-align:center;padding:50px;color:var(--text-muted)">No Sellers found.</td></tr>
+                    <?php else: foreach ($sellers as $s): ?>
+                        <tr>
+                            <td><span style="font-family:monospace; font-weight:700">#<?php echo $s['id']; ?></span></td>
+                            <td>
+                                <div style="font-weight:600"><?php echo htmlspecialchars($s['fullname']); ?></div>
+                                <div style="font-size:12px; color:var(--text-muted)"><?php echo htmlspecialchars($s['email']); ?></div>
+                            </td>
+                            <td>
+                                <?php echo htmlspecialchars($s['seller_name'] ?: 'N/A'); ?>
+                            </td>
+                            <td>
+                                <?php
+                                    $isSuspended = ($s['role'] !== 'seller') || ((int)($s['is_active_seller'] ?? 1) === 0);
+                                    $suspendDate = !empty($s['suspended_at']) ? date('M d, Y', strtotime($s['suspended_at'])) : '';
+                                    if ($isSuspended): ?>
+                                        <span class="status-badge status-suspended">Suspended</span>
+                                        <?php if ($suspendDate): ?>
+                                            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Since <?php echo $suspendDate; ?></div>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="status-badge status-active">Active</span>
+                                    <?php endif; ?>
+                                <?php if ($isSuspended && !empty($s['suspension_reason'])): ?>
+                                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                                        <?php echo htmlspecialchars($s['suspension_reason']); ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span style="color:#ffc107">★</span> <?php echo number_format($s['seller_rating'] ?? 0, 1); ?>
+                            </td>
+                            <td><?php echo $s['product_count']; ?> Items</td>
+                            <td><?php echo $s['order_count']; ?> Orders</td>
+                            <td style="font-weight:700; color:var(--primary)">$<?php echo number_format($s['total_revenue'], 2); ?></td>
+                            <td>
+                                <?php $isSuspended = ($s['role'] !== 'seller') || ((int)($s['is_active_seller'] ?? 1) === 0); ?>
+                                <?php if (!$isSuspended): ?>
+                                    <form method="POST" class="suspend-form" style="display:inline">
+                                        <input type="hidden" name="seller_id" value="<?php echo $s['id']; ?>">
+                                        <input type="hidden" name="reason" value="">
+                                        <button type="submit" name="suspend_seller" class="btn btn-suspend btn-xs" title="Suspend Shop">
+                                            <i class="bi bi-pause-circle"></i> Suspend
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <form method="POST" style="display:inline">
+                                        <input type="hidden" name="seller_id" value="<?php echo $s['id']; ?>">
+                                        <button type="submit" name="unsuspend_seller" class="btn btn-activate btn-xs" title="Reactivate Shop">
+                                            <i class="bi bi-play-circle"></i> Activate
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script>
+// --- UI Interactivity ---
+const sidebar = document.getElementById('sidebar');
+const toggleBtn = document.getElementById('sidebarToggle');
+toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('show'); });
+document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+        sidebar.classList.remove('show');
+    }
+});
+
+// Theme Logic
+const themeBtn = document.getElementById('themeBtn');
+let currentTheme = '<?php echo $theme; ?>';
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+}
+
+function updateThemeIcon(theme) {
+    const icon = themeBtn.querySelector('i');
+    icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+}
+
+// On load, enforce session theme across pages
+applyTheme(currentTheme);
+updateThemeIcon(currentTheme);
+
+themeBtn.addEventListener('click', () => {
+    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
+    updateThemeIcon(newTheme);
+    fetch('theme_toggle.php?theme=' + newTheme).catch(console.error);
+});
+
+// Prompt for suspension reason before submitting
+document.querySelectorAll('.suspend-form').forEach(form => {
+    form.addEventListener('submit', (e) => {
+        const reason = prompt('Enter suspension reason (visible to the seller):', 'Policy violation');
+        if (!reason) {
+            e.preventDefault();
+            return false;
+        }
+        form.querySelector('input[name="reason"]').value = reason;
+    });
+});
+</script>
+
 </body>
 </html>

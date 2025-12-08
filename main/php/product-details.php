@@ -2,7 +2,50 @@
 session_start();
 include("db.php");
 
-// Get product ID from URL
+// --- 1. Theme Logic (Matches Shop.php) ---
+if (isset($_GET['theme'])) {
+    $new_theme = in_array($_GET['theme'], ['light', 'dark', 'device']) ? $_GET['theme'] : 'device';
+    $_SESSION['theme'] = $new_theme;
+} else {
+    $theme = $_SESSION['theme'] ?? 'device';
+}
+
+$effective_theme = $theme;
+if ($theme === 'device') {
+    $effective_theme = 'dark'; // Fallback default
+}
+
+// --- 2. Cart Count Logic ---
+$cart_count = 0;
+if (isset($_SESSION['user_id'])) {
+    $user_id = $_SESSION['user_id'];
+    $count_sql = "SELECT SUM(quantity) as total FROM cart WHERE user_id = ?";
+    $count_stmt = $conn->prepare($count_sql);
+    $count_stmt->bind_param("i", $user_id);
+    $count_stmt->execute();
+    $count_result = $count_stmt->get_result();
+    if ($count_result->num_rows > 0) {
+        $cart_data = $count_result->fetch_assoc();
+        $cart_count = $cart_data['total'] ?: 0;
+    }
+}
+
+// --- 3. Notification Logic ---
+$notif_count = 0;
+if(isset($_SESSION['user_id'])) {
+    $n_user_id = $_SESSION['user_id'];
+    $notif_sql = "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND `read` = 0";
+    $notif_stmt = $conn->prepare($notif_sql);
+    $notif_stmt->bind_param("i", $n_user_id);
+    $notif_stmt->execute();
+    $notif_result = $notif_stmt->get_result();
+    if ($notif_result->num_rows > 0) {
+        $notif_data = $notif_result->fetch_assoc();
+        $notif_count = $notif_data['count'];
+    }
+}
+
+// --- Product Fetching Logic ---
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     header("Location: shop.php");
     exit();
@@ -33,13 +76,13 @@ if ($result->num_rows === 0) {
 
 $product = $result->fetch_assoc();
 
-// Ensure consistent image path - fallback to default if image doesn't exist
+// Ensure consistent image path
 $image_path = $product['image'];
 if (empty($image_path) || !file_exists($image_path)) {
-    $image_path = 'Uploads/default-product.jpg'; // Assuming a default product image exists
+    $image_path = 'Uploads/default-product.jpg';
 }
 
-// Check if product_specs table has variant-specific columns
+// Check variant columns
 $variant_columns_exist = false;
 $check_columns = $conn->query("SHOW COLUMNS FROM product_specs LIKE 'price'");
 if ($check_columns->num_rows > 0) {
@@ -56,7 +99,7 @@ while ($row = $spec_result->fetch_assoc()) {
     $spec_types[] = $row['spec_name'];
 }
 
-// Fetch specification options and variant data
+// Fetch options and variants
 $spec_options = [];
 $variants = [];
 if ($variant_columns_exist) {
@@ -110,7 +153,7 @@ if ($variant_columns_exist) {
     }
 }
 
-// Fetch seller stats
+// Seller stats
 $seller_rating_stmt = $conn->prepare("
     SELECT AVG(r.rating) as avg_rating, COUNT(r.id) as review_count 
     FROM seller_reviews r 
@@ -123,19 +166,17 @@ $seller_rating = $seller_rating_result->fetch_assoc();
 $avg_rating = round($seller_rating['avg_rating'] ?? 0, 1);
 $review_count = $seller_rating['review_count'] ?? 0;
 
-// Fetch total products for seller
 $products_count_stmt = $conn->prepare("SELECT COUNT(*) as product_count FROM products WHERE seller_id = ? AND is_active = TRUE");
 $products_count_stmt->bind_param("i", $product['seller_id']);
 $products_count_stmt->execute();
 $products_count_result = $products_count_stmt->get_result();
 $products_count = $products_count_result->fetch_assoc()['product_count'] ?? 0;
 
-// Mock or fetch other stats
-$response_rate = 100; // Mock
-$followers = 1000; // Mock
+$response_rate = 100; 
+$followers = 1000; 
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?php echo $_SESSION['theme'] ?? 'dark'; ?>">
+<html lang="en" data-theme="<?php echo htmlspecialchars($effective_theme); ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -143,190 +184,131 @@ $followers = 1000; // Mock
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="icon" type="image/png" href="Uploads/logo1.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<link rel="stylesheet" href="../../css/shop.css">
+<link rel="stylesheet" href="css/shop_custom.css">
+
 <style>
+/* --- 1. COPY OF SHOP.PHP VARIABLES (Ensures Exact Colors) --- */
 :root {
-    --background: #fff;
-    --text-color: #333;
-    --primary-color: #00ff88;
-    --secondary-bg: #f8f9fa;
-    --border-color: #dee2e6;
+    --bg-primary: var(--dark-bg-primary);
+    --bg-secondary: var(--dark-bg-secondary);
+    --bg-tertiary: var(--dark-bg-tertiary);
+    --text-primary: var(--dark-text-primary);
+    --text-secondary: var(--dark-text-secondary);
+    --text-muted: var(--dark-text-muted);
+    --border: var(--dark-border);
+    --border-light: var(--dark-border-light);
+    --accent: var(--dark-accent);
+    --accent-hover: var(--dark-accent-hover);
+    --accent-light: var(--dark-accent-light);
+    --shadow: var(--dark-shadow);
+    --shadow-hover: var(--dark-shadow-hover);
+    --theme-toggle-bg: var(--dark-theme-toggle-bg);
+    --theme-toggle-text: var(--dark-theme-toggle-text);
+    --theme-toggle-border: var(--dark-theme-toggle-border);
+    --theme-toggle-hover: var(--dark-theme-toggle-hover);
+    --theme-shadow: var(--dark-theme-shadow);
+    
+    /* Light Theme Definitions */
+    --light-bg-primary: #ffffff;
+    --light-bg-secondary: #f9f9f9;
+    --light-bg-tertiary: #f0f0f0;
+    --light-text-primary: #000000;
+    --light-text-secondary: #333333;
+    --light-text-muted: #666666;
+    --light-border: #e0e0e0;
+    --light-border-light: #f0f0f0;
+    --light-accent: #44D62C;
+    --light-accent-hover: #36b020;
+    --light-accent-light: #eaffea;
+    --light-shadow: rgba(0, 0, 0, 0.1);
+    --light-shadow-hover: rgba(0, 0, 0, 0.2);
+    --light-theme-toggle-bg: #ffffff;
+    --light-theme-toggle-text: #000000;
+    --light-theme-toggle-border: #44D62C;
+    --light-theme-toggle-hover: #f0f0f0;
+    --light-theme-shadow: rgba(0, 0, 0, 0.1);
+
+    /* Dark Theme Definitions */
+    --dark-bg-primary: #000000;
+    --dark-bg-secondary: #111111;
+    --dark-bg-tertiary: #1a1a1a;
+    --dark-text-primary: #ffffff;
+    --dark-text-secondary: #cccccc;
+    --dark-text-muted: #888888;
+    --dark-border: #333333;
+    --dark-border-light: #444444;
+    --dark-accent: #44D62C;
+    --dark-accent-hover: #36b020;
+    --dark-accent-light: #2a5a1a;
+    --dark-shadow: rgba(0, 0, 0, 0.3);
+    --dark-shadow-hover: rgba(0, 0, 0, 0.4);
+    --dark-theme-toggle-bg: #1a1a1a;
+    --dark-theme-toggle-text: #ffffff;
+    --dark-theme-toggle-border: #44D62C;
+    --dark-theme-toggle-hover: #333333;
+    --dark-theme-shadow: rgba(0, 0, 0, 0.3);
 }
+
 [data-theme="dark"] {
-    --background: #000000ff;
-    --text-color: #e0e0e0;
-    --primary-color: #00ff88;
-    --secondary-bg: #2a2a2a;
-    --border-color: #444;
+    --bg-primary: var(--dark-bg-primary);
+    --bg-secondary: var(--dark-bg-secondary);
+    --bg-tertiary: var(--dark-bg-tertiary);
+    --text-primary: var(--dark-text-primary);
+    --text-secondary: var(--dark-text-secondary);
+    --text-muted: var(--dark-text-muted);
+    --border: var(--dark-border);
+    --border-light: var(--dark-border-light);
+    --accent: var(--dark-accent);
+    --accent-hover: var(--dark-accent-hover);
+    --accent-light: var(--dark-accent-light);
+    --shadow: var(--dark-shadow);
+    --shadow-hover: var(--dark-shadow-hover);
+    --theme-toggle-bg: var(--dark-theme-toggle-bg);
+    --theme-toggle-text: var(--dark-theme-toggle-text);
+    --theme-toggle-border: var(--dark-theme-toggle-border);
+    --theme-toggle-hover: var(--dark-theme-toggle-hover);
+    --theme-shadow: var(--dark-theme-shadow);
 }
+
+[data-theme="light"] {
+    --bg-primary: var(--light-bg-primary);
+    --bg-secondary: var(--light-bg-secondary);
+    --bg-tertiary: var(--light-bg-tertiary);
+    --text-primary: var(--light-text-primary);
+    --text-secondary: var(--light-text-secondary);
+    --text-muted: var(--light-text-muted);
+    --border: var(--light-border);
+    --border-light: var(--light-border-light);
+    --accent: var(--light-accent);
+    --accent-hover: var(--light-accent-hover);
+    --accent-light: var(--light-accent-light);
+    --shadow: var(--light-shadow);
+    --shadow-hover: var(--light-shadow-hover);
+    --theme-toggle-bg: var(--light-theme-toggle-bg);
+    --theme-toggle-text: var(--light-theme-toggle-text);
+    --theme-toggle-border: var(--light-theme-toggle-border);
+    --theme-toggle-hover: var(--light-theme-toggle-hover);
+    --theme-shadow: var(--light-theme-shadow);
+}
+
 body.product-details-page {
-    background: var(--background);
-    color: var(--text-color);
+    background: var(--bg-primary);
+    color: var(--text-primary);
     font-family: "Poppins", sans-serif;
     margin: 0;
     padding: 0;
 }
-.navbar {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background: var(--background);
-    padding: 10px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-color);
-}
-.nav-left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.nav-left .logo {
-    height: 40px;
-}
-.nav-left h2 {
-    margin: 0;
-    font-size: 24px;
-    color: var(--text-color);
-}
-.nav-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.theme-dropdown {
-    position: relative;
-    display: inline-block;
-}
-.theme-btn {
-    appearance: none;
-    background: var(--background);
-    color: var(--text-color);
-    border: 2px solid #006400;
-    padding: 8px 12px;
-    border-radius: 10px;
+
+/* Nav specific overrides for non-users */
+.nonuser-text {
+    font-weight: 600;
     font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    min-width: 120px;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    color: var(--accent) !important;
 }
-.theme-btn:hover {
-    background: #006400;
-    color: #fff;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0,100,0,0.2);
-}
-.theme-btn:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-.theme-dropdown:after {
-    content: '\25BC';
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: var(--text-color);
-}
-.theme-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 8px;
-    background: var(--background);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    padding: 8px;
-    min-width: 90px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    display: none;
-    z-index: 1000;
-}
-.theme-dropdown.active .theme-menu {
-    display: block;
-}
-.theme-option {
-    width: 100%;
-    padding: 10px 12px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    text-align: left;
-    font-weight: 600;
-    color: var(--text-color);
-    transition: background 0.2s ease, color 0.2s ease;
-}
-.theme-option:hover {
-    background: var(--secondary-bg);
-    color: #00aa55;
-}
-.theme-option:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-.profile-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-.hamburger {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--text-color);
-    transition: color 0.3s ease;
-}
-.hamburger:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-.menu {
-    display: none;
-    position: absolute;
-    top: 60px;
-    right: 20px;
-    background: var(--background);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px;
-    list-style: none;
-    margin: 0;
-    z-index: 1000;
-    transform: translateY(-10px);
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.menu.show {
-    display: block;
-    transform: translateY(0);
-    opacity: 1;
-}
-.menu li {
-    margin: 10px 0;
-}
-.menu li a {
-    color: var(--text-color);
-    text-decoration: none;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px;
-    border-radius: 4px;
-    transition: color 0.2s ease, background 0.2s ease;
-}
-.menu li a:hover {
-    color: #27ed15;
-    background: var(--secondary-bg);
-}
+
+/* --- PRODUCT DETAILS SPECIFIC CSS --- */
 .product-detail-container {
     display: flex;
     gap: 2rem;
@@ -334,290 +316,213 @@ body.product-details-page {
     margin: 2rem auto;
     padding: 0 1rem;
 }
-.product-image {
-    flex: 1;
-    max-width: 50%;
-}
+.product-image { flex: 1; max-width: 50%; }
 .product-image img {
     width: 100%;
     height: auto;
     max-height: 500px;
     object-fit: cover;
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
 }
 .product-info {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    background: var(--secondary-bg);
+    background: var(--bg-tertiary);
     padding: 1.5rem;
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
 }
-.product-info h1 {
-    margin: 0;
-    font-size: 2rem;
-    color: var(--text-color);
-}
-.price {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #28a745;
-}
-.seller-info, .stock, .sku {
-    margin: 0.5rem 0;
-    font-size: 1rem;
-    color: var(--text-color);
-}
-.seller-info a {
-    color: #007bff;
-    text-decoration: none;
-}
-.seller-info a:hover {
-    text-decoration: underline;
-}
+.product-info h1 { margin: 0; font-size: 2rem; color: var(--text-primary); }
+.price { font-size: 1.5rem; font-weight: bold; color: var(--accent) !important; } 
+.seller-info, .stock, .sku { margin: 0.5rem 0; font-size: 1rem; color: var(--text-secondary); }
+.seller-info a { color: var(--accent); text-decoration: none; }
 .specs {
-    background: var(--background);
+    background: var(--bg-primary);
     padding: 1rem;
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
 }
-.specs h3 {
-    margin: 0 0 0.5rem;
-    font-size: 1.25rem;
-    color: var(--text-color);
-}
-.spec-group {
-    margin-bottom: 1rem;
-}
-.spec-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--text-color);
-}
-.spec-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
+.specs h3 { margin: 0 0 0.5rem; font-size: 1.25rem; color: var(--text-primary); }
+.spec-group { margin-bottom: 1rem; }
+.spec-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-primary); }
+.spec-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .spec-option {
-    background: var(--background);
-    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
     border-radius: 4px;
     padding: 0.5rem 1rem;
     cursor: pointer;
-    color: var(--text-color);
+    color: var(--text-primary);
     transition: all 0.3s ease;
 }
-.spec-option:hover {
-    border-color: var(--primary-color);
-    background: rgba(0,255,136,0.1);
-}
-.spec-option.selected {
-    border-color: var(--primary-color);
-    background: rgba(0,255,136,0.2);
-    font-weight: 600;
-}
-.spec-option.disabled {
-    background: #6c757d;
-    color: #fff;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
+.spec-option:hover { border-color: var(--accent); background: rgba(0,255,136,0.1); }
+.spec-option.selected { border-color: var(--accent); background: rgba(0,255,136,0.2); font-weight: 600; color: var(--accent); }
+.spec-option.disabled { background: #6c757d; color: #fff; cursor: not-allowed; opacity: 0.6; }
+
 .add-to-cart-btn, .btn-edit {
-    background: #28a745;
-    color: white;
+    background: var(--accent); 
+    color: #000; 
     border: none;
     padding: 1rem 2rem;
     font-size: 1rem;
+    font-weight: 600;
     border-radius: 4px;
     cursor: pointer;
     align-self: flex-start;
     transition: background 0.3s ease, transform 0.2s ease;
 }
 .add-to-cart-btn:hover, .btn-edit:hover {
-    background: #218838;
+    background: var(--accent-hover);
     transform: translateY(-2px);
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
 }
-.add-to-cart-btn:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-}
+.add-to-cart-btn:disabled { background: #6c757d; cursor: not-allowed; color: white;}
+
 .seller-section {
     max-width: 1200px;
     margin: 2rem auto;
     padding: 1.5rem;
-    background: var(--secondary-bg);
+    background: var(--bg-tertiary);
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
 }
-.seller-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-.seller-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-.seller-name {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: var(--text-color);
-}
-.seller-rating {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: #ffc107;
-}
-.seller-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-.stat-item {
-    text-align: center;
-}
-.stat-label {
-    font-size: 0.9rem;
-    color: var(--text-color);
-}
-.stat-value {
-    font-weight: bold;
-    font-size: 1.1rem;
-    color: var(--text-color);
-}
-.seller-actions {
-    display: flex;
-    gap: 1rem;
-}
+.seller-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.seller-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
+.seller-name { font-size: 1.5rem; font-weight: bold; color: var(--text-primary); }
+.seller-rating { display: flex; align-items: center; gap: 0.5rem; color: #ffc107; }
+.seller-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.stat-item { text-align: center; }
+.stat-label { font-size: 0.9rem; color: var(--text-secondary); }
+.stat-value { font-weight: bold; font-size: 1.1rem; color: var(--text-primary); }
+.seller-actions { display: flex; gap: 1rem; }
 .btn-seller {
-    background: #007bff;
-    color: white;
-    border: none;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
     padding: 0.75rem 1.5rem;
     border-radius: 4px;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
-    transition: background 0.3s ease, transform 0.2s ease;
+    transition: all 0.3s ease;
 }
 .btn-seller:hover {
-    background: #0056b3;
-    transform: translateY(-2px);
+    background: var(--accent);
+    color: var(--bg-primary);
 }
 .description {
     margin-top: 1.5rem;
     line-height: 1.6;
-    color: var(--text-color);
-    background: var(--background);
+    color: var(--text-secondary);
+    background: var(--bg-primary);
     padding: 1rem;
     border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border);
 }
-.description h3 {
-    margin: 0 0 0.5rem;
-    font-size: 1.25rem;
-    color: var(--text-color);
-}
+.description h3 { margin: 0 0 0.5rem; font-size: 1.25rem; color: var(--text-primary); }
+
 @media (max-width: 768px) {
-    .product-detail-container {
-        flex-direction: column;
-    }
-    .product-image {
-        max-width: 100%;
-    }
-    .product-info {
-        padding: 1rem;
-    }
-    .seller-header {
-        flex-direction: column;
-        text-align: center;
-    }
-    .seller-stats {
-        grid-template-columns: 1fr;
-    }
-    .add-to-cart-btn, .btn-edit {
-        width: 100%;
-        text-align: center;
-    }
-    .description {
-        padding: 1rem;
-    }
-    .spec-options {
-        flex-direction: column;
-    }
-    .spec-option {
-        width: 100%;
-        text-align: center;
-    }
+    .product-detail-container { flex-direction: column; }
+    .product-image { max-width: 100%; }
+    .product-info { padding: 1rem; }
+    .seller-header { flex-direction: column; text-align: center; }
+    .seller-stats { grid-template-columns: 1fr; }
+    .add-to-cart-btn, .btn-edit { width: 100%; text-align: center; }
+    .spec-options { flex-direction: column; }
+    .spec-option { width: 100%; text-align: center; }
 }
 </style>
 </head>
 <body class="product-details-page">
 
-<!-- Navbar -->
-<div class="navbar" role="navigation" aria-label="Main navigation">
-    <div class="nav-left">
-        <img src="Uploads/logo1.png" alt="Meta Shark Logo" class="logo">
-        <h2>Meta Shark</h2>
+<div class="navbar">
+  <div class="nav-left">
+    <img src="uploads/logo1.png" alt="Meta Shark Logo" class="logo">
+    <h2>Meta Shark</h2>
+  </div>
+  <div class="nav-right">
+    <div class="theme-dropdown" id="themeDropdown">
+      <button class="theme-btn login-btn-select" id="themeDropdownBtn" title="Select theme" aria-label="Select theme">
+        <i class="bi theme-icon" id="themeIcon"></i>
+        <span class="theme-text" id="themeText"><?php echo $theme === 'device' ? 'Device' : ($effective_theme === 'light' ? 'Dark' : 'Light'); ?></span>
+      </button>
+      <div class="theme-menu" id="themeMenu" aria-hidden="true">
+        <button class="theme-option" data-theme="light">Light</button>
+        <button class="theme-option" data-theme="dark">Dark</button>
+        <button class="theme-option" data-theme="device">Device</button>     
+      </div>
     </div>
-    <div class="nav-right">
-        <!-- Theme dropdown -->
-        <div class="theme-dropdown" id="themeDropdown">
-            <button class="theme-btn login-btn-select" id="themeDropdownBtn" title="Select theme" aria-label="Select theme" aria-haspopup="true" aria-expanded="false">
-                <i class="bi theme-icon" id="themeIcon"></i>
-                <span class="theme-text" id="themeText"><?php echo $_SESSION['theme'] === 'device' ? 'Device' : ($_SESSION['theme'] === 'light' ? 'Light' : 'Dark'); ?></span>
-            </button>
-            <div class="theme-menu" id="themeMenu" aria-hidden="true">
-                <button class="theme-option" data-theme="light" role="menuitem">Light</button>
-                <button class="theme-option" data-theme="dark" role="menuitem">Dark</button>
-                <button class="theme-option" data-theme="device" role="menuitem">Device</button>
-            </div>
-        </div>
-        <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="notifications.php" title="Notifications" style="text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;" aria-label="Notifications">
-                <i class="bi bi-bell" style="font-size:18px;"></i>
-                <span aria-hidden="true"><?php echo isset($notif_count) && $notif_count > 0 ? "($notif_count)" : ""; ?></span>
-            </a>
-            <?php
-            $user_role = $_SESSION['role'] ?? 'buyer';
-            $profile_page = ($user_role === 'seller' || $user_role === 'admin') ? 'seller_profile.php' : 'profile.php';
-            $profile_query = "SELECT profile_image FROM users WHERE id = ?";
-            $profile_stmt = $conn->prepare($profile_query);
-            $profile_stmt->bind_param("i", $_SESSION['user_id']);
-            $profile_stmt->execute();
-            $profile_result = $profile_stmt->get_result();
-            $current_profile = $profile_result->fetch_assoc();
-            $current_profile_image = $current_profile['profile_image'] ?? null;
-            ?>
-          
-        <?php else: ?>
-            <a href="login_users.php" class="nonuser-text">Login</a>
-            <a href="signup_users.php" class="nonuser-text">Sign Up</a>
-        <?php endif; ?>
-        <button class="hamburger" aria-label="Toggle menu" aria-controls="menu" aria-expanded="false">☰</button>
-    </div>
-    <ul class="menu" id="menu" role="menu">
-        <li role="none"><a href="shop.php" role="menuitem">Home</a></li>
-        <?php if (isset($_SESSION['user_id'])): ?>
-            <?php if ($user_role === 'seller' || $user_role === 'admin'): ?>
-                <li role="none"><a href="seller_dashboard.php" role="menuitem">Seller Dashboard</a></li>
-            <?php else: ?>
-                <li role="none"><a href="become_seller.php" role="menuitem">Become Seller</a></li>
-            <?php endif; ?>
-            <li role="none"><a href="<?php echo $profile_page; ?>" role="menuitem">Profile</a></li>
-            <li role="none"><a href="logout.php" role="menuitem">Logout</a></li>
-        <?php endif; ?>
-    </ul>
+    
+    <a href="notifications.php" title="Notifications" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+      <i class="bi bi-bell" style="font-size:18px; color: #00ff88;"></i>
+      <span style="color: #00ff88;"><?php echo $notif_count > 0 ? "($notif_count)" : ""; ?></span>
+    </a>
+
+    <a href="carts_users.php" title="Cart" style="margin-left: 12px; text-decoration:none; color:inherit; display:inline-flex; align-items:center; gap:6px;">
+      <i class="bi bi-cart" style="font-size:18px; color: #00ff88;"></i>
+      <span style="color: #00ff88;">(<?php echo (int)$cart_count; ?>)</span>
+    </a>
+
+   <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id'] > 0): ?>
+  <?php
+  $user_role = $_SESSION['role'] ?? 'buyer';
+  $profile_page = ($user_role === 'seller' || $user_role === 'admin') ? 'seller_profile.php' : 'profile.php';
+  
+  // Get current user data
+  $current_user_id = $_SESSION['user_id'];
+  $cp_stmt = $conn->prepare("SELECT profile_image FROM users WHERE id = ?");
+  $cp_stmt->bind_param("i", $current_user_id);
+  $cp_stmt->execute();
+  $cp_res = $cp_stmt->get_result();
+  $cp_data = $cp_res->fetch_assoc();
+  $current_profile_image = $cp_data['profile_image'] ?? null;
+  
+  // Path checking logic
+  $img_path = 'uploads/logo1.png'; // Default safe fallback
+  if (!empty($current_profile_image)) {
+      if (file_exists('Uploads/' . $current_profile_image)) {
+          $img_path = 'Uploads/' . $current_profile_image;
+      } elseif (file_exists('uploads/' . $current_profile_image)) {
+          $img_path = 'uploads/' . $current_profile_image;
+      }
+  }
+  ?>
+  <a href="<?php echo $profile_page; ?>" style="margin-left: 10px;">
+      <img src="<?php echo htmlspecialchars($img_path); ?>" alt="Profile" class="profile-icon">
+  </a>
+<?php else: ?>
+  <a href="login_users.php" style="text-decoration: none;">
+    <div class="nonuser-text" style="color: #00ff88; margin-left: 10px;">Login</div>
+  </a>
+  <a href="signup_users.php" style="text-decoration: none;">
+    <div class="nonuser-text" style="color: #00ff88; margin-left: 10px;">Signup</div>
+  </a>
+  <a href="login_users.php" style="margin-left: 10px;">
+     <div class="profile-icon" style="display:flex; align-items:center; justify-content:center; color:#00ff88;">
+        <i class="bi bi-person-fill"></i>
+     </div>
+  </a>
+<?php endif; ?>
+    <button class="hamburger" style="color: #00ff88;">☰</button>
+  </div>
+  
+  <ul class="menu" style="color: #00ff88;" id="menu">
+    <li><a href="shop.php" style="color: #00ff88;">Home</a></li>
+    <li><a href="carts_users.php" style="color: #00ff88;">Cart (<?php echo $cart_count; ?>)</a></li>
+     <li><a href="order_status.php" style="color: #00ff88;">My Purchases</a></li>
+    <?php if(isset($_SESSION['user_id'])): ?>
+      <?php if($user_role === 'seller' || $user_role === 'admin'): ?>
+        <li><a href="seller_dashboard.php" style="color: #00ff88;">Seller Dashboard</a></li>
+      <?php else: ?>
+        <li><a href="become_seller.php" style="color: #00ff88;">Become Seller</a></li>
+      <?php endif; ?>
+      <li><a href="<?php echo $profile_page; ?>" style="border: #00ff88;">Profile</a></li>
+      <li><a href="logout.php" style="color: #00ff88;">Logout</a></li>
+    <?php endif; ?>
+  </ul>
 </div>
 
 <div class="product-detail-container">
@@ -709,13 +614,13 @@ body.product-details-page {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Theme toggle functionality
+    // Theme toggle functionality (Updated to match Shop.php logic)
     const themeDropdown = document.getElementById('themeDropdown');
     const themeMenu = document.getElementById('themeMenu');
     const themeBtn = document.getElementById('themeDropdownBtn');
     const themeIcon = document.getElementById('themeIcon');
     const themeText = document.getElementById('themeText');
-    let currentTheme = '<?php echo htmlspecialchars($_SESSION['theme'] ?? 'dark'); ?>';
+    let currentTheme = '<?php echo htmlspecialchars($theme); ?>';
 
     // Initialize theme
     applyTheme(currentTheme);
@@ -727,7 +632,7 @@ document.addEventListener('DOMContentLoaded', function() {
             effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         document.documentElement.setAttribute('data-theme', effectiveTheme);
-        updateTheme(theme, effectiveTheme);
+        updateThemeUI(theme, effectiveTheme);
         
         // Save theme to server
         fetch(`?theme=${theme}`, { method: 'GET' })
@@ -735,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Update theme button UI
-    function updateTheme(theme, effectiveTheme) {
+    function updateThemeUI(theme, effectiveTheme) {
         if (themeIcon && themeText) {
             if (theme === 'device') {
                 themeIcon.className = 'bi theme-icon bi-laptop';
@@ -754,17 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (themeBtn && themeDropdown) {
         themeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const isExpanded = themeBtn.getAttribute('aria-expanded') === 'true';
-            themeBtn.setAttribute('aria-expanded', !isExpanded);
             themeDropdown.classList.toggle('active');
-        });
-
-        // Keyboard navigation for theme button
-        themeBtn.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                themeBtn.click();
-            }
         });
     }
 
@@ -776,26 +671,6 @@ document.addEventListener('DOMContentLoaded', function() {
             currentTheme = option.dataset.theme;
             applyTheme(currentTheme);
             themeDropdown.classList.remove('active');
-            themeBtn.setAttribute('aria-expanded', 'false');
-        });
-
-        // Keyboard navigation for theme options
-        const options = themeMenu.querySelectorAll('.theme-option');
-        options.forEach((option, index) => {
-            option.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    option.click();
-                } else if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    const nextIndex = (index + 1) % options.length;
-                    options[nextIndex].focus();
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    const prevIndex = (index - 1 + options.length) % options.length;
-                    options[prevIndex].focus();
-                }
-            });
         });
     }
 
@@ -803,7 +678,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', (e) => {
         if (themeDropdown && !themeDropdown.contains(e.target)) {
             themeDropdown.classList.remove('active');
-            themeBtn.setAttribute('aria-expanded', 'false');
         }
     });
 
@@ -824,15 +698,12 @@ document.addEventListener('DOMContentLoaded', function() {
         hamburger.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            const isExpanded = hamburger.getAttribute('aria-expanded') === 'true';
-            hamburger.setAttribute('aria-expanded', !isExpanded);
             menu.classList.toggle('show');
         });
 
         document.addEventListener('click', function(e) {
             if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
                 menu.classList.remove('show');
-                hamburger.setAttribute('aria-expanded', 'false');
             }
         });
 
@@ -840,20 +711,11 @@ document.addEventListener('DOMContentLoaded', function() {
         menuItems.forEach(item => {
             item.addEventListener('click', function() {
                 menu.classList.remove('show');
-                hamburger.setAttribute('aria-expanded', 'false');
-            });
-
-            // Keyboard navigation for menu items
-            item.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    item.click();
-                }
             });
         });
     }
 
-    // Variant selection logic
+    // Variant selection logic (Preserved)
     const variants = <?php echo json_encode($variants); ?>;
     const selectedSpecs = {};
     const specButtons = document.querySelectorAll('.spec-option');
@@ -932,14 +794,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             updateVariant();
-        });
-
-        // Keyboard navigation for spec buttons
-        button.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                button.click();
-            }
         });
     });
 

@@ -1,0 +1,83 @@
+/* Sidebar Container */
+.admin-sidebar {
+    position: fixed;
+    left: 0;
+    top: 70px; /* Below Navbar */
+    bottom: 0;
+    width: 260px; /* Standard Width */
+    background: var(--panel);
+    border-right: 1px solid var(--panel-border);
+    padding: 24px 16px;
+    overflow-y: auto;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 40;
+}
+
+/* Sidebar Links */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+    text-decoration: none;
+}
+
+/* Icons */
+.sidebar-item i {
+    font-size: 18px;
+    min-width: 20px; /* Align text even if icons differ in width */
+    text-align: center;
+}
+
+/* Hover State */
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+}
+
+/* Light Theme Adjustment */
+[data-theme="light"] .sidebar-item:hover {
+    background: #f3f4f6;
+    color: #000;
+}
+
+/* Active State (The Green Highlight) */
+.sidebar-item.active {
+    background: linear-gradient(90deg, rgba(68, 214, 44, 0.15), transparent);
+    color: var(--primary);
+    border-left: 3px solid var(--primary);
+    padding-left: 9px; /* Compensate for border width */
+}
+
+/* Group Labels (Analytics, Management, etc.) */
+.sidebar-group-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin: 24px 12px 12px;
+    font-weight: 700;
+    opacity: 0.7;
+}
+
+/* Logout Specific Style (Optional) */
+.logout-link:hover {
+    color: #f44336 !important; /* Red on hover */
+    background: rgba(244, 67, 54, 0.1) !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 992px) {
+    .admin-sidebar {
+        transform: translateX(-100%); /* Hidden by default on mobile */
+    }
+    .admin-sidebar.show {
+        transform: translateX(0); /* Show when toggled */
+    }
+}

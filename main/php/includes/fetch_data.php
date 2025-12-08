@@ -114,8 +114,8 @@ switch ($action) {
         }
         $totals['total_revenue'] = $revenue;
         
-        // 3. Stock
-        $q = $conn->query("SELECT IFNULL(SUM(stock),0) as total_stock FROM products");
+        // 3. Stock (prefers stock_quantity, falls back to stock)
+        $q = $conn->query("SELECT IFNULL(SUM(COALESCE(stock_quantity, stock, 0)),0) as total_stock FROM products");
         $totals['total_stock'] = (int)($q ? $q->fetch_assoc()['total_stock'] : 0);
         
         // 4. Sellers
@@ -156,16 +156,53 @@ switch ($action) {
     // --- TOP PRODUCTS (Bar Chart) ---
     case 'top_products':
         $rows = [];
-        $stmt = $conn->prepare("SELECT p.id, p.name, SUM(oi.quantity) as total_qty FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) GROUP BY p.id ORDER BY total_qty DESC LIMIT 5");
-        if($stmt) { 
+
+        // Helper SQL snippet to avoid repetition
+        $topProductsSql = "
+            SELECT 
+                p.id,
+                p.name,
+                p.price,
+                COALESCE(p.stock_quantity, p.stock, 0) AS stock_quantity,
+                COALESCE(NULLIF(p.category, ''), NULL) AS legacy_category,
+                COALESCE(GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', '), '') AS categories,
+                SUM(oi.quantity) AS total_qty
+            FROM orders o
+            JOIN order_items oi ON o.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            LEFT JOIN product_categories pc ON p.id = pc.product_id
+            LEFT JOIN categories c ON pc.category_id = c.id
+            WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL)
+            GROUP BY p.id
+            ORDER BY total_qty DESC
+            LIMIT 5";
+
+        $stmt = $conn->prepare($topProductsSql);
+        if ($stmt) { 
             $stmt->execute(); 
             $res = $stmt->get_result(); 
             while($r=$res->fetch_assoc()) $rows[]=$r;
             $stmt->close();
         }
-        // Fallback
+
+        // Fallback: if there are no orders yet, show top products by stock instead
         if (empty($rows)) {
-            $stmt = $conn->prepare("SELECT p.id, p.name, SUM(oi.quantity) as total_qty FROM orders o JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id GROUP BY p.id ORDER BY total_qty DESC LIMIT 5");
+            $fallbackSql = "
+                SELECT 
+                    p.id,
+                    p.name,
+                    p.price,
+                    COALESCE(p.stock_quantity, p.stock, 0) AS stock_quantity,
+                    COALESCE(NULLIF(p.category, ''), NULL) AS legacy_category,
+                    COALESCE(GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', '), '') AS categories,
+                    COALESCE(p.stock_quantity, p.stock, 0) AS total_qty
+                FROM products p
+                LEFT JOIN product_categories pc ON p.id = pc.product_id
+                LEFT JOIN categories c ON pc.category_id = c.id
+                GROUP BY p.id
+                ORDER BY total_qty DESC
+                LIMIT 5";
+            $stmt = $conn->prepare($fallbackSql);
             if($stmt) { 
                 $stmt->execute(); 
                 $res = $stmt->get_result(); 
@@ -173,6 +210,7 @@ switch ($action) {
                 $stmt->close();
             }
         }
+
         echo json_encode($rows);
         break;
 

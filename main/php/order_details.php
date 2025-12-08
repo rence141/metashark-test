@@ -2,18 +2,23 @@
 session_start();
 include("db.php");
 
-if (!isset($_SESSION['user_id'])) { 
+// Allow buyers or admins
+$isAdmin = isset($_SESSION['admin_id']);
+$isBuyer = isset($_SESSION['user_id']);
+
+if (!$isAdmin && !$isBuyer) { 
     header("Location: login_users.php"); 
     exit(); 
 }
-$userId = (int)$_SESSION['user_id'];
+$userId = $isBuyer ? (int)$_SESSION['user_id'] : null;
 
-// Validate order_id
-if (!isset($_GET['order_id']) || !is_numeric($_GET['order_id'])) {
+// Validate order_id (accept both order_id and id)
+$orderParam = $_GET['order_id'] ?? $_GET['id'] ?? null;
+if (!isset($orderParam) || !is_numeric($orderParam)) {
     header("Location: order_status.php");
     exit();
 }
-$orderId = (int)$_GET['order_id'];
+$orderId = (int)$orderParam;
 
 // Theme preference (match shop.php)
 if (isset($_GET['theme'])) {
@@ -34,16 +39,22 @@ $order_query = "SELECT o.*,
                        GROUP_CONCAT(DISTINCT oi.status) as all_statuses
                 FROM orders o 
                 LEFT JOIN order_items oi ON o.id = oi.order_id 
-                WHERE o.id = ? AND o.buyer_id = ?
+                WHERE o.id = ?
                 GROUP BY o.id";
 $order_stmt = $conn->prepare($order_query);
-$order_stmt->bind_param("ii", $orderId, $userId);
+$order_stmt->bind_param("i", $orderId);
 $order_stmt->execute();
 $order_result = $order_stmt->get_result();
 $order = $order_result->fetch_assoc();
 $order_stmt->close();
 
 if (!$order) {
+    header("Location: order_status.php");
+    exit();
+}
+
+// If buyer is viewing, ensure the order belongs to them
+if ($isBuyer && (int)$order['buyer_id'] !== $userId) {
     header("Location: order_status.php");
     exit();
 }

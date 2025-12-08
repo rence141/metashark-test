@@ -36,13 +36,22 @@ body {
   padding: 0;
 }
 .nav-links li { margin: 0 20px; }
+
 .nav-links a {
   color: #FFFFFF;
   text-decoration: none;
   font-size: 1.1rem;
   transition: color 0.3s;
 }
+
 .nav-links a:hover { color: #24e334ff; }
+
+/* ADDED: Active State */
+.nav-links a.active {
+    color: #24e334ff;
+    font-weight: bold;
+    border-bottom: 2px solid #24e334ff;
+}
 
 /* Banner */
 .banner {
@@ -210,3 +219,4 @@ button.added {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+

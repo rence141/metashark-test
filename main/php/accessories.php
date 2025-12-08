@@ -1,6 +1,7 @@
 <?php
 session_start();
 include("db.php"); // Database connection
+include('navbar.php');
 
 // Set theme preference
 $theme = $_SESSION['theme'] ?? 'dark';
@@ -77,19 +78,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_to_cart"])) {
   </div>
   <div class="loading-text">Loading...</div>
 </div>
-
-<nav class="navbar">
-  <div class="container">
-    <ul class="nav-links">
-      <li><a href="../../index.html">Home</a></li>
-      <li><a href="phone.php">Phones</a></li>
-      <li><a href="Tablets.php">Tablets</a></li>
-      <li><a href="accessories.php">Accessories</a></li>
-      <li><a href="laptop.php">Laptops</a></li>
-      <li><a href="gaming.php">Gaming</a></li>
-    </ul>
-  </div>
-</nav>
 
 <div class="banner">
   <div class="banner-overlay">

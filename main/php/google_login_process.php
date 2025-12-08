@@ -1,5 +1,5 @@
 <?php
-// Start session and ensure it's active
+// 1. Start Session
 session_start();
 if (session_status() !== PHP_SESSION_ACTIVE) {
     error_log("Session not active in google_login_process.php");
@@ -7,23 +7,18 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     exit;
 }
 
-// Load Composer dependencies
+// 2. Load Composer Autoload (for Google API Client)
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-// --- DATABASE CONNECTION LOGIC ---
-
-// 1. Try loading local db.php
+// --- DATABASE CONNECTION ---
 if (file_exists(__DIR__ . '/db.php')) {
     require_once __DIR__ . '/db.php';
 }
-
-// 2. If $conn is missing, try global db_connect.php (used by dashboard)
 if (!isset($conn) && file_exists(__DIR__ . '/../../includes/db_connect.php')) {
     require_once __DIR__ . '/../../includes/db_connect.php';
 }
-
-// 3. If $conn is STILL missing, create a manual connection fallback
 if (!isset($conn)) {
+    // Manual fallback
     $host = "localhost";
     $user = "root";
     $pass = "003421.!"; 
@@ -34,94 +29,95 @@ if (!isset($conn)) {
     $conn = @new mysqli($host, $user, $pass, $dbname, $port);
 }
 
-// 4. Final check: Die if connection failed
 if (!isset($conn) || $conn->connect_error) {
-    $errorMsg = isset($conn) ? $conn->connect_error : "Variable \$conn is not defined.";
-    die("Critical Database Error: Could not connect to database. " . $errorMsg);
+    die("Critical Database Error: " . (isset($conn) ? $conn->connect_error : "Connection failed"));
 }
-
-// Ensure Charset
 $conn->set_charset("utf8mb4");
+// --- END DB CONNECTION ---
 
-// --- END DATABASE CONNECTION ---
 
-
-// Check if Google session data is available
+// 3. Verify Google Session Data Exists
 if (!isset($_SESSION['google_email']) || !isset($_SESSION['google_name'])) {
-    error_log("Missing Google session data: email=" . (isset($_SESSION['google_email']) ? $_SESSION['google_email'] : 'not set') . ", name=" . (isset($_SESSION['google_name']) ? $_SESSION['google_name'] : 'not set'));
     header("Location: ../../login_users.php?error=Invalid Google login session");
     exit;
 }
 
-$email = $_SESSION['google_email'];
-$name = $_SESSION['google_name'];
+$google_email = $_SESSION['google_email'];
+$google_name  = $_SESSION['google_name'];
 
-// 1. Check if user exists and fetch role + suspension status
-$stmt = $conn->prepare("SELECT id, role, is_suspended FROM users WHERE email = ? LIMIT 1");
+// 4. Check if User Exists
+// FIX: Changed selection to 'fullname' instead of first_name/last_name
+$stmt = $conn->prepare("SELECT id, fullname, role, is_suspended FROM users WHERE email = ? LIMIT 1");
 if (!$stmt) {
-    error_log("Database prepare failed: " . $conn->error);
-    header("Location: ../../login_users.php?error=Database error");
-    exit;
+    die("Database prepare failed: " . $conn->error);
 }
-$stmt->bind_param("s", $email);
+$stmt->bind_param("s", $google_email);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows == 0) {
-    // Insert new user
-    $stmt = $conn->prepare("INSERT INTO users (fullname, email, password, role) VALUES (?, ?, ?, ?)");
-    if (!$stmt) {
-        error_log("Database prepare failed for insert: " . $conn->error);
-        header("Location: ../../login_users.php?error=Database error");
-        exit;
-    }
-    $password = password_hash(bin2hex(random_bytes(8)), PASSWORD_BCRYPT); // Random password
-    $role = 'buyer'; // Default role
-    $stmt->bind_param("ssss", $name, $email, $password, $role);
-    $stmt->execute();
-    $user_id = $conn->insert_id; // Get the ID of the newly inserted user
-    // New users are not suspended by default, no further checks needed for them.
-} else {
-    // Existing user
+if ($result->num_rows > 0) {
+    // --- EXISTING USER ---
     $user = $result->fetch_assoc();
     $user_id = $user['id'];
-    $role = $user['role'] ?? 'buyer';
+    $role = $user['role'];
+    $db_fullname = $user['fullname'];
     
-    // 2. CRITICAL SECURITY CHECK: Check for suspension status
-    if (isset($user['is_suspended']) && $user['is_suspended'] == 1) {
-        // Log the denial
-        error_log("ACCESS DENIED: Suspended user attempted login: ID {$user_id}, Email {$email}");
-
-        // Clear temporary Google session data and local session
+    // === CRITICAL SUSPENSION CHECK ===
+    if ((int)$user['is_suspended'] === 1) {
+        // Log the attempt
+        error_log("SUSPENDED USER ATTEMPT: $google_email");
+        
+        // Store email for the appeal form
+        $_SESSION['temp_email'] = $google_email;
+        
+        // Clear Google data
         unset($_SESSION['google_email']);
         unset($_SESSION['google_name']);
         
-        session_destroy(); // Ensure existing session is cleared
-        
-        // 🛑 NEW REDIRECT: Send user to a professional suspension notice page
-        header("Location: http://localhost/SaysonCotest/main/php/suspended_account.php"); 
+        // Redirect to Suspension Page
+        header("Location: suspended_account.php");
         exit;
+    }
+    // =================================
+
+} else {
+    // --- NEW USER REGISTRATION ---
+    
+    $password = password_hash(bin2hex(random_bytes(8)), PASSWORD_BCRYPT); // Random secure password
+    $role = 'buyer';
+    $is_suspended = 0; // Default active
+
+    // FIX: Changed INSERT to use 'fullname'
+    $stmt = $conn->prepare("INSERT INTO users (fullname, email, password, role, is_suspended) VALUES (?, ?, ?, ?, ?)");
+    if (!$stmt) {
+        die("Insert prepare failed: " . $conn->error);
+    }
+    
+    // Bind parameters: s=string, i=integer
+    $stmt->bind_param("ssssi", $google_name, $google_email, $password, $role, $is_suspended);
+    
+    if ($stmt->execute()) {
+        $user_id = $conn->insert_id;
+        $db_fullname = $google_name;
+    } else {
+        die("Registration failed: " . $conn->error);
     }
 }
 
-// 3. Login Setup (Only reached if the user is new or is not suspended)
-$_SESSION['user_id'] = $user_id; // Required by shop.php
-$_SESSION['email'] = $email;
-$_SESSION['name'] = $name;
+// 5. Set Session Variables (Log them in)
+$_SESSION['user_id'] = $user_id;
+$_SESSION['user_name'] = $db_fullname; // Used for "Hello, Name"
 $_SESSION['role'] = $role;
-$_SESSION['login_success'] = true; // Required for shop.php's just-logged-in behavior
+$_SESSION['email'] = $google_email;
+$_SESSION['login_success'] = true; 
 
-// Log session data for debugging
-error_log("Session set: user_id=$user_id, email=$email, name=$name, role=$role, login_success=true");
-
-// Clear temporary Google session data
+// Clean up temp Google vars
 unset($_SESSION['google_email']);
 unset($_SESSION['google_name']);
 
-// Ensure session is written before redirect
 session_write_close();
 
-// Redirect to shop.php
+// 6. Redirect to Shop
 header("Location: http://localhost/SaysonCotest/main/php/shop.php");
 exit;
 ?>

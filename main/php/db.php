@@ -1,10 +1,13 @@
+<!--DO NOT TOUCH!-->
+
 <?php
 // Database configuration
-$host = "localhost";
-$user = "root";       // change if you set a MySQL user
-$pass = "003421.!";           // change if you set a MySQL password
-$dbname = "MetaAccesories";
+$host = "localhost";  
 $port = 3307;
+$user = "root";       
+$pass = "003421.!";           
+$dbname = "MetaAccesories";
+
 
 // Create connection
 $conn = new mysqli($host, $user, $pass, $dbname, $port);

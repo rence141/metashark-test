@@ -251,27 +251,91 @@ async function loadOverview() {
     } catch(e) { console.error("Line error", e); }
 
     // 3. Orders Pie
+   // 3. Orders Pie (Updated with Gradient Shades)
     try {
         const res = await fetch('includes/fetch_data.php?action=orders_summary');
-        if(res.ok) {
+        if (res.ok) {
             const data = await res.json();
             const totalOrd = data.reduce((acc, curr) => acc + Number(curr.cnt), 0);
-            document.getElementById('insOrders').textContent = totalOrd.toLocaleString();
+            
+            // Update the text counter if element exists
+            const counterEl = document.getElementById('insOrders');
+            if(counterEl) counterEl.textContent = totalOrd.toLocaleString();
 
-            new Chart(document.getElementById('pieChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: data.map(d => d.status),
-                    datasets: [{
-                        data: data.map(d => d.cnt),
-                        backgroundColor: ['#44D62C', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'],
-                        borderWidth: 0
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right', labels: { boxWidth: 10, padding: 15 } } } }
-            });
+            const chartCanvas = document.getElementById('pieChart');
+            if (chartCanvas) {
+                const ctx = chartCanvas.getContext('2d');
+
+                // 1. Get Panel Color (for the border "cut" effect)
+                const style = getComputedStyle(document.documentElement);
+                const panelColor = style.getPropertyValue('--panel').trim() || '#ffffff';
+
+                // 2. Gradient Helper Function
+                const createGradient = (topColor, bottomColor) => {
+                    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                    gradient.addColorStop(0, topColor);    // Bright (Top)
+                    gradient.addColorStop(1, bottomColor); // Dark (Bottom)
+                    return gradient;
+                };
+
+                // 3. Define Shade Palette
+                const gradients = [
+                    createGradient('#44D62C', '#0f5205'), // Success: Neon Green -> Dark Forest
+                    createGradient('#00d4ff', '#004a59'), // Info: Cyan -> Deep Ocean
+                    createGradient('#c084fc', '#581c87'), // Pending: Lavender -> Deep Purple
+                    createGradient('#f43f5e', '#881337'), // Cancelled: Rose -> Deep Burgundy
+                    createGradient('#fbbf24', '#78350f'), // Warning: Amber -> Deep Brown
+                ];
+
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(d => d.status),
+                        datasets: [{
+                            data: data.map(d => d.cnt),
+                            // Map data to gradients, cycling if more data than colors
+                            backgroundColor: data.map((_, i) => gradients[i % gradients.length]),
+                            borderColor: panelColor, // Matches card bg to look like a "cut"
+                            borderWidth: 6,          // Thicker border for separation
+                            hoverOffset: 10          // Pop-out effect
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '75%', // Slightly thinner ring
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    usePointStyle: true,  // Use circles instead of squares
+                                    pointStyle: 'circle',
+                                    padding: 20,
+                                    font: { size: 12, family: "'Inter', sans-serif" }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(22, 27, 34, 0.95)',
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        // Calculate percentage
+                                        const total = context.chart._metasets[context.datasetIndex].total;
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                                        return ` ${label}: ${value} (${percentage})`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         }
-    } catch(e) { console.error("Pie error", e); }
+    } catch (e) { console.error("Pie error", e); }
+    
 
     // 4. Update Stats Fallback (Products count)
     try {

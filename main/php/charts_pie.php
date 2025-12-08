@@ -172,10 +172,13 @@ a { text-decoration: none; color: inherit; transition: 0.2s; }
 <script>
 // Global Chart.js Configuration
 const theme = '<?php echo $theme; ?>';
-const panelColor = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+// Get CSS variables
+const style = getComputedStyle(document.documentElement);
+const panelColor = style.getPropertyValue('--panel').trim();
+const textColor = style.getPropertyValue('--text').trim();
 
-Chart.defaults.color = theme === 'dark' ? '#e6eef6' : '#1f2937';
-Chart.defaults.borderColor = 'rgba(255,255,255,0.1)';
+Chart.defaults.color = textColor;
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
 Chart.defaults.font.family = 'Inter, system-ui, Arial';
 
 async function fetchJson(url){ 
@@ -193,61 +196,86 @@ async function draw(){
     const data = await fetchJson('includes/fetch_data.php?action=orders_summary');
     
     // Prepare data
-    const labels = (data && data.length) ? data.map(d => d.status) : ['Pending','Confirmed','Delivered'];
-    const values = (data && data.length) ? data.map(d => Number(d.cnt)) : [12,30,18];
+    const labels = (data && data.length) ? data.map(d => d.status) : ['Pending','Confirmed','Delivered', 'Cancelled'];
+    const values = (data && data.length) ? data.map(d => Number(d.cnt)) : [15, 25, 40, 5];
     
-    // Thematic colors: Success (Green), Info (Blue), Warning (Orange), Danger (Red)
-    const colors = ['#44D62C','#00d4ff','#ff9800','#f44336']; 
+    // --- NEW: GRADIENT GENERATION ---
+    const ctx = document.getElementById('pieChart').getContext('2d');
+
+    // Helper to create a vertical fade (Shade effect)
+    const createGradient = (topColor, bottomColor) => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, topColor);    // Bright at top
+        gradient.addColorStop(1, bottomColor); // Dark at bottom
+        return gradient;
+    };
+
+    // Define Color Pairs (Bright -> Dark/Shade)
+    // 1. Emerald (Success/Delivered)
+    // 2. Cyan (Info/Confirmed)
+    // 3. Violet (Pending/Processing) - looks better than orange in dark mode
+    // 4. Rose (Cancelled)
+    const gradients = [
+        createGradient('#44D62C', '#0f5205'), // Neon Green -> Deep Forest
+        createGradient('#00d4ff', '#004a59'), // Neon Blue -> Deep Ocean
+        createGradient('#c084fc', '#581c87'), // Lavender -> Deep Purple
+        createGradient('#f43f5e', '#881337'), // Rose -> Deep Burgundy
+        createGradient('#fbbf24', '#78350f'), // Amber -> Deep Brown (Backup)
+    ];
+
+    // Map gradients to data length (repeat if necessary)
+    const backgroundColors = values.map((_, i) => gradients[i % gradients.length]);
     
+    // Calculate Stats
     const totalOrders = values.reduce((a, b) => a + b, 0);
     const deliveredIndex = labels.findIndex(l => l.toLowerCase() === 'delivered');
     const deliveredCount = deliveredIndex !== -1 ? values[deliveredIndex] : 0;
     const deliveredRatio = totalOrders > 0 ? ((deliveredCount / totalOrders) * 100).toFixed(1) + '%' : '0%';
     
-    // Update Stats
+    // Update HTML Stats
     document.getElementById('statTotalOrders').textContent = totalOrders.toLocaleString();
     document.getElementById('statDeliveredRatio').textContent = deliveredRatio;
 
-    const ctx = document.getElementById('pieChart').getContext('2d');
-    
     // Render Chart
     new Chart(ctx, {
-        type:'doughnut',
-        data:{
-            labels, 
-            datasets:[{
+        type: 'doughnut',
+        data: {
+            labels: labels, 
+            datasets: [{
                 data: values, 
-                backgroundColor: colors.slice(0, labels.length),
-                borderColor: panelColor, // Use the panel color to create separation
-                borderWidth: 4,
+                backgroundColor: backgroundColors,
+                borderColor: panelColor, // Matches card background for "cut" effect
+                borderWidth: 6,          // Thicker border for cleaner separation
+                hoverOffset: 10          // Popping effect on hover
             }]
         },
-        options:{
-            responsive:true, 
-            maintainAspectRatio:false,
-            cutout: '75%', // Doughnut thickness
+        options: {
+            responsive: true, 
+            maintainAspectRatio: false,
+            cutout: '70%', 
             plugins: {
                 legend: {
-                    position: 'right', // Place legend next to the chart
-                    align: 'start',
+                    position: 'right',
                     labels: {
-                        padding: 15,
-                        boxWidth: 12
+                        padding: 20,
+                        usePointStyle: true, // Circles instead of squares in legend
+                        pointStyle: 'circle',
+                        font: { size: 12 }
                     }
                 },
                 tooltip: {
-                    backgroundColor: 'rgba(22, 27, 34, 0.9)',
+                    backgroundColor: 'rgba(22, 27, 34, 0.95)',
                     titleColor: '#fff',
-                    bodyColor: '#e6eef6',
+                    bodyColor: '#cbd5e1',
                     borderColor: 'rgba(255,255,255,0.1)',
                     borderWidth: 1,
                     padding: 12,
+                    cornerRadius: 8,
+                    displayColors: true,
                     callbacks: {
                         label: function(context) {
                             let label = context.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
+                            if (label) label += ': ';
                             if (context.parsed !== null) {
                                 const percentage = ((context.parsed / totalOrders) * 100).toFixed(1) + '%';
                                 label += context.parsed.toLocaleString() + ` (${percentage})`;
@@ -264,13 +292,14 @@ async function draw(){
             }
         }
     });
-    // Fallback if animation completes instantly or fails
+
+    // Fallback
     setTimeout(() => { document.getElementById('loader').style.display = 'none'; }, 500);
 }
 
 function downloadChart() {
     const link = document.createElement('a');
-    link.download = 'meta-shark-order-status.png';
+    link.download = 'meta-shark-orders.png';
     link.href = document.getElementById('pieChart').toDataURL('image/png', 1.0);
     link.click();
 }

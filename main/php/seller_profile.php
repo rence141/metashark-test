@@ -15,8 +15,12 @@ if (!isset($_SESSION["user_id"])) {
     exit();
 }
 
-// Check role
+// Check role (allow suspended_seller to show suspension page)
 $user_role = $_SESSION['role'] ?? 'buyer';
+if ($user_role === 'suspended_seller') {
+    header("Location: seller_suspended.php");
+    exit();
+}
 if ($user_role !== 'seller' && $user_role !== 'admin') {
     header("Location: profile.php");
     exit();
@@ -197,13 +201,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['verify_otp']) && !iss
 $stmt = $conn->prepare("
     SELECT id, fullname, email, phone, profile_image, seller_name, seller_description,
            business_type, seller_rating, total_sales, phone_verified,
-           country_code, country_name, language
+           country_code, country_name, language, is_active_seller
     FROM users
     WHERE id = ?
 ");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+// If seller account is suspended via is_active_seller flag, redirect to suspended page
+if (($user_role === 'seller') && isset($user['is_active_seller']) && (int)$user['is_active_seller'] === 0) {
+    header("Location: seller_suspended.php");
+    exit();
+}
 
 /* ---------------------------------------------------------
    FIX COUNTRY/LANGUAGE LOADING

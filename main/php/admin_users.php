@@ -14,6 +14,9 @@ if (!isset($_SESSION['admin_id'])) {
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $theme = $_SESSION['theme'] ?? 'dark';
 
+// Generate Initial for Profile Avatar
+$admin_initial = strtoupper(substr($admin_name, 0, 1));
+
 // INCLUDE EMAIL SCRIPT
 $email_file = __DIR__ . '/includes/email.php';
 if (!file_exists($email_file)) {
@@ -83,19 +86,16 @@ if (isset($_POST['update_user_details'])) {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
     
-    // Basic Validation
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         header("Location: admin_users.php?error=invalid_email");
         exit;
     }
 
     if (!empty($password)) {
-        // Update Email AND Password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $conn->prepare("UPDATE users SET email = ?, password = ? WHERE id = ?");
         $stmt->bind_param("ssi", $email, $hashed_password, $id);
     } else {
-        // Update Email ONLY
         $stmt = $conn->prepare("UPDATE users SET email = ? WHERE id = ?");
         $stmt->bind_param("si", $email, $id);
     }
@@ -194,114 +194,97 @@ $users = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 <title>Admin Users — Meta Shark</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-/* CSS VARIABLES */
-:root{--primary:#44D62C;--bg:#f3f4f6;--panel:#fff;--panel-border:#e5e7eb;--text:#1f2937;--text-muted:#6b7280;--radius:12px;--shadow:0 4px 6px rgba(0,0,0,0.1);--danger:#f44336; --info: #00d4ff; --muted:#6b7280;}
-[data-theme="dark"]{--bg:#0f1115;--panel:#161b22;--panel-border:#242c38;--text:#e6eef6;--text-muted:#94a3b8;--shadow:0 10px 15px rgba(0,0,0,0.5); --muted:#94a3b8;}
-*{margin:0;padding:0;box-sizing:border-box;} 
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
+/* --- MASTER CSS (Matches Dashboard) --- */
+:root {
+    --primary: #44D62C;
+    --primary-glow: rgba(68, 214, 44, 0.3);
+    --accent: #00ff88;
+    --bg: #f3f4f6;
+    --panel: #ffffff;
+    --panel-border: #e5e7eb;
+    --text: #1f2937;
+    --text-muted: #6b7280;
+    --radius: 16px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --danger: #f44336; 
+    --info: #00d4ff;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --sidebar-width: 260px;
+}
 
-/* LAYOUT STRUCTURE */
-.admin-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
+[data-theme="dark"] {
+    --bg: #0f1115;
+    --panel: #161b22;
+    --panel-border: #242c38;
+    --text: #e6eef6;
+    --text-muted: #94a3b8;
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
 
-/* Navbar */
+* { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+a { text-decoration: none; color: inherit; transition: 0.2s; }
+
+/* --- Animations --- */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.5s ease forwards; }
+
+/* --- Navbar --- */
 .admin-navbar {
-    position: fixed; top: 0; left: 0; right: 0;
-    height: 80px;
-    background: var(--panel);
-    border-bottom: 1px solid var(--panel-border);
+    position: fixed; top: 0; left: 0; right: 0; height: 70px;
+    background: var(--panel); border-bottom: 1px solid var(--panel-border);
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 30px;
-    z-index: 1000;
-}
-.navbar-left{display:flex;align-items:center;gap:20px;}
-.navbar-left img{ height: 50px; width: auto; }
-.navbar-left h1{ font-size: 24px; margin: 0; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
-.nav-user-info{display:flex;align-items:center;gap:20px;font-size:15px;}
-.nav-user-info a {color: var(--text); text-decoration: none; font-weight: 500;}
-
-/* Layout Container */
-.layout-container {
-    display: flex;
-    margin-top: 80px; 
-    min-height: calc(100vh - 80px);
-}
-
-/* Sidebar */
-.admin-sidebar {
-    width: 250px;
-    background: var(--panel);
-    border-right: 1px solid var(--panel-border);
-    flex-shrink: 0;
-    position: fixed;
-    height: calc(100vh - 80px);
-    overflow-y: auto;
-}
-.sidebar-item{display:flex;align-items:center;gap:12px;padding:15px 25px;color:var(--text-muted);text-decoration:none;font-weight:500;border-left:4px solid transparent; font-size: 15px;}
-.sidebar-item:hover,.sidebar-item.active{background:var(--bg);color:var(--primary);border-left-color:var(--primary);}
-
-/* Main Content */
-.admin-main {
-    flex-grow: 1;
-    margin-left: 250px;
-    padding: 30px;
-    width: calc(100% - 250px);
-}
-
-/* Table Card */
-.table-card {
-    background: var(--panel);
-    border-radius: var(--radius);
-    border: 1px solid var(--panel-border);
+    padding: 0 24px; z-index: 50; backdrop-filter: blur(10px);
     box-shadow: var(--shadow);
-    width: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
 }
-.table-card h3 {
-    padding: 20px;
-    border-bottom: 1px solid var(--panel-border);
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    background: rgba(68,214,44,0.02);
-    color: var(--text);
-}
+.navbar-left { display: flex; align-items: center; gap: 16px; }
+.logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
+.logo-area img { height: 32px; filter: drop-shadow(0 0 5px var(--primary-glow)); }
+.sidebar-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
+
+/* --- Profile Widget --- */
+.navbar-profile-link { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; transition: var(--transition); color: var(--text); }
+.navbar-profile-link:hover { background: rgba(68,214,44,0.1); color: var(--primary); }
+.profile-info-display { text-align: right; line-height: 1.2; display: none; }
+@media (min-width: 640px) { .profile-info-display { display: block; } }
+.profile-name { font-size: 14px; font-weight: 600; color: var(--text); transition: color 0.2s; }
+.navbar-profile-link:hover .profile-name { color: var(--primary); }
+.profile-role { font-size: 11px; color: var(--text-muted); }
+.profile-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #000; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--primary); box-shadow: 0 0 8px var(--primary-glow); flex-shrink: 0; }
+
+/* --- Sidebar --- */
+.admin-sidebar { position: fixed; left: 0; top: 70px; bottom: 0; width: var(--sidebar-width); background: var(--panel); border-right: 1px solid var(--panel-border); padding: 24px 16px; overflow-y: auto; transition: var(--transition); z-index: 40; }
+.sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
+.sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-muted); font-weight: 500; font-size: 14px; transition: var(--transition); margin-bottom: 4px; }
+.sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+[data-theme="light"] .sidebar-item:hover { background: #f3f4f6; }
+.sidebar-item.active { background: linear-gradient(90deg, rgba(68,214,44,0.15), transparent); color: var(--primary); border-left: 3px solid var(--primary); }
+.sidebar-item i { font-size: 18px; }
+
+/* --- Main Content --- */
+.admin-main { margin-left: var(--sidebar-width); margin-top: 70px; padding: 32px; min-height: calc(100vh - 70px); transition: var(--transition); }
+
+/* --- Table Styles --- */
+.table-card { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; }
+.table-header { padding: 20px 24px; border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center; }
+.table-header h3 { font-size: 16px; font-weight: 600; margin: 0; background: rgba(68,214,44,0.02); color: var(--text); }
 
 .table-responsive { width: 100%; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; min-width: 900px; }
-th,td { padding: 18px 25px; text-align: left; font-size: 14px; }
-th { background: rgba(68,214,44,0.05); color: var(--primary); font-weight: 700; border-bottom: 1px solid var(--panel-border); white-space: nowrap; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;}
-td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
+th { text-align: left; padding: 12px 24px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--panel-border); white-space: nowrap; }
+td { padding: 16px 24px; border-bottom: 1px solid var(--panel-border); font-size: 14px; vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+[data-theme="light"] tr:hover td { background: #f9fafb; }
 
-/* Components & BUTTONS */
+/* --- Filters --- */
 .filters{background:var(--panel);padding:20px;border-radius:var(--radius);border:1px solid var(--panel-border);box-shadow:var(--shadow);margin-bottom:25px;display:flex;gap:12px;flex-wrap:wrap;}
 .filters input,.filters select{padding:10px 15px;border:1px solid var(--panel-border);border-radius:8px;background:var(--bg);color:var(--text); outline:none;}
 
 /* --- UNIFIED BUTTON STYLES --- */
-.btn {
-    padding: 8px 14px; 
-    border-radius: 6px; 
-    display: inline-flex; 
-    align-items: center; 
-    gap: 6px; 
-    font-size: 13px; 
-    font-weight: 600; 
-    white-space: nowrap; 
-    text-decoration: none;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
-
-
-/* Primary (Filter) */
+.btn { padding: 8px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: 0.2s; }
 .btn-primary { background: var(--primary); color: #000; border-color: var(--primary); }
 .btn-primary:hover { filter: brightness(1.1); }
-
-/* Secondary (Clear) */
 .btn-secondary { background: var(--bg); color: var(--text); border-color: var(--panel-border); }
 .btn-secondary:hover { background: var(--panel-border); }
 
@@ -309,19 +292,20 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 .btn-edit { background: rgba(0,212,255,0.1); color: var(--info); border: 1px solid var(--info); }
 .btn-edit:hover { background: var(--info); color: #000; }
 
-/* Suspend (Outline/Glass) */
+/* Suspend (Orange Outline) */
 .btn-suspend { background: rgba(255,152,0,0.1); color: #ff9800; border: 1px solid #ff9800; }
 .btn-suspend:hover { background: #ff9800; color: #fff; }
 
-/* Activate (Outline/Glass) */
+/* Activate (Green Outline) */
 .btn-activate { background: rgba(68,214,44,0.1); color: var(--primary); border: 1px solid var(--primary); }
 .btn-activate:hover { background: var(--primary); color: #000; }
 
-/* Delete (Outline/Glass) */
+/* Delete (Red Outline) */
 .btn-delete { background: rgba(244,67,54,0.1); color: var(--danger); border: 1px solid var(--danger); }
 .btn-delete:hover { background: var(--danger); color: #fff; }
 
-.btn-icon-only { padding: 0; width: 36px; height: 36px; border-radius: 6px; justify-content: center;}
+.btn-xs { padding: 6px 12px; font-size: 12px; }
+.btn-outline { border-color: var(--panel-border); color: var(--text); background: transparent; }
 
 /* Badges */
 .badge{padding:6px 10px;border-radius:6px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
@@ -334,171 +318,159 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 .role-select{padding:6px 10px;border:1px solid var(--panel-border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px; cursor: pointer;}
 
 /* --- MODAL STYLES --- */
-.modal {
-    display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
-    overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-    align-items: center; justify-content: center;
-}
+.modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
 .modal.show { display: flex; }
-.modal-content {
-    background-color: var(--panel); border: 1px solid var(--panel-border);
-    width: 90%; max-width: 500px; padding: 30px; border-radius: 12px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    position: relative;
-}
-.close-modal {
-    position: absolute; top: 20px; right: 25px; color: var(--text-muted); font-size: 28px;
-    font-weight: bold; cursor: pointer; transition: 0.2s;
-}
+.modal-content { background-color: var(--panel); border: 1px solid var(--panel-border); width: 90%; max-width: 500px; padding: 30px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); position: relative; }
+.close-modal { position: absolute; top: 20px; right: 25px; color: var(--text-muted); font-size: 28px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .close-modal:hover { color: var(--danger); }
 .modal h2 { margin-top: 0; color: var(--text); font-size: 22px; border-bottom: 1px solid var(--panel-border); padding-bottom: 15px; margin-bottom: 20px; }
 .form-group { margin-bottom: 15px; }
 .form-group label { display: block; margin-bottom: 8px; color: var(--text); font-weight: 600; font-size: 14px; }
-.form-group input {
-    width: 100%; padding: 12px; border: 1px solid var(--panel-border); border-radius: 8px;
-    background: var(--bg); color: var(--text); font-size: 14px;
-}
+.form-group input { width: 100%; padding: 12px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; }
 .form-group input:focus { border-color: var(--primary); outline: none; }
 .form-note { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+
+@media (max-width: 992px) {
+    .admin-sidebar { transform: translateX(-100%); }
+    .admin-sidebar.show { transform: translateX(0); }
+    .admin-main { margin-left: 0; }
+    .sidebar-toggle { display: block; }
+}
 </style>
 </head>
 <body>
 
-<div class="admin-navbar">
+<nav class="admin-navbar">
     <div class="navbar-left">
-    <link rel="icon" type="image/png" href="Uploads/logo1.png">
-    <h1>Meta Shark</h1>
-    </div>
-    <div class="nav-user-info">
-        <span style="color:var(--text-muted)">Welcome, <strong><?php echo htmlspecialchars($admin_name); ?></strong></span>
-        <a href="admin_dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <a href="admin_logout.php" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</div>
-
-<div class="layout-container">
-    <aside class="admin-sidebar" id="sidebar">
-    <div class="sidebar-item"><i class="bi bi-grid-1x2-fill"></i> Dashboard</div>
-    
-    <div class="sidebar-group-label">Analytics</div>
-    <a href="charts_overview.php" class="sidebar-item"><i class="bi bi-activity"></i> Overview Chart</a>
-    <a href="charts_line.php" class="sidebar-item"><i class="bi bi-graph-up-arrow"></i> Revenue Chart</a>
-    <a href="charts_bar.php" class="sidebar-item"><i class="bi bi-bar-chart-fill"></i> Categories Chart</a>
-    <a href="charts_pie.php" class="sidebar-item"><i class="bi bi-pie-chart-fill"></i> Orders Chart</a>
-    <a href="charts_geo.php" class="sidebar-item"><i class="bi bi-globe2"></i> Geography Chart</a>
-
-    <div class="sidebar-group-label">Management and Access</div>
-    <a href="pending_requests.php" class="sidebar-item"><i class="bi bi-shield-lock"></i> Requests</a>
-    <a href="admin_products.php" class="sidebar-item"><i class="bi bi-box-seam"></i> Products</a>
-    <a href="admin_users.php" class="sidebar-item active"><i class="bi bi-people-fill"></i> Users</a>
-    <a href="admin_sellers.php" class="sidebar-item"><i class="bi bi-shop"></i> Sellers</a>
-    <a href="admin_orders.php" class="sidebar-item"><i class="bi bi-bag-check-fill"></i> Orders</a>
-
-    <div class="sidebar-group-label">Settings</div>
-    <a href="admin_profile.php" class="sidebar-item"><i class="bi bi-person-gear"></i> My Profile</a>
-</aside>
-
-    <div class="admin-main">
-        <h2 style="margin-bottom:25px; font-size: 28px; font-weight: 700;">User Management</h2>
-
-        <?php if(isset($_GET['updated'])): ?><div class="alert alert-success">User details updated successfully.</div><?php endif; ?>
-        <?php if(isset($_GET['deleted'])): ?><div class="alert alert-success">User deleted successfully.</div><?php endif; ?>
-        <?php if(isset($_GET['suspended'])): ?><div class="alert alert-success">User suspended. Notification sent.</div><?php endif; ?>
-        <?php if(isset($_GET['error'])): ?><div class="alert" style="background:rgba(244,67,54,0.1);color:#f44336;border:1px solid #f44336;">Action failed. Invalid email or error.</div><?php endif; ?>
-
-        <div class="filters">
-            <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;flex:1">
-                <input type="text" name="search" placeholder="Search name or email..." value="<?php echo htmlspecialchars($search); ?>" style="flex:1;min-width:250px">
-                <select name="role">
-                    <option value="">All Roles</option>
-                    <option value="buyer" <?php echo $role==='buyer'?'selected':'';?>>Buyer</option>
-                    <option value="seller" <?php echo $role==='seller'?'selected':'';?>>Seller</option>
-                    <option value="admin" <?php echo $role==='admin'?'selected':'';?>>Admin</option>
-                </select>
-                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
-                <a href="admin_users.php" class="btn btn-secondary"><i class="bi bi-x-circle"></i> Clear</a>
-            </form>
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+        <div class="logo-area">
+            <img src="uploads/logo1.png" alt="Meta Shark">
+            <span>META SHARK</span>
         </div>
-
-        <div class="table-card">
-            <h3>Registered Users (<?php echo count($users); ?>)</h3>
-            
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th><th>User Details</th><th>Contact</th><th>Role</th><th>Status</th><th>Actions</th>
-                        </tr>
-                    </thead>
-                      <tbody>
-                        <?php if(empty($users)): ?>
-                            <tr><td colspan="6" style="text-align:center;padding:50px;color:var(--text-muted)">No users found.</td></tr>
-                        <?php else: foreach($users as $u): ?>
-                            <tr>
-                                <td><span style="font-family:monospace; font-weight:700">#<?php echo $u['id']; ?></span></td>
-                                <td>
-                                    <div style="font-weight:600"><?php echo htmlspecialchars($u['fullname']); ?></div>
-                                    <div style="font-size:12px; color:var(--text-muted)"><?php echo isset($u['created_at']) ? date('M d, Y', strtotime($u['created_at'])) : ''; ?></div>
-                                </td>
-                                <td><?php echo htmlspecialchars($u['email']); ?></td>
-                                <td>
-                                    <form method="POST" style="display:inline-block">
-                                        <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
-                                        <select name="new_role" onchange="this.form.submit()" class="role-select">
-                                            <option value="buyer" <?php echo $u['role']==='buyer'?'selected':'';?>>Buyer</option>
-                                            <option value="seller" <?php echo $u['role']==='seller'?'selected':'';?>>Seller</option>
-                                            <option value="admin" <?php echo $u['role']==='admin'?'selected':'';?>>Admin</option>
-                                        </select>
-                                        <input type="hidden" name="change_role" value="1">
-                                    </form>
-                                </td>
-                                <td>
-                                    <?php if(isset($u['is_verified'])): ?>
-                                        <?php if($u['is_verified']): ?><span class="badge badge-verified"><i class="bi bi-check2"></i> Verified</span>
-                                        <?php else: ?><span class="badge badge-unverified">Unverified</span><?php endif; ?>
-                                    <?php endif; ?>
-
-                                    <?php if(isset($u['is_suspended']) && $u['is_suspended']): ?>
-                                        <span class="badge badge-suspended">Suspended</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <div style="display:flex; gap:6px;">
-                                        <?php if($u['id'] != $_SESSION['admin_id']): ?>
-                                            
-                                            <button onclick="openEditModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars(addslashes($u['fullname'])); ?>', '<?php echo htmlspecialchars($u['email']); ?>')" class="btn btn-edit" title="Edit Email/Pass">
-                                                <i class="bi bi-pencil"></i> Edit
-                                            </button>
-
-                                            <?php if(isset($u['is_suspended'])): ?>
-                                                <?php if(!$u['is_suspended']): ?>
-                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=0" class="btn btn-suspend" title="Suspend User">
-                                                        <i class="bi bi-pause-circle"></i> Suspend
-                                                    </a>
-                                                <?php else: ?>
-                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=1" class="btn btn-activate" title="Activate User">
-                                                        <i class="bi bi-play-circle"></i> Activate
-                                                    </a>
-                                                <?php endif; ?>
-                                            <?php endif; ?>
-                                            
-                                            <a href="admin_users.php?delete=<?php echo $u['id']; ?>" class="btn btn-delete" onclick="return confirm('Delete this user?')" title="Delete User">
-                                                <i class="bi bi-trash"></i> Delete
-                                            </a>
-
-                                        <?php else: echo '<span style="color:var(--text-muted); font-size:12px;">(You)</span>'; endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; endif; ?>
-                    </tbody>
-                </table>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
+            <i class="bi bi-moon-stars"></i>
+        </button>
+        
+        <a href="admin_profile.php" class="navbar-profile-link">
+            <div class="profile-info-display">
+                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
+                <div class="profile-role" style="color:var(--primary);">Administrator</div>
             </div>
+            <div class="profile-avatar">
+                <?php echo $admin_initial; ?>
+            </div>
+        </a>
+        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+</nav>
+
+<?php include 'admin_sidebar.php'; ?>
+
+<main class="admin-main">
+    <div class="fade-in" style="margin-bottom:25px;">
+        <h2 style="font-size: 24px; font-weight: 700;">User Management</h2>
+    </div>
+
+    <?php if(isset($_GET['updated'])): ?><div class="alert alert-success fade-in">User details updated successfully.</div><?php endif; ?>
+    <?php if(isset($_GET['deleted'])): ?><div class="alert alert-success fade-in">User deleted successfully.</div><?php endif; ?>
+    <?php if(isset($_GET['suspended'])): ?><div class="alert alert-success fade-in">User suspended. Notification sent.</div><?php endif; ?>
+    <?php if(isset($_GET['error'])): ?><div class="alert fade-in" style="background:rgba(244,67,54,0.1);color:#f44336;border:1px solid #f44336;">Action failed. Invalid email or error.</div><?php endif; ?>
+
+    <div class="filters fade-in">
+        <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;flex:1">
+            <input type="text" name="search" placeholder="Search name or email..." value="<?php echo htmlspecialchars($search); ?>" style="flex:1;min-width:250px">
+            <select name="role">
+                <option value="">All Roles</option>
+                <option value="buyer" <?php echo $role==='buyer'?'selected':'';?>>Buyer</option>
+                <option value="seller" <?php echo $role==='seller'?'selected':'';?>>Seller</option>
+                <option value="admin" <?php echo $role==='admin'?'selected':'';?>>Admin</option>
+            </select>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+            <a href="admin_users.php" class="btn btn-secondary"><i class="bi bi-x-circle"></i> Clear</a>
+        </form>
+    </div>
+
+    <div class="table-card fade-in" style="animation-delay: 0.1s;">
+        <div class="table-header">
+            <h3>Registered Users (<?php echo count($users); ?>)</h3>
+        </div>
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>User Details</th><th>Contact</th><th>Role</th><th>Status</th><th>Actions</th>
+                    </tr>
+                </thead>
+                  <tbody>
+                    <?php if(empty($users)): ?>
+                        <tr><td colspan="6" style="text-align:center;padding:50px;color:var(--text-muted)">No users found.</td></tr>
+                    <?php else: foreach($users as $u): ?>
+                        <tr>
+                            <td><span style="font-family:monospace; font-weight:700">#<?php echo $u['id']; ?></span></td>
+                            <td>
+                                <div style="font-weight:600"><?php echo htmlspecialchars($u['fullname']); ?></div>
+                                <div style="font-size:12px; color:var(--text-muted)"><?php echo isset($u['created_at']) ? date('M d, Y', strtotime($u['created_at'])) : ''; ?></div>
+                            </td>
+                            <td><?php echo htmlspecialchars($u['email']); ?></td>
+                            <td>
+                                <form method="POST" style="display:inline-block">
+                                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                                    <select name="new_role" onchange="this.form.submit()" class="role-select">
+                                        <option value="buyer" <?php echo $u['role']==='buyer'?'selected':'';?>>Buyer</option>
+                                        <option value="seller" <?php echo $u['role']==='seller'?'selected':'';?>>Seller</option>
+                                        <option value="admin" <?php echo $u['role']==='admin'?'selected':'';?>>Admin</option>
+                                    </select>
+                                    <input type="hidden" name="change_role" value="1">
+                                </form>
+                            </td>
+                            <td>
+                                <?php if(isset($u['is_verified'])): ?>
+                                    <?php if($u['is_verified']): ?><span class="badge badge-verified"><i class="bi bi-check2"></i> Verified</span>
+                                    <?php else: ?><span class="badge badge-unverified">Unverified</span><?php endif; ?>
+                                <?php endif; ?>
+
+                                <?php if(isset($u['is_suspended']) && $u['is_suspended']): ?>
+                                    <span class="badge badge-suspended">Suspended</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div style="display:flex; gap:6px;">
+                                    <?php if($u['id'] != $_SESSION['admin_id']): ?>
+                                        
+                                        <button onclick="openEditModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars(addslashes($u['fullname'])); ?>', '<?php echo htmlspecialchars($u['email']); ?>')" class="btn btn-edit btn-xs" title="Edit Email/Pass">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
+
+                                        <?php if(isset($u['is_suspended'])): ?>
+                                            <?php if(!$u['is_suspended']): ?>
+                                                <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=0" class="btn btn-suspend btn-xs" title="Suspend User">
+                                                    <i class="bi bi-pause-circle"></i> Suspend
+                                                </a>
+                                            <?php else: ?>
+                                                <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=1" class="btn btn-activate btn-xs" title="Activate User">
+                                                    <i class="bi bi-play-circle"></i> Activate
+                                                </a>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                        
+                                        <a href="admin_users.php?delete=<?php echo $u['id']; ?>" class="btn btn-delete btn-xs" onclick="return confirm('Delete this user?')" title="Delete User">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </a>
+
+                                    <?php else: echo '<span style="color:var(--text-muted); font-size:12px;">(You)</span>'; endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
-</div>
+</main>
 
-<!-- EDIT USER MODAL -->
 <div id="editUserModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" onclick="closeEditModal()">&times;</span>
@@ -532,26 +504,54 @@ td { border-top: 1px solid var(--panel-border); vertical-align: middle; }
 </div>
 
 <script>
-    const modal = document.getElementById('editUserModal');
-
-    function openEditModal(id, fullname, email) {
-        document.getElementById('edit_user_id').value = id;
-        document.getElementById('edit_fullname').value = fullname;
-        document.getElementById('edit_email').value = email;
-        document.getElementById('edit_password').value = ''; // Reset password field
-        modal.classList.add('show');
+// --- UI Interactivity ---
+const sidebar = document.getElementById('sidebar');
+const toggleBtn = document.getElementById('sidebarToggle');
+toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('show'); });
+document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+        sidebar.classList.remove('show');
     }
+});
 
-    function closeEditModal() {
-        modal.classList.remove('show');
-    }
+// Theme Logic
+const themeBtn = document.getElementById('themeBtn');
+let currentTheme = '<?php echo $theme; ?>';
 
-    // Close when clicking outside
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            closeEditModal();
-        }
+function updateThemeIcon(theme) {
+    const icon = themeBtn.querySelector('i');
+    icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+}
+updateThemeIcon(currentTheme);
+
+themeBtn.addEventListener('click', () => {
+    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+    // Optional: fetch('theme_toggle.php?theme=' + newTheme);
+});
+
+// Modal Logic
+const modal = document.getElementById('editUserModal');
+
+function openEditModal(id, fullname, email) {
+    document.getElementById('edit_user_id').value = id;
+    document.getElementById('edit_fullname').value = fullname;
+    document.getElementById('edit_email').value = email;
+    document.getElementById('edit_password').value = ''; 
+    modal.classList.add('show');
+}
+
+function closeEditModal() {
+    modal.classList.remove('show');
+}
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        closeEditModal();
     }
+}
 </script>
 
 </body>

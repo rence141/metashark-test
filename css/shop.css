@@ -267,21 +267,16 @@ a .profile-icon {
     gap: 15px;
   }
   .profile-icon {
-    width: 35px;
-    height: 35px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background-color: var(--bg-secondary);
+    object-fit: cover;
+    border: 2px solid #00ff88;
+    background-color: #000;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #44D62C;
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    object-fit: cover;
-    border: 2px solid #44D62C;
-    box-shadow: 0 0 10px rgba(68, 214, 44, 0.5);
-  }
+}
   .profile-icon:hover {
     transform: scale(1.15) rotate(10deg);
     box-shadow: 0 0 20px rgba(68, 214, 44, 1);

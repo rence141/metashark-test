@@ -308,6 +308,8 @@ if (isset($_SESSION['user_id'])) {
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      padding-right: 30px; !important
+      justify-content: flex-start;
     }
     .theme-btn:hover {
       background: #006400;
@@ -315,15 +317,17 @@ if (isset($_SESSION['user_id'])) {
       transform: translateY(-2px);
       box-shadow: 0 8px 16px rgba(0, 100, 0, 0.2);
     }
-    .theme-dropdown:after {
-      content: '\25BC';
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      pointer-events: none;
-      color: var(--secondary-bg);
-    }
+    .theme-dropdown::after {
+    content: '\25BC';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #00ff88; /* Neon Green */
+    font-size: 10px;
+    z-index: 10;
+}
     .theme-menu {
       position: absolute;
       top: 100%;
@@ -867,21 +871,21 @@ if (isset($_SESSION['user_id'])) {
       const popupViewBtn = document.getElementById('popupViewBtn');
       const popupAddBtn = document.getElementById('popupAddBtn');
 
-      function getAllProducts() {
-        const products = [];
-        productCards.forEach(card => {
-          const product = {
-            name: card.querySelector('h3').textContent,
-            price: card.querySelector('.price').textContent,
-            image: card.querySelector('img').src,
-            category: card.dataset.category,
-            productId: card.querySelector('.add-to-cart-form') ?
-                      card.querySelector('.add-to-cart-form').dataset.productId : null
-          };
-          products.push(product);
-        });
-        return products;
-      }
+     function getAllProducts() {
+  const products = [];
+  productCards.forEach(card => {
+    const product = {
+      name: card.querySelector('h3').textContent,
+      price: card.querySelector('.price').textContent,
+      image: card.querySelector('img').src,
+      category: card.dataset.category,
+      // FIX: Get ID directly from the card wrapper, not the form
+      productId: card.dataset.productId 
+    };
+    products.push(product);
+  });
+  return products;
+}
 
       function getRandomProduct() {
         const products = getAllProducts();
@@ -903,21 +907,35 @@ if (isset($_SESSION['user_id'])) {
             }
           });
         };
-        popupAddBtn.onclick = function() {
-          if (product.productId) {
-            const form = document.querySelector(`.add-to-cart-form[data-product-id="${product.productId}"]`);
-            if (form) {
-              form.submit();
-              closePopup();
-            } else {
-              showNotification('Please login to add items to cart!', 'info');
-              closePopup();
-            }
-          } else {
+       popupAddBtn.onclick = function() {
+        // 1. Check if user is logged in using PHP session status
+        const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+        if (!isLoggedIn) {
             showNotification('Please login to add items to cart!', 'info');
+            setTimeout(() => { window.location.href = 'login_users.php'; }, 1000);
+            return;
+        }
+
+        if (product.productId) {
+          // 2. Find the form on the main grid
+          const form = document.querySelector(`.add-to-cart-form[data-product-id="${product.productId}"]`);
+          
+          if (form) {
+            // 3. Use requestSubmit() to trigger the AJAX listener you wrote elsewhere
+            // (form.submit() bypasses the animation)
+            form.requestSubmit(); 
+            closePopup();
+          } else {
+            // If logged in but no form, it means the user might be the seller or admin
+            showNotification('You cannot add your own product to cart.', 'error');
             closePopup();
           }
-        };
+        } else {
+          showNotification('Product error encountered.', 'error');
+          closePopup();
+        }
+      };
         popupOverlay.classList.add('show');
         productPopup.classList.add('show');
       }
