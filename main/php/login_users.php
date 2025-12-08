@@ -1,767 +1,336 @@
 <?php
 session_start();
 include("db.php");
-
 $error = isset($_GET['error']) ? $_GET['error'] : "";
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - MyShop</title>
-  <link rel="icon" type="image/png" href="uploads/logo1.png">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Meta Shark</title>
+    <link rel="icon" type="image/png" href="uploads/logo1.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    
+    <style>
+        :root {
+            /* Palette: Consumer Friendly Dark Mode */
+            --bg-body: #050505;
+            --surface: #121212;
+            --primary: #44D62C;
+            --primary-dark: #2da81b;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --border: #2a2a2a;
+            --input-bg: #1a1a1a;
+            --error: #ff4757;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+        }
 
-    :root {
-      --primary-color: #06dd78ff;
-      --secondary-color: #00d4ff;
-      --accent-color: #00ff88;
-      --text-primary: #333;
-      --text-secondary: #6c757d;
-      --background-primary: linear-gradient(135deg,rgb(2, 2, 4) 0%,rgb(14, 90, 5) 25%,rgb(17, 147, 22) 50%,rgb(28, 255, 28) 75%,rgb(0, 0, 0) 100%);
-      --card-background: white;
-      --border-color: rgba(0, 0, 0, 0.1);
-      --shadow-color: rgba(0, 0, 0, 0.3);
-      --placeholder-color: rgb(24, 195, 5);
-      --error-color: #ff4757;
-    }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    .theme-dark {
-      --text-primary: #e0e0e0;
-      --text-secondary: #bbb;
-      --background-primary: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 25%, #2a2a2a 50%, #3a3a3a 75%, #000000 100%);
-      --card-background: #1e1e1e;
-      --border-color: rgba(255, 255, 255, 0.1);
-      --shadow-color: rgba(0, 0, 0, 0.5);
-      --placeholder-color:rgb(66, 67, 66);
-      --logo-container: white;
-    }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
 
-    .theme-light{
-      --logo-container: black;
-    }
+        /* --- LEFT SIDE: FORM (Active Area) --- */
+        .login-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 80px;
+            max-width: 600px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            position: relative;
+            z-index: 2;
+        }
 
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--background-primary);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-      color: var(--text-primary);
-    }
+        .header { margin-bottom: 40px; }
+        .logo-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .logo-img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
+        .logo-text { font-weight: 700; font-size: 20px; letter-spacing: -0.5px; }
+        
+        .header h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+        .header p { color: var(--text-muted); font-size: 15px; }
 
-    /* Animated background particles */
-    body::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                  radial-gradient(circle at 80% 20%, rgba(135, 255, 119, 0.3) 0%, transparent 50%),
-                  radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
-      animation: backgroundShift 20s ease-in-out infinite;
-    }
+        /* Floating Input System */
+        .input-group { position: relative; margin-bottom: 20px; }
+        
+        .form-control {
+            width: 100%;
+            padding: 16px 16px 16px 50px; /* Space for icon */
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
 
-    @keyframes backgroundShift {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
+        .form-control:focus {
+            border-color: var(--primary);
+            background: #222;
+            box-shadow: 0 0 0 4px rgba(68, 214, 44, 0.1);
+        }
 
-    .form-container {
-      background: var(--card-background);
-      padding: 50px;
-      border-radius: 20px;
-      width: 100%;
-      max-width: 500px;
-      text-align: center;
-      position: relative;
-      z-index: 2;
-      box-shadow: 0 20px 40px var(--shadow-color);
-      border: 3px solid transparent;
-      background-clip: padding-box;
-    }
+        .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 18px;
+            transition: color 0.2s;
+        }
+        
+        .form-control:focus ~ .input-icon { color: var(--primary); }
 
-    .form-container::before {
-      content: '';
-      position: absolute;
-      top: -3px;
-      left: -3px;
-      right: -3px;
-      bottom: -3px;
-      background: var(--card-background);
-      border-radius: 20px;
-      z-index: -1;
-    }
+        .form-label {
+            position: absolute;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: 0.2s ease;
+            font-size: 15px;
+            background: transparent;
+        }
 
-    @keyframes cardFloat {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-    }
+        /* The Float Animation */
+        .form-control:focus ~ .form-label,
+        .form-control:not(:placeholder-shown) ~ .form-label {
+            top: 0;
+            left: 15px;
+            font-size: 12px;
+            padding: 0 4px;
+            background: var(--surface);
+            color: var(--primary);
+            font-weight: 600;
+        }
 
-    @keyframes borderGlow {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
+        /* Password Toggle */
+        .toggle-pw {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 5px;
+        }
+        .toggle-pw:hover { color: #fff; }
 
-    .logo {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 20px;
-      border-radius: 50%;
-      display: block;
-      object-fit: cover;
-      background-color: var(--logo-container);
-    }
+        /* Buttons */
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: #000;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+            margin-top: 10px;
+        }
+        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-primary:active { transform: scale(0.98); }
 
-    @keyframes logoPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
+        .google-btn {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+            margin-top: 20px;
+            text-decoration: none;
+            font-size: 15px;
+        }
+        .google-btn:hover { background: rgba(255,255,255,0.05); border-color: #444; }
 
-    .form-container h2 {
-      margin-bottom: 20px;
-      color: var(--primary-color);
-      font-size: 32px;
-      font-weight: 700;
-    }
+        /* Footer Links */
+        .form-footer {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .form-footer a { color: var(--text-muted); text-decoration: none; transition: 0.2s; }
+        .form-footer a:hover { color: var(--primary); }
 
-    .form-container input {
-      width: 100%;
-      padding: 16px 22px;
-      margin: 12px 0;
-      border: 2px solid #e1e5e9;
-      border-radius: 14px;
-      font-size: 17px;
-      background: #f8f9fa;
-      transition: all 0.3s ease;
-      outline: none;
-    }
+        /* --- RIGHT SIDE: ART (Visual Experience) --- */
+        .art-section {
+            flex: 1.5;
+            background: radial-gradient(circle at center, #111e13 0%, #000000 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    .form-container input:focus {
-      border-color: #00d4ff;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-      transform: translateY(-2px);
-    }
+        /* Glowing Orbs Animation */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: floatOrb 10s infinite ease-in-out alternate;
+        }
+        .orb-1 {
+            width: 400px; height: 400px;
+            background: var(--primary);
+            top: 20%; left: 20%;
+        }
+        .orb-2 {
+            width: 300px; height: 300px;
+            background: #00d4ff;
+            bottom: 20%; right: 20%;
+            animation-delay: -5s;
+        }
 
-    .form-container input::placeholder {
-      color: var(--placeholder-color);
-    }
+        @keyframes floatOrb {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, -30px) scale(1.1); }
+        }
 
-    .login-btn {
-      border-color: var(--primary-color);
-      width: 100%;
-      padding: 16px;
-      background: #000;
-      color: white;
-      font-size: 17px;
-      font-weight: 600;
-      border-radius: 14px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-top: 10px;
-    }
+        /* Glass Card in Art Section */
+        .art-content {
+            position: relative;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+        .art-content h2 { font-size: 28px; margin-bottom: 12px; }
+        .art-content p { color: #aaa; line-height: 1.6; }
 
-    .login-btn:hover {
-      background: var(--primary-color);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(1, 235, 28, 0.2);
-    }
+        /* Error Message */
+        .alert-error {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            color: var(--error);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    .forgot-password {
-      margin: 15px 0;
-    }
-
-    .forgot-password a {
-      color: var(--primary-color);
-      text-decoration: none;
-      font-size: 14px;
-      transition: color 0.3s ease;
-    }
-
-    .forgot-password a:hover {
-      color: var(--text-secondary);
-    }
-
-    /* Google-like button */
-    .google-btn {
-      width: 100%;
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 12px;
-      background: #fff;
-      border: 1px solid #dadce0;
-      border-radius: 6px;
-      color: #3c4043;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      justify-content: center;
-      margin: 20px 0;
-      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
-      box-shadow: none;
-    }
-
-    .google-btn:hover {
-      background: #f7f8f9;
-      transform: translateY(-1px);
-      box-shadow: 0 1px 1px rgba(60,64,67,0.08);
-    }
-
-    .google-btn:active {
-      transform: translateY(0);
-    }
-
-    .google-icon {
-      display: inline-flex;
-      width: 18px;
-      height: 18px;
-      align-items: center;
-      justify-content: center;
-      flex: 0 0 18px;
-    }
-
-    .google-text {
-      display: inline-block;
-      line-height: 1;
-    }
-
-    .signup-link, .seller-link {
-      margin: 15px 0;
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-
-    .signup-link a, .seller-link a {
-      color: var(--primary-color);
-      text-decoration: none;
-      font-weight: 600;
-      transition: color 0.3s ease;
-    }
-
-    .signup-link a:hover, .seller-link a:hover {
-      color: var(--secondary-color);
-    }
-
-    .loading-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    .loading-screen.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .loading-dots {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .loading-dot {
-      width: 12px;
-      height: 12px;
-      background: linear-gradient(45deg, #00ff88, #00d4ff);
-      border-radius: 50%;
-      animation: loadingBounce 1.4s ease-in-out infinite both;
-    }
-
-    .loading-dot:nth-child(1) { animation-delay: -0.32s; }
-    .loading-dot:nth-child(2) { animation-delay: -0.16s; }
-    .loading-dot:nth-child(3) { animation-delay: 0s; }
-
-    @keyframes loadingBounce {
-      0%, 80%, 100% {
-        transform: scale(0);
-        opacity: 0.5;
-      }
-      40% {
-        transform: scale(1);
-        opacity: 1;
-      }
-    }
-
-    .loading-text {
-      color: #00ff88;
-      font-size: 18px;
-      font-weight: 600;
-      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-    }
-
-    .error-message {
-      color: var(--error-color);
-      background: rgba(255, 71, 87, 0.1);
-      padding: 10px;
-      border-radius: 8px;
-      margin: 10px 0;
-      font-size: 14px;
-      border-left: 3px solid var(--error-color);
-    }
-
-    /* Responsive Design */
-    @media (max-width: 480px) {
-      .form-container {
-        padding: 35px 20px;
-        margin: 10px;
-        max-width: 95%;
-      }
-      
-      .form-container h2 {
-        font-size: 26px;
-      }
-      
-      .logo {
-        width: 70px;
-        height: 70px;
-        font-size: 24px;
-      }
-    }
-  </style>
+        /* Responsive */
+        @media (max-width: 992px) {
+            .art-section { display: none; }
+            .login-section { max-width: 100%; border-right: none; padding: 40px 20px; }
+        }
+    </style>
 </head>
 <body>
-<div class="loading-screen">
-  <div class="loading-dots">
-    <div class="loading-dot"></div>
-    <div class="loading-dot"></div>
-    <div class="loading-dot"></div>
-  </div>
-  <div class="loading-text">Signing you in...</div>
-</div>
 
-<div class="form-container">
-    <img src="Uploads/logo1.png" alt="MyShop Logo" class="logo">
-    <h2 class>Meta Shark Login</h2>
+    <div class="login-section">
+        <div class="logo-wrap">
+            <img src="uploads/logo1.png" alt="Logo" class="logo-img">
+            <span class="logo-text">Meta Shark</span>
+        </div>
 
-    <form action="loginprocess_users.php" method="POST" id="loginForm">
-      <input type="email" name="email" placeholder="Email" required>
-      <input type="password" name="password" placeholder="Password" required>
-      <button type="submit" class="login-btn">Login</button>
-      
-      <?php if (!empty($error)): ?>
-        <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
-      <?php endif; ?>
-    </form>
+        <div class="header">
+            <h1>Welcome back</h1>
+            <p>Enter your details to access your personal dashboard.</p>
+        </div>
 
-    <!-- Google Login Button -->
-    <button class="google-btn" id="googleLoginBtn" aria-label="Sign in with Google">
-      <span class="google-icon" aria-hidden="true">
-        <!-- Google "G" SVG (multicolor) -->
-        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" focusable="false">
-          <path fill="#4285F4" d="M17.64 9.2045c0-.638-.0578-1.2509-.166-1.835H9v3.475h4.844c-.209 1.12-.845 2.07-1.803 2.71v2.257h2.912c1.705-1.571 2.697-3.88 2.697-6.607z"/>
-          <path fill="#34A853" d="M9 18c2.43 0 4.468-.803 5.956-2.182l-2.912-2.257c-.806.543-1.84.866-3.044.866-2.34 0-4.325-1.58-5.033-3.705H1.01v2.328C2.496 15.861 5.548 18 9 18z"/>
-          <path fill="#FBBC05" d="M3.967 10.74a5.49 5.49 0 0 1 0-3.48V4.93H1.01A9 9 0 0 0 0 9c0 1.47.33 2.86.91 4.07l3.057-2.33z"/>
-          <path fill="#EA4335" d="M9 3.58c1.322 0 2.51.454 3.445 1.347l2.582-2.5C13.463.996 11.425 0 9 0 5.548 0 2.496 2.139 1.01 4.93l2.957 2.33C4.675 5.16 6.66 3.58 9 3.58z"/>
-        </svg>
-      </span>
-      <span class="google-text">Sign in with Google</span>
-    </button>
-
-    <div class="forgot-password">
-      <a href="forgot_password.php">Forgot password?</a>
-    </div>
-
-    <div class="signup-link">
-      Don't have an account? <a href="signup_users.php">Sign Up</a>
-    </div>
-
-   <!-- <div class="seller-link">
-      Are you a seller? <a href="seller_login.php">Seller Login</a>
-    </div>-->
-    
-    <!--<div class="seller-link" style="margin-top:8px;">
-      Are you an admin? <a href="admin_login.php">Admin Login</a>
-    </div>
-  </div>-->
-  
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', function() {
-      document.querySelector('.loading-screen').classList.add('active');
-    });
-
-    document.getElementById('googleLoginBtn').addEventListener('click', function(e) {
-      e.preventDefault(); // Prevent any form-related behavior
-      window.location.href = 'google_login.php'; // Redirect to Google login
-    });
-
-    window.addEventListener('load', function() {
-      const errorMessage = document.querySelector('.error-message');
-      if (!errorMessage) {
-        document.querySelector('.loading-screen').classList.remove('active');
-      }
-    });
-
-    // Add some interactive effects
-    document.querySelectorAll('input').forEach(input => {
-      input.addEventListener('focus', function() {
-        this.parentElement.classList.add('focused');
-      });
-      
-      input.addEventListener('blur', function() {
-        this.parentElement.classList.remove('focused');
-      });
-    });
-  </script>
-
-<script>
-  class ThemeSystem {
-    constructor() {
-        this.themes = {
-            light: 'light',
-            dark: 'dark',
-            device: 'device'
-        };
-        this.currentTheme = this.getStoredTheme() || this.themes.device;
-        this.init();
-    }
-
-    init() {
-        this.applyTheme(this.currentTheme);
-        this.createThemeToggle();
-        this.watchSystemTheme();
-    }
-
-    getStoredTheme() {
-        return localStorage.getItem('theme');
-    }
-
-    setStoredTheme(theme) {
-        localStorage.setItem('theme', theme);
-    }
-
-    getSystemTheme() {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    applyTheme(theme) {
-        const body = document.body;
-        const root = document.documentElement;
-        
-        // Remove existing theme classes
-        body.classList.remove('theme-light', 'theme-dark', 'theme-device');
-        
-        // Apply new theme
-        if (theme === 'device') {
-            const systemTheme = this.getSystemTheme();
-            body.classList.add(`theme-${systemTheme}`);
-            body.setAttribute('data-theme', systemTheme);
-        } else {
-            body.classList.add(`theme-${theme}`);
-            body.setAttribute('data-theme', theme);
-        }
-
-        this.currentTheme = theme;
-        this.setStoredTheme(theme);
-        this.updateToggleUI();
-    }
-
-    createThemeToggle() {
-        // Check if toggle already exists
-        if (document.querySelector('.theme-toggle')) return;
-
-        const toggle = document.createElement('div');
-        toggle.className = 'theme-toggle';
-        toggle.innerHTML = `
-            <button class="theme-toggle-btn" title="Toggle Theme">
-                <span class="theme-icon">
-                    <i class="bi bi-laptop" data-theme="device"></i>
-                    <i class="bi bi-sun" data-theme="light" style="display: none;"></i>
-                    <i class="bi bi-moon" data-theme="dark" style="display: none;"></i>
-                </span>
-                <span class="theme-label">Device</span>
-            </button>
-            <div class="theme-menu">
-                <button class="theme-option" data-theme="light">
-                    <i class="bi bi-sun"></i>
-                    <span>Light</span>
-                </button>
-                <button class="theme-option" data-theme="dark">
-                    <i class="bi bi-moon"></i>
-                    <span>Dark</span>
-                </button>
-                <button class="theme-option" data-theme="device">
-                    <i class="bi bi-laptop"></i>
-                    <span>Device</span>
-                </button>
+        <?php if (!empty($error)): ?>
+            <div class="alert-error">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <?php echo htmlspecialchars($error); ?>
             </div>
-        `;
+        <?php endif; ?>
 
-        // Add to page
-        document.body.appendChild(toggle);
+        <form action="loginprocess_users.php" method="POST" id="loginForm">
+            
+            <div class="input-group">
+                <input type="email" name="email" id="email" class="form-control" placeholder=" " required>
+                <i class="bi bi-envelope input-icon"></i>
+                <label for="email" class="form-label">Email Address</label>
+            </div>
 
-        // Add event listeners
-        toggle.querySelector('.theme-toggle-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggle.classList.toggle('active');
-        });
+            <div class="input-group">
+                <input type="password" name="password" id="password" class="form-control" placeholder=" " required>
+                <i class="bi bi-lock input-icon"></i>
+                <label for="password" class="form-label">Password</label>
+                <i class="bi bi-eye-slash toggle-pw" onclick="togglePassword()"></i>
+            </div>
 
-        toggle.querySelectorAll('.theme-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const theme = option.dataset.theme;
-                this.applyTheme(theme);
-                toggle.classList.remove('active');
-            });
-        });
+            <button type="submit" class="btn-primary" id="submitBtn">Sign In</button>
+        </form>
 
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!toggle.contains(e.target)) {
-                toggle.classList.remove('active');
-            }
-        });
-    }
+        <a href="google_login.php" class="google-btn">
+            <i class="bi bi-google"></i> Sign in with Google
+        </a>
 
-    updateToggleUI() {
-        const toggle = document.querySelector('.theme-toggle');
-        if (!toggle) return;
+        <div class="form-footer">
+            <a href="forgot_password.php">Forgot Password?</a>
+            <span style="color:var(--border);">|</span>
+            <a href="signup_users.php" style="color:#fff; font-weight:600;">Create Account</a>
+        </div>
+    </div>
 
-        const themeLabel = toggle.querySelector('.theme-label');
-        const allIcons = toggle.querySelectorAll('.theme-icon i');
-        const activeIcon = toggle.querySelector(`.theme-icon i[data-theme="${this.currentTheme}"]`);
+    <div class="art-section">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
         
-        // Update icon
-        allIcons.forEach(icon => icon.style.display = 'none');
-        if (activeIcon) activeIcon.style.display = 'block';
+        <div class="art-content">
+            <h2>Shop Smarter</h2>
+            <p>Experience the future of e-commerce. Track orders in real-time and get exclusive deals delivered to your dashboard.</p>
+        </div>
+    </div>
 
-        // Update label
-        themeLabel.textContent = this.currentTheme.charAt(0).toUpperCase() + this.currentTheme.slice(1);
-
-        // Update active state in menu
-        toggle.querySelectorAll('.theme-option').forEach(option => {
-            option.classList.toggle('active', option.dataset.theme === this.currentTheme);
-        });
-    }
-
-    watchSystemTheme() {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addListener(() => {
-            if (this.currentTheme === 'device') {
-                this.applyTheme('device');
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const icon = document.querySelector('.toggle-pw');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
             }
+        }
+
+        // Add loading state on submit
+        document.getElementById('loginForm').addEventListener('submit', function() {
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<span class="spinner-border" role="status"></span> Signing In...';
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
         });
-    }
-
-    setTheme(theme) {
-        if (this.themes[theme]) {
-            this.applyTheme(theme);
-        }
-    }
-
-    getEffectiveTheme() {
-        if (this.currentTheme === 'device') {
-            return this.getSystemTheme();
-        }
-        return this.currentTheme;
-    }
-}
-
-// CSS for theme toggle
-const themeStyles = `
-<style>
-.theme-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.theme-toggle-btn {
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(0, 255, 136, 0.3);
-    border-radius: 12px;
-    padding: 12px 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.theme-toggle-btn:hover {
-    background: rgba(255, 255, 255, 1);
-    border-color: rgba(0, 255, 136, 0.6);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-.theme-icon {
-    position: relative;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.theme-icon i {
-    position: absolute;
-    font-size: 16px;
-    color: #333;
-    transition: all 0.3s ease;
-}
-
-.theme-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
-}
-
-.theme-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 8px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid rgba(0, 255, 136, 0.3);
-    border-radius: 12px;
-    padding: 8px;
-    min-width: 140px;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.theme-toggle.active .theme-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.theme-option {
-    width: 100%;
-    padding: 10px 12px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    color: #333;
-    transition: all 0.2s ease;
-    text-align: left;
-}
-
-.theme-option:hover {
-    background: rgba(0, 255, 136, 0.1);
-    color: #00ff88;
-}
-
-.theme-option.active {
-    background: rgba(0, 255, 136, 0.2);
-    color: #00ff88;
-    font-weight: 600;
-}
-
-.theme-option i {
-    width: 16px;
-    text-align: center;
-}
-
-/* Dark theme styles */
-.theme-dark .theme-toggle-btn {
-    background: rgba(30, 30, 30, 0.9);
-    border-color: rgba(0, 255, 136, 0.3);
-    color: #e0e0e0;
-}
-
-.theme-dark .theme-toggle-btn:hover {
-    background: rgba(30, 30, 30, 1);
-    border-color: rgba(0, 255, 136, 0.6);
-}
-
-.theme-dark .theme-icon i,
-.theme-dark .theme-label {
-    color: #e0e0e0;
-}
-
-.theme-dark .theme-menu {
-    background: rgba(30, 30, 30, 0.95);
-    border-color: rgba(0, 255, 136, 0.3);
-}
-
-.theme-dark .theme-option {
-    color: #e0e0e0;
-}
-
-.theme-dark .theme-option:hover {
-    background: rgba(0, 255, 136, 0.1);
-    color: #00ff88;
-}
-
-.theme-dark .theme-option.active {
-    background: rgba(0, 255, 136, 0.2);
-    color: #00ff88;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .theme-toggle {
-        top: 15px;
-        right: 15px;
-    }
-    
-    .theme-toggle-btn {
-        padding: 10px 12px;
-    }
-    
-    .theme-label {
-        font-size: 12px;
-    }
-    
-    .theme-menu {
-        right: -10px;
-        min-width: 120px;
-    }
-}
-</style>
-`;
-
-// Inject styles
-document.head.insertAdjacentHTML('beforeend', themeStyles);
-
-// Initialize theme system when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.themeSystem = new ThemeSystem();
-});
-
-// Export for use in other scripts
-window.ThemeSystem = ThemeSystem;
-</script>
+    </script>
 </body>
 </html>

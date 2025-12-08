@@ -3,124 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy - Meta Shark</title>
-    <link rel="icon" type="image/png" href="../uploads/logo1.png">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Privacy Policy — Meta Shark</title>
+    <link rel="icon" type="image/png" href="uploads/logo1.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
     <style>
+        :root {
+            --bg-body: #050505;
+            --surface: #121212;
+            --surface-highlight: #1a1a1a;
+            --primary: #44D62C;
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --border: #2a2a2a;
+            --font-main: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Inter', Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.7;
             padding: 40px 20px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            background-color: #f9fafb;
-            color: #1f2937;
+            min-height: 100vh;
         }
+
+        /* --- Layout Container --- */
+        .policy-container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 60px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        /* --- Header Section --- */
+        .policy-header {
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 40px;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            padding: 3px;
+            margin-bottom: 20px;
+            background: var(--surface-highlight);
+        }
+
         h1 {
-            text-align: center;
-            color: #111827;
-            font-size: 2.5em;
-            margin-bottom: 0.5em;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
         }
+
+        .last-updated {
+            display: inline-block;
+            background: rgba(68, 214, 44, 0.1);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* --- Content Typography --- */
         h2 {
-            color: #374151;
-            font-size: 1.5em;
-            margin-top: 1.5em;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
+
+        /* Green accent line next to H2 */
+        h2::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
         p {
-            margin-bottom: 1em;
-            color: #4b5563;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-size: 1rem;
         }
+
         ul {
-            margin-bottom: 1em;
-            padding-left: 20px;
+            margin-bottom: 20px;
+            padding-left: 25px;
+            color: var(--text-muted);
         }
+
         li {
-            margin-bottom: 0.5em;
-            color: #4b5563;
+            margin-bottom: 10px;
         }
+
+        strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
         a {
-            color: #2563eb;
+            color: var(--primary);
             text-decoration: none;
+            transition: 0.2s;
+            border-bottom: 1px dashed rgba(68, 214, 44, 0.5);
         }
+
         a:hover {
-            text-decoration: underline;
-            color: #1e40af;
+            border-bottom-style: solid;
+            opacity: 0.8;
         }
-        .logo-container {
-            text-align: center;
-            margin-bottom: 2em;
+
+        /* --- Contact Box --- */
+        .contact-box {
+            background: var(--surface-highlight);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 40px;
         }
-        .logo-container img {
-            max-width: 150px;
-            height: auto;
+
+        .contact-box p { margin-bottom: 5px; }
+        .contact-box h3 { margin-bottom: 15px; font-size: 1.2rem; }
+
+        /* --- Back Button --- */
+        .back-nav {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 100;
+        }
+        
+        .btn-back {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 10px 20px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-bottom: none; /* Override default link style */
+        }
+
+        .btn-back:hover {
+            background: var(--surface-highlight);
+            color: var(--text-main);
+            border-color: var(--primary);
+            transform: translateX(-3px);
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .policy-container { padding: 30px 20px; }
+            h1 { font-size: 2rem; }
+            .back-nav { position: absolute; top: 20px; left: 20px; }
+            body { padding-top: 80px; }
+        }
+
+        /* --- Print Styles (Clean White for Printing) --- */
+        @media print {
+            body { background: white; color: black; }
+            .policy-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+            .logo, .btn-back { display: none; }
+            h1, h2, strong { color: black; }
+            p, ul, li { color: #333; }
+            a { color: black; text-decoration: underline; }
+            h2::before { background: black; }
         }
     </style>
 </head>
 <body>
-    <div class="logo-container">
-        <img src="/SaysonCo/main/php/uploads/logo1.png" alt="MetaShark Logo">
+
+    <div class="back-nav">
+        <a href="javascript:history.back()" class="btn-back">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
     </div>
-    <h1>Privacy Policy</h1>
-    <p><strong>Last Updated: September 21, 2025</strong></p>
 
-    <h2>1. Introduction</h2>
-    <p>Welcome to Meta Shark. We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our services. Please read this policy carefully. If you do not agree with the terms of this Privacy Policy, please do not access the site.</p>
+    <div class="policy-container">
+        <header class="policy-header">
+            <img src="/SaysonCotest/main/php/uploads/logo1.png" alt="Meta Shark" class="logo">
+            <h1>Privacy Policy</h1>
+            <span class="last-updated">Last Updated: September 21, 2025</span>
+        </header>
 
-    <h2>2. Information We Collect</h2>
-    <p>We may collect the following types of information:</p>
-    <ul>
-        <li><strong>Personal Information:</strong> Name, email address, phone number, or other details you provide when you contact us or register for an account.</li>
-        <li><strong>Usage Data:</strong> Information about how you use our website, such as IP address, browser type, pages visited, and time spent on the site.</li>
-        <li><strong>Cookies and Tracking Technologies:</strong> We use cookies to enhance your experience, analyze site usage, and assist with marketing efforts.</li>
-    </ul>
+        <section>
+            <h2>1. Introduction</h2>
+            <p>Welcome to <strong>Meta Shark</strong>. We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our services. Please read this policy carefully. If you do not agree with the terms of this Privacy Policy, please do not access the site.</p>
 
-    <h2>3. How We Use Your Information</h2>
-    <p>We use the information we collect to:</p>
-    <ul>
-        <li>Provide, operate, and maintain our website and services.</li>
-        <li>Improve, personalize, and expand our website.</li>
-        <li>Communicate with you, including responding to inquiries and sending promotional materials (with your consent).</li>
-        <li>Analyze usage trends to enhance user experience.</li>
-        <li>Comply with legal obligations.</li>
-    </ul>
+            <h2>2. Information We Collect</h2>
+            <p>We may collect the following types of information:</p>
+            <ul>
+                <li><strong>Personal Information:</strong> Name, email address, phone number, or other details you provide when you contact us or register for an account.</li>
+                <li><strong>Usage Data:</strong> Information about how you use our website, such as IP address, browser type, pages visited, and time spent on the site.</li>
+                <li><strong>Cookies and Tracking Technologies:</strong> We use cookies to enhance your experience, analyze site usage, and assist with marketing efforts.</li>
+            </ul>
 
-    <h2>4. Sharing Your Information</h2>
-    <p>We do not sell your personal information. We may share your information with:</p>
-    <ul>
-        <li><strong>Service Providers:</strong> Third-party vendors who help us operate our website or services (e.g., hosting, analytics, or payment processing).</li>
-        <li><strong>Legal Authorities:</strong> When required by law or to protect our rights, safety, or property.</li>
-    </ul>
+            <h2>3. How We Use Your Information</h2>
+            <p>We use the information we collect to:</p>
+            <ul>
+                <li>Provide, operate, and maintain our website and services.</li>
+                <li>Improve, personalize, and expand our website.</li>
+                <li>Communicate with you, including responding to inquiries and sending promotional materials (with your consent).</li>
+                <li>Analyze usage trends to enhance user experience.</li>
+                <li>Comply with legal obligations.</li>
+            </ul>
 
-    <h2>5. Cookies and Tracking Technologies</h2>
-    <p>Our website uses cookies to improve your experience. You can manage cookie preferences through your browser settings. Disabling cookies may affect the functionality of our website.</p>
+            <h2>4. Sharing Your Information</h2>
+            <p>We do not sell your personal information. We may share your information with:</p>
+            <ul>
+                <li><strong>Service Providers:</strong> Third-party vendors who help us operate our website or services (e.g., hosting, analytics, or payment processing).</li>
+                <li><strong>Legal Authorities:</strong> When required by law or to protect our rights, safety, or property.</li>
+            </ul>
 
-    <h2>6. Data Security</h2>
-    <p>We implement reasonable security measures to protect your information. However, no method of transmission over the internet is completely secure, and we cannot guarantee absolute security.</p>
+            <h2>5. Cookies and Tracking Technologies</h2>
+            <p>Our website uses cookies to improve your experience. You can manage cookie preferences through your browser settings. Disabling cookies may affect the functionality of our website.</p>
 
-    <h2>7. Your Rights</h2>
-    <p>Depending on your location, you may have the right to:</p>
-    <ul>
-        <li>Access the personal information we hold about you.</li>
-        <li>Request correction or deletion of your personal information.</li>
-        <li>Opt out of marketing communications.</li>
-        <li>Request a copy of your data in a portable format.</li>
-    </ul>
-    <p>To exercise these rights, please contact us at [Your Contact Email].</p>
+            <h2>6. Data Security</h2>
+            <p>We implement reasonable security measures to protect your information. However, no method of transmission over the internet is completely secure, and we cannot guarantee absolute security.</p>
 
-    <h2>8. Third-Party Links</h2>
-    <p>Our website may contain links to third-party sites. We are not responsible for the privacy practices or content of these sites.</p>
+            <h2>7. Your Rights</h2>
+            <p>Depending on your location, you may have the right to:</p>
+            <ul>
+                <li>Access the personal information we hold about you.</li>
+                <li>Request correction or deletion of your personal information.</li>
+                <li>Opt out of marketing communications.</li>
+                <li>Request a copy of your data in a portable format.</li>
+            </ul>
+            <p>To exercise these rights, please contact us at our email address below.</p>
 
-    <h2>9. Changes to This Privacy Policy</h2>
-    <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last Updated" date. We encourage you to review this policy periodically.</p>
+            <h2>8. Third-Party Links</h2>
+            <p>Our website may contain links to third-party sites. We are not responsible for the privacy practices or content of these sites.</p>
 
-    <h2>10. Contact Us</h2>
-    <p>If you have questions about this Privacy Policy, please contact us at:</p>
-    <p>Meta Shark<br>
-    Planet Mars Luneta Park<br>
-    Email: [MetaShark@gmail.com]<br>
-    Phone: [+63 9672479726]</p>
+            <h2>9. Changes to This Privacy Policy</h2>
+            <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last Updated" date. We encourage you to review this policy periodically.</p>
+
+            <div class="contact-box">
+                <h3>10. Contact Us</h3>
+                <p>If you have questions about this Privacy Policy, please contact us at:</p>
+                <div style="margin-top: 15px;">
+                    <p><i class="bi bi-building"></i> &nbsp;<strong>Meta Shark HQ</strong></p>
+                    <p style="padding-left: 24px;">Planet Mars Luneta Park</p>
+                    <p style="padding-left: 24px;">Email: <a href="mailto:MetaShark@gmail.com">MetaShark@gmail.com</a></p>
+                    <p style="padding-left: 24px;">Phone: +63 9672479726</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
 </body>
 </html>
