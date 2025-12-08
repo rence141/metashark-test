@@ -27,12 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Login Success
                 session_regenerate_id(true);
                 $_SESSION['admin_id'] = (int)$r['id'];
-                $_SESSION['admin_name'] = $r['first_name'];
+                $_SESSION['admin_name'] = htmlspecialchars($r['first_name']);
                 
                 header('Location: admin_dashboard.php');
                 exit;
             } else {
                 $err = 'Invalid email or password.';
+                // Security: Add a small delay to slow down brute-force attacks
+                sleep(1);
             }
             $stmt->close();
         } else {

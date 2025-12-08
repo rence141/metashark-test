@@ -11,6 +11,11 @@ if (!isset($_SESSION['admin_id'])) {
     exit; 
 }
 
+// Security: Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $admin_id = $_SESSION['admin_id'];
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $theme = $_SESSION['theme'] ?? 'dark';
@@ -29,7 +34,12 @@ if (!is_dir($upload_dir)) {
 }
 
 // --- 1. Handle Profile Update Submission ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' && 
+    isset($_POST['update_profile']) &&
+    isset($_POST['csrf_token']) && 
+    hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
     $fullname = trim($_POST['fullname']);
     $phone = trim($_POST['phone']);
     $new_theme = $_POST['theme'] === 'dark' ? 'dark' : 'light';
@@ -53,8 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
             } elseif ($file_size > 5 * 1024 * 1024) { // Max 5MB
                 $error_message = "File upload failed: File size must be less than 5MB.";
             } else {
-                // Generate a unique filename based on user ID and timestamp
-                $new_file_name = $admin_id . '_' . time() . '.' . $file_ext;
+                // Security: Sanitize filename and generate a unique name
+                $safe_basename = preg_replace("/[^a-zA-Z0-9\._-]/", '', basename($file_name));
+                $new_file_name = $admin_id . '_' . time() . '_' . $safe_basename;
                 $dest_path = $upload_dir . $new_file_name;
 
                 if (move_uploaded_file($file_tmp_path, $dest_path)) {
@@ -350,6 +361,7 @@ if (!file_exists($upload_dir . $avatar_filename) || empty($admin_data['avatar'])
             
             <form method="POST" action="admin_profile.php" enctype="multipart/form-data"> 
                 <input type="hidden" name="update_profile" value="1">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
                 <div class="form-group">
                     <label for="new_avatar">New Profile Picture</label>

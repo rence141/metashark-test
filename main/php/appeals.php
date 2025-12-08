@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_id'])) {
 $theme = $_SESSION['theme'] ?? 'dark';
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $admin_initial = strtoupper(substr($admin_name, 0, 1));
-$current_page = basename($_SERVER['PHP_SELF']); 
+$current_page = 'appeals.php'; 
 
 // --- 2. DATABASE MIGRATION (Auto-Update & Fix) ---
 // Ensure table exists
@@ -228,15 +228,18 @@ while($row = $countRes->fetch_assoc()) {
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Sidebar & Nav */
-        .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-muted); font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+         .admin-sidebar { position: fixed; left: 0; top: 70px; bottom: 0; width: var(--sidebar-width); background: var(--panel); border-right: 1px solid var(--panel-border); padding: 24px 16px; overflow-y: auto; transition: var(--transition); z-index: 40; }
+        .sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
+        .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-muted); font-weight: 500; font-size: 14px; transition: var(--transition); margin-bottom: 4px; }
         .sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+        [data-theme="light"] .sidebar-item:hover { background: #f3f4f6; }
         .sidebar-item.active { background: linear-gradient(90deg, rgba(68,214,44,0.15), transparent); color: var(--primary); border-left: 3px solid var(--primary); }
+        .sidebar-item i { font-size: 18px; }
         .navbar-profile-link { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 14px; }
         .profile-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #000; font-weight: 700; display: flex; align-items: center; justify-content: center; }
         .logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; }
         .logo-area img { height: 32px; }
-        .sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
-
+       
     </style>
 </head>
 <body>

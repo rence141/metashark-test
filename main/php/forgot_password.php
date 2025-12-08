@@ -9,27 +9,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $email = trim($_POST['email'] ?? '');
 
   if ($email !== '') {
-    // Generate secure token
-    $token = bin2hex(random_bytes(32));
+    // 1. Check if the user exists first
+    $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    // ✅ Use MySQL to generate expiry to avoid timezone mismatch
-    $upd = $conn->prepare("UPDATE users SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = ?");
-    if ($upd) {
-      $upd->bind_param("ss", $token, $email);
-      $upd->execute();
+    if ($result->num_rows === 1) {
+      // Generate secure token
+      $token = bin2hex(random_bytes(32));
+
+      // ✅ Use MySQL to generate expiry to avoid timezone mismatch
+      $upd = $conn->prepare("UPDATE users SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = ?");
+      if ($upd) {
+        $upd->bind_param("ss", $token, $email);
+        $upd->execute();
+
+        // Build reset link
+        $link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') .
+                $_SERVER['HTTP_HOST'] .
+                dirname($_SERVER['REQUEST_URI']) .
+                "/reset_password.php?token=" . urlencode($token);
+
+        $subject = 'Password Reset Request';
+        $body = "Hi,\n\nClick the link below to reset your password (valid for 1 hour):\n\n$link\n\nIf you didn’t request a password reset, please ignore this email.";
+
+        // Send email (if email.php is configured)
+        send_email($email, $subject, $body);
+      }
     }
-
-    // Build reset link
-    $link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') .
-            $_SERVER['HTTP_HOST'] .
-            dirname($_SERVER['REQUEST_URI']) .
-            "/reset_password.php?token=" . urlencode($token);
-
-    $subject = 'Password Reset Request';
-    $body = "Hi,\n\nClick the link below to reset your password (valid for 1 hour):\n\n$link\n\nIf you didn’t request a password reset, please ignore this email.";
-
-    // Send email (if email.php is configured)
-    send_email($email, $subject, $body);
 
     // Redirect to confirmation page (always, even if email doesn’t exist)
     header('Location: reset_link_sent.php?email=' . urlencode($email));

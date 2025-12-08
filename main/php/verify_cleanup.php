@@ -55,7 +55,7 @@ if ($product_count > 0) {
 }
 
 // Check cart table
-$cart_query = "SELECT COUNT(*) as count FROM cart";
+$cart_query = "SELECT COUNT(*) as count FROM cart_items";
 $cart_result = $conn->query($cart_query);
 $cart_count = $cart_result->fetch_assoc()['count'];
 

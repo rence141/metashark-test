@@ -40,7 +40,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="admin_orders.php" class="sidebar-item <?php echo $current_page == 'admin_orders.php' ? 'active' : ''; ?>">
         <i class="bi bi-bag-check-fill"></i> Orders
     </a>
-    <a href="appeals.php" class="sidebar-item <?php echo $current_page == 'admin_appeals.php' ? 'active' : ''; ?>">
+    <a href="appeals.php" class="sidebar-item <?php echo $current_page == 'appeals.php' ? 'active' : ''; ?>">
         <i class="bi bi-exclamation-octagon-fill"></i> Appeals
     </a>
 

@@ -11,18 +11,28 @@ if (!isset($_SESSION['admin_id'])) {
     exit; 
 }
 
+// Security: Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $theme = $_SESSION['theme'] ?? 'dark';
 $admin_initial = strtoupper(substr($admin_name, 0, 1));
 
 // Handle product deletion
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
-    $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
-    $stmt->bind_param("i", $id);
-    $stmt->execute();
-    header("Location: admin_products.php?deleted=1");
-    exit;
+    // CSRF Check
+    if (isset($_GET['token']) && hash_equals($_SESSION['csrf_token'], $_GET['token'])) {
+        $id = (int)$_GET['delete'];
+        $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        header("Location: admin_products.php?deleted=1");
+        exit;
+    } else {
+        die('Invalid CSRF token.');
+    }
 }
 
 // --- CATEGORY MAPPING ---
@@ -333,7 +343,7 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             <td style="text-align:right">
                                 <a href="product-details.php?id=<?php echo $p['id']; ?>" class="action-btn view" target="_blank" title="View"><i class="bi bi-eye"></i></a>
                                 <a href="admin_edit_product.php?id=<?php echo $p['id']; ?>" class="action-btn edit" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                                <a href="admin_products.php?delete=<?php echo $p['id']; ?>" class="action-btn delete" onclick="return confirm('Are you sure you want to delete this?')" title="Delete"><i class="bi bi-trash"></i></a>
+                                <a href="admin_products.php?delete=<?php echo $p['id']; ?>&token=<?php echo $_SESSION['csrf_token']; ?>" class="action-btn delete" onclick="return confirm('Are you sure you want to delete this?')" title="Delete"><i class="bi bi-trash"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; endif; ?>
