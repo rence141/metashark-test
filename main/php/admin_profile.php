@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
         profileInfoCard.style.display = 'none';
         editCard.style.display = 'block';
         editCard.classList.remove('edit-card-hidden');
-        editBtn.innerHTML = '<i class="bi bi-x-lg"></i> Cancel';
+        editBtn.innerHTML = 'Cancel';
     }
 
     function hideEdit() {

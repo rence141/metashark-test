@@ -260,7 +260,7 @@ while($row = $countRes->fetch_assoc()) {
             <span><?php echo htmlspecialchars($admin_name); ?></span>
             <div class="profile-avatar"><?php echo $admin_initial; ?></div>
         </a>
-        <a href="admin_logout.php" class="sidebar-item" style="padding:8px 10px; border:1px solid var(--panel-border); border-radius:8px;"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        <a href="admin_logout.php" class="sidebar-item" style="padding:8px 10px; border:1px solid var(--panel-border); border-radius:8px;"><i class="bi bi-box-arrow-right"></i></a>
     </div>
 </nav>
 
