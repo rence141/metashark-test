@@ -264,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="split-left">
         <div class="signup-wrapper">
             <div class="form-header">
-                <h2>Join the Team</h2>
+                <h2>Request Admin Account</h2>
                 <p>Request administrator privileges for the Meta Shark console.</p>
             </div>
 
@@ -286,17 +286,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="input-row">
                     <div class="input-group">
                         <label for="first_name">First Name</label>
-                        <input type="text" id="first_name" name="first_name" class="input-field" placeholder="Jane" value="<?php echo htmlspecialchars($old['first_name']); ?>" required>
+                        <input type="text" id="first_name" name="first_name" class="input-field" placeholder="First Name" value="<?php echo htmlspecialchars($old['first_name']); ?>" required>
                     </div>
                     <div class="input-group">
                         <label for="last_name">Last Name</label>
-                        <input type="text" id="last_name" name="last_name" class="input-field" placeholder="Doe" value="<?php echo htmlspecialchars($old['last_name']); ?>" required>
+                        <input type="text" id="last_name" name="last_name" class="input-field" placeholder="Surname" value="<?php echo htmlspecialchars($old['last_name']); ?>" required>
                     </div>
                 </div>
 
                 <div class="input-group">
                     <label for="email">Work Email</label>
-                    <input type="email" id="email" name="email" class="input-field" placeholder="jane@metashark.com" value="<?php echo htmlspecialchars($old['email']); ?>" required>
+                    <input type="email" id="email" name="email" class="input-field" placeholder="admin@metashark.com" value="<?php echo htmlspecialchars($old['email']); ?>" required>
                 </div>
 
                 <div class="input-group">

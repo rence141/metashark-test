@@ -11,7 +11,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="charts_overview.php" class="sidebar-item <?php echo $current_page == 'charts_overview.php' ? 'active' : ''; ?>">
         <i class="bi bi-activity"></i> Overview
     </a>
-    <a href="charts_revenue.php" class="sidebar-item <?php echo $current_page == 'charts_revenue.php' ? 'active' : ''; ?>">
+    <a href="charts_line.php" class="sidebar-item <?php echo $current_page == 'charts_revenue.php' ? 'active' : ''; ?>">
         <i class="bi bi-graph-up-arrow"></i> Revenue
     </a>
     <a href="charts_bar.php" class="sidebar-item <?php echo $current_page == 'charts_bar.php' ? 'active' : ''; ?>">
