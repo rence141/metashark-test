@@ -2,99 +2,15 @@
 session_start();
 require_once __DIR__ . '/includes/db_connect.php';
 
-// Prevent caching
-header('Cache-Control: no-cache, no-store, must-revalidate');
-header('Pragma: no-cache');
-header('Expires: 0');
-
 // Guard: ensure admin is logged in
 if (!isset($_SESSION['admin_id'])) {
     header('Location: admin_login.php');
     exit;
 }
 
-// --- INTERNAL AJAX HANDLER FOR USER GROWTH ---
-if (isset($_GET['ajax_action']) && $_GET['ajax_action'] === 'user_growth') {
-    header('Content-Type: application/json');
-    $days = 90; 
-    $data = [];
-    
-    // 1. Get baseline counts
-    $sqlBase = "SELECT 
-                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 0 THEN 1 ELSE 0 END) as active,
-                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 1 THEN 1 ELSE 0 END) as suspended,
-                    SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted
-                FROM users 
-                WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)";
-                
-    $stmt = $conn->prepare($sqlBase);
-    $stmt->bind_param('i', $days);
-    $stmt->execute();
-    $resBase = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    $runningActive = $resBase['active'] ?? 0;
-    $runningSuspended = $resBase['suspended'] ?? 0;
-    $runningDeleted = $resBase['deleted'] ?? 0;
-
-    // 2. Get daily growth grouped by status
-    $sqlTrend = "SELECT 
-                    DATE(created_at) as date, 
-                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 0 THEN 1 ELSE 0 END) as active_new,
-                    SUM(CASE WHEN is_deleted = 0 AND is_suspended = 1 THEN 1 ELSE 0 END) as suspended_new,
-                    SUM(CASE WHEN is_deleted = 1 THEN 1 ELSE 0 END) as deleted_new
-                 FROM users 
-                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) 
-                 GROUP BY DATE(created_at) 
-                 ORDER BY date ASC";
-                 
-    $stmt = $conn->prepare($sqlTrend);
-    $stmt->bind_param('i', $days);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    while ($row = $result->fetch_assoc()) {
-        $runningActive += (int)$row['active_new'];
-        $runningSuspended += (int)$row['suspended_new'];
-        $runningDeleted += (int)$row['deleted_new'];
-        
-        $data[] = [
-            'date' => date('M d', strtotime($row['date'])),
-            'total' => $runningActive + $runningSuspended + $runningDeleted,
-            'active' => $runningActive,
-            'suspended' => $runningSuspended,
-            'deleted' => $runningDeleted
-        ];
-    }
-    
-    if (empty($data)) {
-        $data[] = [
-            'date' => date('M d'), 
-            'total' => $runningActive + $runningSuspended + $runningDeleted, 
-            'active' => $runningActive, 
-            'suspended' => $runningSuspended,
-            'deleted' => $runningDeleted
-        ];
-    }
-
-    echo json_encode($data);
-    exit;
-}
-// --- END INTERNAL AJAX ---
-
-$admin_name = $_SESSION['admin_name'] ?? 'Admin';
+$admin_name = $_SESSION['fullname'] ?? 'Admin';
 $theme = $_SESSION['theme'] ?? 'dark';
-
 $admin_initial = strtoupper(substr($admin_name, 0, 1));
-
-$pending_requests = [];
-$stmt = $conn->prepare("SELECT id, first_name, last_name, email, created_at, token FROM admin_requests WHERE status = 'pending' ORDER BY created_at DESC LIMIT 10");
-if ($stmt) {
-    $stmt->execute();
-    $res = $stmt->get_result();
-    while ($r = $res->fetch_assoc()) $pending_requests[] = $r;
-    $stmt->close();
-}
 ?>
 <!doctype html>
 <html lang="en" data-theme="<?php echo htmlspecialchars($theme); ?>">
@@ -119,17 +35,14 @@ if ($stmt) {
     :root {
         --primary: #44D62C;
         --primary-glow: rgba(68, 214, 44, 0.3);
-        --accent: #00ff88;
         --bg: #f3f4f6;
         --panel: #ffffff;
         --panel-border: #e5e7eb;
         --text: #1f2937;
         --text-muted: #6b7280;
         --radius: 16px;
-        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         --sidebar-width: 260px;
-        --danger: #f44336; 
     }
 
     [data-theme="dark"] {
@@ -141,219 +54,160 @@ if ($stmt) {
         --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
     a { text-decoration: none; color: inherit; }
 
-    /* --- Animations --- */
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .fade-in { animation: fadeIn 0.5s ease forwards; }
-
-    /* --- Layout --- */
+    /* --- Navbar --- */
     .admin-navbar {
         position: fixed; top: 0; left: 0; right: 0; height: 70px;
         background: var(--panel); border-bottom: 1px solid var(--panel-border);
         display: flex; align-items: center; justify-content: space-between;
-        padding: 0 24px; z-index: 50; backdrop-filter: blur(10px);
-        box-shadow: var(--shadow);
+        padding: 0 24px; z-index: 50; box-shadow: var(--shadow);
     }
 
     .navbar-left { display: flex; align-items: center; gap: 16px; }
-    .logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
-    .logo-area img { height: 32px; filter: drop-shadow(0 0 5px var(--primary-glow)); }
+    .logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; }
+    .logo-area img { height: 32px; }
     
-    .sidebar-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; }
+    .navbar-right { display: flex; align-items: center; gap: 16px; }
+    .theme-btn { background: none; border: none; color: var(--text); font-size: 20px; cursor: pointer; padding: 8px; }
+    .profile-link { display: flex; align-items: center; gap: 12px; }
+    .profile-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #000; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .btn-logout { background: none; border: none; color: var(--text); font-size: 18px; cursor: pointer; padding: 8px; }
 
-    /* --- Profile Widget --- */
-    .navbar-profile-link { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 10px; transition: var(--transition); color: var(--text); }
-    .navbar-profile-link:hover { background: rgba(68,214,44,0.1); color: var(--primary); }
-    .profile-info-display { text-align: right; line-height: 1.2; display: none; }
-    @media (min-width: 640px) { .profile-info-display { display: block; } }
-    .profile-name { font-size: 14px; font-weight: 600; color: var(--text); transition: color 0.2s; }
-    .navbar-profile-link:hover .profile-name { color: var(--primary); }
-    .profile-role { font-size: 11px; color: var(--text-muted); }
-    .profile-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #000; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--primary); box-shadow: 0 0 8px var(--primary-glow); flex-shrink: 0; }
-
-    .admin-sidebar { position: fixed; left: 0; top: 70px; bottom: 0; width: var(--sidebar-width); background: var(--panel); border-right: 1px solid var(--panel-border); padding: 24px 16px; overflow-y: auto; transition: var(--transition); z-index: 40; }
-    .sidebar-group-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
-    .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-muted); font-weight: 500; font-size: 14px; transition: var(--transition); margin-bottom: 4px; }
+    /* --- Sidebar --- */
+    .admin-sidebar { position: fixed; left: 0; top: 70px; bottom: 0; width: var(--sidebar-width); background: var(--panel); border-right: 1px solid var(--panel-border); padding: 24px 16px; overflow-y: auto; z-index: 40; }
+    .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; transition: 0.2s; cursor: pointer; }
     .sidebar-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-    [data-theme="light"] .sidebar-item:hover { background: #f3f4f6; }
-    .sidebar-item.active { background: linear-gradient(90deg, rgba(68,214,44,0.15), transparent); color: var(--primary); border-left: 3px solid var(--primary); }
-    .sidebar-item i { font-size: 18px; }
+    .sidebar-item.active { color: var(--primary); background: rgba(68,214,44,0.1); }
+    .sidebar-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 24px 12px 12px; font-weight: 700; opacity: 0.7; }
 
-    .admin-main { margin-left: var(--sidebar-width); margin-top: 70px; padding: 32px; min-height: calc(100vh - 70px); transition: var(--transition); }
+    /* --- Main Content --- */
+    .admin-main { margin-left: var(--sidebar-width); margin-top: 70px; padding: 32px; min-height: calc(100vh - 70px); }
 
-    /* --- Components --- */
-    .dashboard-header { margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .dashboard-header h2 { font-size: 24px; font-weight: 700; }
-    .dashboard-header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+    .dashboard-header { margin-bottom: 32px; }
+    .dashboard-header h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .dashboard-header p { color: var(--text-muted); font-size: 14px; }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
-    .stat-card { background: var(--panel); padding: 24px; border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); position: relative; overflow: hidden; }
-    .stat-card::after { content: ''; position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(135deg, transparent, rgba(68,214,44,0.05)); border-radius: 0 0 0 100%; pointer-events: none; }
-    .stat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .stat-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(68,214,44,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
-    .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
-    .stat-sub { font-size: 12px; color: var(--primary); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+    /* --- Stats Grid --- */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: var(--panel); padding: 20px; border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); }
+    .stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
+    .stat-value { font-size: 28px; font-weight: 800; }
+    .stat-info { font-size: 12px; color: var(--primary); margin-top: 8px; }
 
-    .grid-stack { display: grid; gap: 24px; margin-bottom: 24px; }
-    .charts-row { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
-    .card { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); display: flex; flex-direction: column; }
-    .card-header { padding: 20px 24px; border-bottom: 1px solid var(--panel-border); display: flex; justify-content: space-between; align-items: center; }
-    .card-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
-    .card-body { padding: 24px; position: relative; }
+    /* --- Charts Grid --- */
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px; margin-bottom: 24px; }
+    .chart-card { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); overflow: hidden; }
+    .chart-header { padding: 20px 24px; border-bottom: 1px solid var(--panel-border); }
+    .chart-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
+    .chart-body { padding: 24px; height: 300px; position: relative; }
+    canvas { max-height: 250px; }
 
-    .table-responsive { overflow-x: auto; }
-    table { width: 100%; border-collapse: separate; border-spacing: 0; }
-    th { text-align: left; padding: 12px 24px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--panel-border); }
-    td { padding: 16px 24px; border-bottom: 1px solid var(--panel-border); font-size: 14px; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-    [data-theme="light"] tr:hover td { background: #f9fafb; }
-
-    /* Category Badge */
-    .cat-badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; margin-right: 4px; display: inline-block; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); color: var(--text-muted); }
-    
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; }
-    .badge-success { background: rgba(68,214,44,0.15); color: var(--primary); }
-    .badge-warning { background: rgba(255,152,0,0.15); color: #ff9800; }
-    .badge-danger { background: rgba(244,67,54,0.15); color: #f44336; }
-
-    /* Stock Badge */
-    .stock-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; min-width: 60px; text-align: center; }
-    .stock-low { background: rgba(244, 67, 54, 0.15); color: var(--danger); }
-    .stock-ok { background: rgba(68, 214, 44, 0.15); color: var(--primary); }
-
-    .btn-xs { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: 0.2s; border: 1px solid transparent; display: inline-block; }
-    .btn-outline { border-color: var(--panel-border); color: var(--text); background: transparent; }
-    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
-    .btn-primary { background: var(--primary); color: #000; }
-    .btn-primary:hover { filter: brightness(1.1); }
-
-    .skeleton { background: var(--panel-border); border-radius: 4px; animation: pulse 1.5s infinite; color: transparent !important; user-select: none; }
-    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }
-
-    /* --- PRINT STYLES --- */
-    @media print {
-        .admin-sidebar, .admin-navbar, .sidebar-toggle, #revenueToggle, #exportAction { display: none !important; }
-        .admin-main { margin: 0 !important; padding: 10px !important; width: 100% !important; max-width: 100% !important; min-height: auto !important; }
-        body { background: white !important; color: black !important; -webkit-print-color-adjust: exact; overflow: visible !important; width: 100% !important; }
-        .stats-grid, .grid-stack, .charts-row { display: block !important; width: 100% !important; grid-template-columns: 1fr !important; }
-        .stat-card, .card { box-shadow: none !important; border: 1px solid #ccc !important; break-inside: avoid; page-break-inside: avoid; background: #fff !important; margin-bottom: 15px !important; width: 100% !important; }
-        .card-body { padding: 10px !important; height: auto !important; max-height: 300px !important; }
-        canvas { max-height: 250px !important; width: 100% !important; height: auto !important; }
-        h2, h3, .stat-value, .stat-label { color: #000 !important; }
-        .table-responsive { overflow: visible !important; width: 100% !important; }
-        * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
-    }
-
+    /* --- Responsive --- */
     @media (max-width: 992px) {
-        .admin-sidebar { transform: translateX(-100%); }
+        .admin-sidebar { transform: translateX(-100%); transition: 0.3s; }
         .admin-sidebar.show { transform: translateX(0); }
         .admin-main { margin-left: 0; }
-        .sidebar-toggle { display: block; }
     }
+
+    @media (max-width: 768px) {
+        .charts-grid { grid-template-columns: 1fr; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .skeleton { background: var(--panel-border); border-radius: 4px; animation: pulse 1.5s infinite; color: transparent; }
+    @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.2; } }
     </style>
 </head>
 <body>
 
-<?php include 'admin_navbar.php'; ?>
+<nav class="admin-navbar">
+    <div class="navbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+        <div class="logo-area">
+            <img src="uploads/logo1.png" alt="Meta Shark">
+            <span>META SHARK</span>
+        </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
+            <i class="bi bi-moon-stars"></i>
+        </button>
+        
+        <a href="admin_profile.php" class="navbar-profile-link">
+            <div class="profile-info-display">
+                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
+                <div class="profile-role" style="color:var(--primary);">Administrator</div>
+            </div>
+            <div class="profile-avatar">
+                <?php echo $admin_initial; ?>
+            </div>
+        </a>
+        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+</nav>
+
 <?php include 'admin_sidebar.php'; ?>
 
 <main class="admin-main">
-    <div class="dashboard-header fade-in">
-        <div>
-            <h2>Dashboard Overview</h2>
-            <p>Welcome back, here's what's happening with your store today.</p>
-        </div>
-        <div style="display:flex; gap:8px;">
-            <select id="exportAction" class="btn-xs btn-outline" style="background:var(--panel);">
-                <option value="" disabled selected>Export Statistics</option>
-                <option value="print">Print Dashboard</option>
-                <option value="csv">Download CSV Data</option>
-            </select>
+    <div class="dashboard-header">
+        <h2>Dashboard Overview</h2>
+        <p>Welcome back, <?php echo htmlspecialchars($admin_name); ?>. Here's your store summary.</p>
+    </div>
 
-            <select id="revenueToggle" class="btn-xs btn-outline" style="background:var(--panel);">
-                <option value="monthly">Monthly View</option>
-                <option value="daily">Daily View</option>
-            </select>
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-box"></i> Total Products</div>
+            <div class="stat-value" id="totalProducts"><span class="skeleton">0</span></div>
+            <div class="stat-info" id="stockInfo"><span class="skeleton">Loading...</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-currency-dollar"></i> Total Revenue</div>
+            <div class="stat-value" id="totalRevenue"><span class="skeleton">$0</span></div>
+            <div class="stat-info" id="revenueInfo"><span class="skeleton">Loading...</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-bag"></i> Total Orders</div>
+            <div class="stat-value" id="totalOrders"><span class="skeleton">0</span></div>
+            <div class="stat-info" id="ordersInfo"><span class="skeleton">Loading...</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label"><i class="bi bi-shop"></i> Active Sellers</div>
+            <div class="stat-value" id="totalSellers"><span class="skeleton">0</span></div>
+            <div class="stat-info" id="sellersInfo"><span class="skeleton">Loading...</span></div>
         </div>
     </div>
 
-    <div class="stats-grid fade-in">
-        <div class="stat-card">
-            <div class="stat-head"><div class="stat-icon"><i class="bi bi-box"></i></div></div>
-            <div class="stat-value" id="totalProducts"><span class="skeleton">000</span></div>
-            <div class="stat-label">Total Products</div>
-            <div class="stat-sub" id="productsInfo"><span class="skeleton">Stock info loading...</span></div>
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-header"><h3>Revenue Trend</h3></div>
+            <div class="chart-body">
+                <canvas id="revenueChart"></canvas>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-head"><div class="stat-icon" style="color:#00d4ff; background:rgba(0,212,255,0.1)"><i class="bi bi-currency-dollar"></i></div></div>
-            <div class="stat-value">$<span id="totalRevenue"><span class="skeleton">0,000</span></span></div>
-            <div class="stat-label">Total Revenue</div>
-            <div class="stat-sub" style="color:#00d4ff"><i class="bi bi-arrow-up-short"></i> Lifetime Earnings</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-head"><div class="stat-icon" style="color:#ff9800; background:rgba(255,152,0,0.1)"><i class="bi bi-bag"></i></div></div>
-            <div class="stat-value" id="totalOrders"><span class="skeleton">000</span></div>
-            <div class="stat-label">Total Orders</div>
-            <div class="stat-sub" style="color:#ff9800">Processing & Completed</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-head"><div class="stat-icon" style="color:#f44336; background:rgba(244,67,54,0.1)"><i class="bi bi-shop"></i></div></div>
-            <div class="stat-value" id="totalSellers"><span class="skeleton">00</span></div>
-            <div class="stat-label">Active Sellers</div>
-        </div>
-    </div>
-
-    <div class="grid-stack charts-row fade-in" style="animation-delay: 0.1s;">
-        <div class="card">
-            <div class="card-header"><h3>Revenue Trend</h3></div>
-            <div class="card-body"><canvas id="revenueChart" height="250"></canvas></div>
-        </div>
-        <div class="card">
-            <div class="card-header"><h3>Orders by Status</h3></div>
-            <div class="card-body" style="position: relative; height:300px; display:flex; align-items:center; justify-content:center;">
+        <div class="chart-card">
+            <div class="chart-header"><h3>Orders by Status</h3></div>
+            <div class="chart-body" style="display:flex; align-items:center; justify-content:center;">
                 <canvas id="ordersChart"></canvas>
             </div>
         </div>
-    </div>
-    
-    <div class="grid-stack charts-row fade-in" style="animation-delay: 0.3s;">
-        <div class="card">
-            <div class="card-header"><h3>Sales by Country</h3></div>
-            <div class="card-body"><canvas id="geoChart" height="250"></canvas></div>
+        <div class="chart-card">
+            <div class="chart-header"><h3>Sales by Country</h3></div>
+            <div class="chart-body">
+                <canvas id="geoChart"></canvas>
+            </div>
         </div>
-        
-        <div class="card">
-            <div class="card-header"><h3>Top Products</h3></div>
-            <div class="table-responsive">
-                <table id="topProductsTable">
-                    <thead>
-                        <tr>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>Stock Status</th> <th style="text-align:right">Total Sold</th> </tr>
-                    </thead>
-                    <tbody><tr><td colspan="4"><span class="skeleton">Loading data...</span></td></tr></tbody>
-                </table>
+        <div class="chart-card">
+            <div class="chart-header"><h3>Product Categories</h3></div>
+            <div class="chart-body">
+                <canvas id="categoryChart"></canvas>
             </div>
         </div>
     </div>
-
-    <div class="grid-stack charts-row fade-in" style="animation-delay: 0.4s;">
-        <div class="card">
-            <div class="card-header"><h3>Product Categories</h3></div>
-            <div class="card-body"><canvas id="categoryChart" height="200"></canvas></div>
-        </div>
-        <div class="card">
-            <div class="card-header"><h3>User Stats (Active vs Suspended vs Deleted)</h3></div>
-            <div class="card-body"><canvas id="usersChart" height="80"></canvas></div>
-        </div>
-    </div>
-
 </main>
 
 <script>
@@ -367,6 +221,24 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Theme Logic
+const themeBtn = document.getElementById('themeBtn');
+let currentTheme = '<?php echo $theme; ?>';
+
+function updateThemeIcon(theme) {
+    const icon = themeBtn.querySelector('i');
+    icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+}
+updateThemeIcon(currentTheme);
+
+themeBtn.addEventListener('click', () => {
+    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+    fetch('theme_toggle.php?theme=' + newTheme);
+    setTimeout(updateChartsTheme, 200);
+});
 
 // --- Handle Export Actions ---
 document.getElementById('exportAction').addEventListener('change', function() {
@@ -400,10 +272,10 @@ async function downloadDashboardCSV() {
     try {
         // 2. Fetch all necessary data in parallel
         const [revRes, prodRes, geoRes, usersRes] = await Promise.all([
-            fetchWithTimeout('includes/fetch_data.php?action=monthly_revenue'),
-            fetchWithTimeout('includes/fetch_data.php?action=top_products'),
-            fetchWithTimeout('includes/fetch_data.php?action=sales_by_country'),
-            fetchWithTimeout('admin_dashboard.php?ajax_action=user_growth') 
+            fetch('includes/fetch_data.php?action=monthly_revenue'),
+            fetch('includes/fetch_data.php?action=top_products'),
+            fetch('includes/fetch_data.php?action=sales_by_country'),
+            fetch('admin_dashboard.php?ajax_action=user_growth') 
         ]);
 
         const revData = await revRes.json();
@@ -528,46 +400,8 @@ Chart.defaults.borderColor = "<?php echo $theme === 'dark' ? '#242c38' : 'rgba(1
 
 let charts = {}; 
 
-// Helper function for fetch with timeout and cache busting
-async function fetchWithTimeout(url, options = {}, timeout = 8000) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    // Add cache busting parameter
-    const separator = url.includes('?') ? '&' : '?';
-    const cacheBuster = separator + '_t=' + Date.now();
-    try {
-        const response = await fetch(url + cacheBuster, { 
-            ...options, 
-            signal: controller.signal,
-            cache: 'no-cache',
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                ...options.headers
-            }
-        });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        if (error.name === 'AbortError') {
-            throw new Error('Request timeout');
-        }
-        throw error;
-    }
-}
-
-// Helper to show error message in chart container
-function showChartError(containerId, message) {
-    const canvas = document.getElementById(containerId);
-    if (!canvas) return;
-    const container = canvas.closest('.card-body');
-    if (container) {
-        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:200px;color:var(--text-muted);text-align:center;padding:20px;">${message}</div>`;
-    }
-}
-
-async function loadDashboard() {
+// Load dashboard stats
+async function loadStats() {
     try {
         const res = await fetchWithTimeout('includes/fetch_data.php?action=dashboard_stats');
         if (!res.ok) {
@@ -577,42 +411,12 @@ async function loadDashboard() {
         }
         const data = await res.json();
         
-        // Check if we got an error response
-        if (data.error) {
-            console.error('API error:', data.error);
-            throw new Error(data.error);
-        }
-        
-        // Update stats
-        if (data.total_products !== undefined) {
-            animateValue("totalProducts", 0, data.total_products || 0, 1000);
-        }
-        if (data.total_stock !== undefined) {
-            document.getElementById('productsInfo').innerHTML = `Total Stock: ${(data.total_stock || 0).toLocaleString()}`;
-        }
-        if (data.total_revenue !== undefined) {
-            document.getElementById('totalRevenue').textContent = (data.total_revenue || 0).toLocaleString();
-        }
-        if (data.total_orders !== undefined) {
-            animateValue("totalOrders", 0, data.total_orders || 0, 1000);
-        }
-        if (data.total_sellers !== undefined) {
-            document.getElementById('totalSellers').textContent = data.total_sellers || 0;
-        }
-    } catch(e) { 
-        console.error('loadDashboard error:', e);
-        const productsEl = document.getElementById('totalProducts');
-        const revenueEl = document.getElementById('totalRevenue');
-        const ordersEl = document.getElementById('totalOrders');
-        const sellersEl = document.getElementById('totalSellers');
-        const infoEl = document.getElementById('productsInfo');
-        
-        if (productsEl) productsEl.innerHTML = '0';
-        if (revenueEl) revenueEl.textContent = '0';
-        if (ordersEl) ordersEl.innerHTML = '0';
-        if (sellersEl) sellersEl.textContent = '0';
-        if (infoEl) infoEl.innerHTML = 'Unable to load';
-    }
+        animateValue("totalProducts", 0, data.total_products || 0, 1000);
+        document.getElementById('productsInfo').innerHTML = `Total Stock: ${(data.total_stock || 0).toLocaleString()}`;
+        document.getElementById('totalRevenue').textContent = (data.total_revenue || 0).toLocaleString();
+        animateValue("totalOrders", 0, data.total_orders || 0, 1000);
+        document.getElementById('totalSellers').textContent = data.total_sellers || 0;
+    } catch(e) { console.error("Stats load error", e); }
 }
 
 function animateValue(id, start, end, duration) {
@@ -630,8 +434,7 @@ function animateValue(id, start, end, duration) {
 // --- UPDATED TABLE LOGIC ---
 async function loadTables() {
     try {
-        const resProd = await fetchWithTimeout('includes/fetch_data.php?action=top_products');
-        if (!resProd.ok) throw new Error('Failed to load');
+        const resProd = await fetch('includes/fetch_data.php?action=top_products');
         const products = await resProd.json();
         let html = '';
         
@@ -681,337 +484,171 @@ async function loadTables() {
         }
         document.querySelector('#topProductsTable tbody').innerHTML = html;
     } catch(e) {
-        document.querySelector('#topProductsTable tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Unable to load products</td></tr>';
-    }
-}
-
-// Initialize charts with empty data first
-function initEmptyCharts() {
-    const catCtx = document.getElementById('categoryChart');
-    if (catCtx && !charts.category) {
-        charts.category = new Chart(catCtx, {
-            type: 'bar',
-            data: { labels: ['Loading...'], datasets: [{ label: 'Products', data: [0], backgroundColor: '#44D62C', borderColor: '#44D62C', borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { borderDash: [5, 5] }, beginAtZero: true } } }
-        });
-    }
-    
-    const revCtx = document.getElementById('revenueChart');
-    if (revCtx && !charts.revenue) {
-        charts.revenue = new Chart(revCtx.getContext('2d'), {
-            type: 'line',
-            data: { labels: ['Loading...'], datasets: [{ label: 'Revenue', data: [0], borderColor: '#44D62C', backgroundColor: 'rgba(68, 214, 44, 0.1)', fill: true, tension: 0.4 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } } }
-        });
-    }
-    
-    const ordCanvas = document.getElementById('ordersChart');
-    if (ordCanvas && !charts.orders) {
-        const ctx = ordCanvas.getContext('2d');
-        const style = getComputedStyle(document.documentElement);
-        const panelColor = style.getPropertyValue('--panel').trim();
-        charts.orders = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: ['Loading...'], datasets: [{ data: [1], backgroundColor: ['#44D62C'], borderColor: panelColor, borderWidth: 6 }] },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { usePointStyle: true, pointStyle: 'circle', padding: 20, font: { size: 12 } } } } }
-        });
-    }
-    
-    const geoCtx = document.getElementById('geoChart');
-    if (geoCtx && !charts.geo) {
-        charts.geo = new Chart(geoCtx, {
-            type: 'bar',
-            data: { labels: ['Loading...'], datasets: [{ label: 'Volume', data: [0], backgroundColor: '#44D62C', borderColor: '#44D62C', borderWidth: 1 }] },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
-    }
-    
-    const userCtx = document.getElementById('usersChart');
-    if (userCtx && !charts.users) {
-        charts.users = new Chart(userCtx.getContext('2d'), {
-            type: 'line',
-            data: { labels: ['Loading...'], datasets: [{ label: 'Users', data: [0], borderColor: '#94a3b8', borderWidth: 2, fill: false }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } } }, scales: { x: { display: false }, y: { display: false, beginAtZero: true } } }
-        });
+        console.error("Table load error", e);
+        document.querySelector('#topProductsTable tbody').innerHTML = '<tr><td colspan="4">Error loading data.</td></tr>';
     }
 }
 
 async function loadCharts() {
-    // Initialize empty charts first
-    initEmptyCharts();
-    
     // 1. CATEGORY CHART
     try {
-        const resCat = await fetchWithTimeout('includes/fetch_data.php?action=category_distribution');
+        const resCat = await fetch('includes/fetch_data.php?action=category_distribution');
         if (resCat.ok) {
             const catData = await resCat.json();
-            if (catData.error) {
-                console.error('Category chart error:', catData.error);
-                throw new Error(catData.error);
+            const labels = catData.map(c => c.category);
+            const values = catData.map(c => Number(c.count) || 0);
+
+            const catCtx = document.getElementById('categoryChart');
+            if (catCtx) {
+                charts.category = new Chart(catCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{ 
+                            label: 'Products', data: values, 
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 200); 
+                                gradient.addColorStop(0, '#44D62C');
+                                gradient.addColorStop(1, 'rgba(68, 214, 44, 0.05)');
+                                return gradient;
+                            },
+                            borderColor: '#44D62C', borderWidth: 1, borderRadius: 4, barPercentage: 0.6
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { borderDash: [5, 5] }, beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
             }
-            if (Array.isArray(catData) && catData.length > 0 && charts.category) {
-                const labels = catData.map(c => c.category || 'Unknown');
-                const values = catData.map(c => Number(c.count) || 0);
-                charts.category.data.labels = labels;
-                charts.category.data.datasets[0].data = values;
-                charts.category.data.datasets[0].backgroundColor = (context) => {
-                    const ctx = context.chart.ctx;
-                    const gradient = ctx.createLinearGradient(0, 0, 0, 200); 
-                    gradient.addColorStop(0, '#44D62C');
-                    gradient.addColorStop(1, 'rgba(68, 214, 44, 0.05)');
-                    return gradient;
-                };
-                charts.category.update('active');
-            } else if (charts.category) {
-                charts.category.data.labels = ['No data available'];
-                charts.category.data.datasets[0].data = [0];
-                charts.category.update('active');
-            }
-        } else {
-            const errorText = await resCat.text();
-            console.error('Category chart HTTP error:', resCat.status, errorText);
         }
-    } catch (e) { 
-        console.error('Category chart error:', e);
-        if (charts.category) {
-            charts.category.data.labels = ['Error loading data'];
-            charts.category.data.datasets[0].data = [0];
-            charts.category.update('active');
-        }
-    }
+    } catch (e) { console.error("Error loading Category Chart:", e); }
 
     // 2. REVENUE CHART
     try {
-        const resRev = await fetchWithTimeout('includes/fetch_data.php?action=monthly_revenue');
-        if (resRev.ok && charts.revenue) {
+        const resRev = await fetch('includes/fetch_data.php?action=monthly_revenue');
+        if (resRev.ok) {
             const revData = await resRev.json();
-            if (revData.error) {
-                console.error('Revenue chart error:', revData.error);
-                throw new Error(revData.error);
+            const revCtx = document.getElementById('revenueChart');
+            if (revCtx) {
+                charts.revenue = new Chart(revCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: revData.map(r => r.ym),
+                        datasets: [{
+                            label: 'Revenue', data: revData.map(r => r.amt),
+                            borderColor: '#44D62C',
+                            backgroundColor: (context) => {
+                                const ctx = context.chart.ctx;
+                                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                                gradient.addColorStop(0, 'rgba(68, 214, 44, 0.4)');
+                                gradient.addColorStop(1, 'rgba(68, 214, 44, 0.0)');
+                                return gradient;
+                            },
+                            fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#44D62C'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } } }
+                });
             }
-            if (Array.isArray(revData) && revData.length > 0) {
-                charts.revenue.data.labels = revData.map(r => r.ym || 'Unknown');
-                charts.revenue.data.datasets[0].data = revData.map(r => Number(r.amt) || 0);
-                charts.revenue.data.datasets[0].backgroundColor = (context) => {
-                    const ctx = context.chart.ctx;
-                    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-                    gradient.addColorStop(0, 'rgba(68, 214, 44, 0.4)');
-                    gradient.addColorStop(1, 'rgba(68, 214, 44, 0.0)');
-                    return gradient;
-                };
-                charts.revenue.data.datasets[0].pointBackgroundColor = '#44D62C';
-                charts.revenue.data.datasets[0].pointRadius = 4;
-                charts.revenue.update('active');
-            } else if (charts.revenue) {
-                charts.revenue.data.labels = ['No data available'];
-                charts.revenue.data.datasets[0].data = [0];
-                charts.revenue.update('active');
-            }
-        } else if (charts.revenue) {
-            const errorText = await resRev.text();
-            console.error('Revenue chart HTTP error:', resRev.status, errorText);
-            charts.revenue.data.labels = ['Error loading'];
-            charts.revenue.data.datasets[0].data = [0];
-            charts.revenue.update('active');
         }
-    } catch (e) { 
-        console.error('Revenue chart error:', e);
-        if (charts.revenue) {
-            charts.revenue.data.labels = ['Error loading data'];
-            charts.revenue.data.datasets[0].data = [0];
-            charts.revenue.update('active');
-        }
-    }
+    } catch (e) { console.error(e); }
 
     // 3. ORDERS CHART
     try {
-        const resOrd = await fetchWithTimeout('includes/fetch_data.php?action=orders_summary');
-        if (resOrd.ok && charts.orders) {
+        const resOrd = await fetch('includes/fetch_data.php?action=orders_summary');
+        if (resOrd.ok) {
             const ordData = await resOrd.json();
-            if (ordData.error) {
-                console.error('Orders chart error:', ordData.error);
-                throw new Error(ordData.error);
+            const ordCanvas = document.getElementById('ordersChart');
+            if (ordCanvas) {
+                const ctx = ordCanvas.getContext('2d');
+                const style = getComputedStyle(document.documentElement);
+                const panelColor = style.getPropertyValue('--panel').trim();
+                const createGradient = (c1, c2) => { const g = ctx.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, c1); g.addColorStop(1, c2); return g; };
+                const gradients = [
+                    createGradient('#44D62C', '#0f5205'), createGradient('#00d4ff', '#004a59'), 
+                    createGradient('#c084fc', '#581c87'), createGradient('#f43f5e', '#881337'), 
+                    createGradient('#fbbf24', '#78350f')
+                ];
+                charts.orders = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ordData.map(o => o.status),
+                        datasets: [{ data: ordData.map(o => o.cnt), backgroundColor: ordData.map((_, i) => gradients[i % gradients.length]), borderColor: panelColor, borderWidth: 6, hoverOffset: 10 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { usePointStyle: true, pointStyle: 'circle', padding: 20, font: { size: 12, family: "'Inter', sans-serif" } } }, tooltip: { backgroundColor: 'rgba(22, 27, 34, 0.95)', padding: 12, cornerRadius: 8, callbacks: { label: function(context) { const value = context.parsed; const total = context.chart._metasets[context.datasetIndex].total; const percentage = ((value / total) * 100).toFixed(1) + '%'; return ` ${context.label}: ${value} (${percentage})`; } } } } }
+                });
             }
-            if (Array.isArray(ordData) && ordData.length > 0) {
-                const ordCanvas = document.getElementById('ordersChart');
-                if (ordCanvas) {
-                    const ctx = ordCanvas.getContext('2d');
-                    const style = getComputedStyle(document.documentElement);
-                    const panelColor = style.getPropertyValue('--panel').trim();
-                    const createGradient = (c1, c2) => { const g = ctx.createLinearGradient(0, 0, 0, 300); g.addColorStop(0, c1); g.addColorStop(1, c2); return g; };
-                    const gradients = [
-                        createGradient('#44D62C', '#0f5205'), createGradient('#00d4ff', '#004a59'), 
-                        createGradient('#c084fc', '#581c87'), createGradient('#f43f5e', '#881337'), 
-                        createGradient('#fbbf24', '#78350f')
-                    ];
-                    charts.orders.data.labels = ordData.map(o => o.status || 'Unknown');
-                    charts.orders.data.datasets[0].data = ordData.map(o => Number(o.cnt) || 0);
-                    charts.orders.data.datasets[0].backgroundColor = ordData.map((_, i) => gradients[i % gradients.length]);
-                    charts.orders.options.plugins.tooltip = { backgroundColor: 'rgba(22, 27, 34, 0.95)', padding: 12, cornerRadius: 8, callbacks: { label: function(context) { const value = context.parsed; const total = context.chart._metasets[context.datasetIndex].total; const percentage = ((value / total) * 100).toFixed(1) + '%'; return ` ${context.label}: ${value} (${percentage})`; } } };
-                    charts.orders.update('active');
-                }
-            } else if (charts.orders) {
-                charts.orders.data.labels = ['No data available'];
-                charts.orders.data.datasets[0].data = [1];
-                charts.orders.update('active');
-            }
-        } else if (charts.orders) {
-            const errorText = await resOrd.text();
-            console.error('Orders chart HTTP error:', resOrd.status, errorText);
-            charts.orders.data.labels = ['Error loading'];
-            charts.orders.data.datasets[0].data = [1];
-            charts.orders.update('active');
         }
-    } catch (e) { 
-        console.error('Orders chart error:', e);
-        if (charts.orders) {
-            charts.orders.data.labels = ['Error loading data'];
-            charts.orders.data.datasets[0].data = [1];
-            charts.orders.update('active');
-        }
-    }
+    } catch (e) { console.error("Orders Chart Error:", e); }
     
     // 4. GEO CHART
     try {
-        const resGeo = await fetchWithTimeout('includes/fetch_data.php?action=sales_by_country');
-        if (resGeo.ok && charts.geo) {
+        const resGeo = await fetch('includes/fetch_data.php?action=sales_by_country');
+        if (resGeo.ok) {
             const geoData = await resGeo.json();
-            if (geoData.error) {
-                console.error('Geo chart error:', geoData.error);
-                throw new Error(geoData.error);
+            geoData.sort((a, b) => b.value - a.value);
+            const totalVolume = geoData.reduce((acc, curr) => acc + Number(curr.value), 0);
+            const labels = geoData.map(g => `$  ${g.country}`);
+
+            const geoCtx = document.getElementById('geoChart');
+            if (geoCtx) {
+                const ctx2d = geoCtx.getContext('2d');
+                const gradient = ctx2d.createLinearGradient(0, 0, 400, 0);
+                gradient.addColorStop(0, 'rgba(68, 214, 44, 0.9)'); 
+                gradient.addColorStop(0.7, 'rgba(68, 214, 44, 0.2)'); 
+                gradient.addColorStop(1, 'rgba(68, 214, 44, 0.05)');
+
+                charts.geo = new Chart(geoCtx, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [{ label: 'Volume', data: geoData.map(g => g.value), backgroundColor: gradient, borderColor: '#44D62C', borderWidth: 1, borderRadius: 4, barPercentage: 0.7, categoryPercentage: 0.8 }] },
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 30 } }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.95)', titleColor: '#ffffff', bodyColor: '#cbd5e1', borderColor: 'rgba(68, 214, 44, 0.3)', borderWidth: 1, padding: 12, displayColors: false, callbacks: { title: (items) => items[0].label.replace().trim(), label: function(context) { let val = context.parsed.x; let share = ((val / totalVolume) * 100).toFixed(1) + '%'; let money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val); return `$ Vol: ${money}  (🟩  ${share} Share)`; } } } }, scales: { x: { grid: { color: 'rgba(68, 214, 44, 0.05)', borderDash: [4, 4] }, ticks: { color: '#64748b', font: { family: "'Courier New', monospace", size: 11 }, callback: function(value) { return '$' + (value >= 1000 ? (value/1000).toFixed(1) + 'k' : value); } } }, y: { grid: { display: false }, ticks: { color: (ctx) => document.documentElement.getAttribute('data-theme') === 'dark' ? '#fff' : '#1f2937', font: { size: 13, weight: '600' } } } } }
+                });
             }
-            if (Array.isArray(geoData) && geoData.length > 0) {
-                geoData.sort((a, b) => b.value - a.value);
-                const totalVolume = geoData.reduce((acc, curr) => acc + Number(curr.value), 0);
-                const labels = geoData.map(g => `$  ${g.country || 'Unknown'}`);
-                const geoCtx = document.getElementById('geoChart');
-                if (geoCtx) {
-                    const ctx2d = geoCtx.getContext('2d');
-                    const gradient = ctx2d.createLinearGradient(0, 0, 400, 0);
-                    gradient.addColorStop(0, 'rgba(68, 214, 44, 0.9)'); 
-                    gradient.addColorStop(0.7, 'rgba(68, 214, 44, 0.2)'); 
-                    gradient.addColorStop(1, 'rgba(68, 214, 44, 0.05)');
-                    charts.geo.data.labels = labels;
-                    charts.geo.data.datasets[0].data = geoData.map(g => Number(g.value) || 0);
-                    charts.geo.data.datasets[0].backgroundColor = gradient;
-                    charts.geo.update('active');
-                }
-            } else if (charts.geo) {
-                charts.geo.data.labels = ['No data available'];
-                charts.geo.data.datasets[0].data = [0];
-                charts.geo.update('active');
-            }
-        } else if (charts.geo) {
-            const errorText = await resGeo.text();
-            console.error('Geo chart HTTP error:', resGeo.status, errorText);
-            charts.geo.data.labels = ['Error loading'];
-            charts.geo.data.datasets[0].data = [0];
-            charts.geo.update('active');
         }
-    } catch (e) { 
-        console.error('Geo chart error:', e);
-        if (charts.geo) {
-            charts.geo.data.labels = ['Error loading data'];
-            charts.geo.data.datasets[0].data = [0];
-            charts.geo.update('active');
-        }
-    }
+    } catch (e) { console.error("Geo Chart Error:", e); }
 
     // 5. USER GROWTH CHART
     try {
-        const resUsers = await fetchWithTimeout('admin_dashboard.php?ajax_action=user_growth');
-        if (resUsers.ok && charts.users) {
+        const resUsers = await fetch('admin_dashboard.php?ajax_action=user_growth');
+        if (resUsers.ok) {
             const userData = await resUsers.json();
-            if (userData.error) {
-                console.error('User growth chart error:', userData.error);
-                throw new Error(userData.error);
+            const labels = userData.length ? userData.map(u => u.date) : ['No Data'];
+            const totalPoints = userData.length ? userData.map(u => u.total) : [0];
+            const activePoints = userData.length ? userData.map(u => u.active) : [0];
+            const suspendedPoints = userData.length ? userData.map(u => u.suspended) : [0];
+            const deletedPoints = userData.length ? userData.map(u => u.deleted) : [0];
+
+            const userCtx = document.getElementById('usersChart');
+            if (userCtx) {
+                charts.users = new Chart(userCtx.getContext('2d'), {
+                    type: 'line',
+                    data: { labels: labels, datasets: [ { label: 'Total', data: totalPoints, borderColor: '#94a3b8', borderWidth: 2, borderDash: [3, 3], fill: false, pointRadius: 0, pointHoverRadius: 4, order: 0 }, { label: 'Active', data: activePoints, borderColor: '#8b5cf6', backgroundColor: (ctx) => { const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)'); gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)'); return gradient; }, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 4, order: 1 }, { label: 'Suspended', data: suspendedPoints, borderColor: '#f97316', backgroundColor: (ctx) => { const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(249, 115, 22, 0.5)'); gradient.addColorStop(1, 'rgba(249, 115, 22, 0.0)'); return gradient; }, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 4, order: 2 }, { label: 'Deleted', data: deletedPoints, borderColor: '#ef4444', backgroundColor: (ctx) => { const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(239, 68, 68, 0.5)'); gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)'); return gradient; }, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 4, order: 3 } ] },
+                    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: true, labels: { boxWidth: 10, usePointStyle: true, font: { size: 11 } } }, tooltip: { backgroundColor: 'rgba(255, 255, 255, 0.95)', titleColor: '#1f2937', bodyColor: '#1f2937', borderColor: '#e5e7eb', borderWidth: 1, padding: 10 } }, scales: { x: { display: false }, y: { display: false, beginAtZero: true } } }
+                });
             }
-            if (Array.isArray(userData) && userData.length > 0) {
-                const labels = userData.map(u => u.date || 'Unknown');
-                const totalPoints = userData.map(u => Number(u.total) || 0);
-                const activePoints = userData.map(u => Number(u.active) || 0);
-                const suspendedPoints = userData.map(u => Number(u.suspended) || 0);
-                const deletedPoints = userData.map(u => Number(u.deleted) || 0);
-                charts.users.data.labels = labels;
-                charts.users.data.datasets = [
-                    { label: 'Total', data: totalPoints, borderColor: '#94a3b8', borderWidth: 2, borderDash: [3, 3], fill: false, pointRadius: 0, pointHoverRadius: 4, order: 0 },
-                    { label: 'Active', data: activePoints, borderColor: '#8b5cf6', backgroundColor: (ctx) => { const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)'); gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)'); return gradient; }, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 4, order: 1 },
-                    { label: 'Suspended', data: suspendedPoints, borderColor: '#f97316', backgroundColor: (ctx) => { const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(249, 115, 22, 0.5)'); gradient.addColorStop(1, 'rgba(249, 115, 22, 0.0)'); return gradient; }, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 4, order: 2 },
-                    { label: 'Deleted', data: deletedPoints, borderColor: '#ef4444', backgroundColor: (ctx) => { const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(239, 68, 68, 0.5)'); gradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)'); return gradient; }, borderWidth: 2, fill: true, pointRadius: 0, pointHoverRadius: 4, order: 3 }
-                ];
-                charts.users.update('active');
-            } else if (charts.users) {
-                charts.users.data.labels = ['No data available'];
-                charts.users.data.datasets[0].data = [0];
-                charts.users.update('active');
-            }
-        } else if (charts.users) {
-            const errorText = await resUsers.text();
-            console.error('User growth chart HTTP error:', resUsers.status, errorText);
-            charts.users.data.labels = ['Error loading'];
-            charts.users.data.datasets[0].data = [0];
-            charts.users.update('active');
         }
-    } catch (e) { 
-        console.error('User growth chart error:', e);
-        if (charts.users) {
-            charts.users.data.labels = ['Error loading data'];
-            charts.users.data.datasets[0].data = [0];
-            charts.users.update('active');
-        }
-    }
+    } catch (e) { console.error("User Growth Error:", e); }
 }
 
 document.getElementById('revenueToggle').addEventListener('change', async (e) => {
-    if (!charts.revenue) return;
-    try {
-        const action = e.target.value === 'daily' ? 'daily_revenue' : 'monthly_revenue';
-        const res = await fetchWithTimeout(`includes/fetch_data.php?action=${action}`);
-        if (!res.ok) throw new Error('Failed');
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-            charts.revenue.data.labels = data.map(r => r.ym || r.date);
-            charts.revenue.data.datasets[0].data = data.map(r => r.amt);
-            charts.revenue.update();
-        }
-    } catch (e) {
-        // Silent fail - user can try again
-    }
+    const action = e.target.value === 'daily' ? 'daily_revenue' : 'monthly_revenue';
+    const res = await fetch(`includes/fetch_data.php?action=${action}`);
+    const data = await res.json();
+    charts.revenue.data.labels = data.map(r => r.ym || r.date);
+    charts.revenue.data.datasets[0].data = data.map(r => r.amt);
+    charts.revenue.update();
 });
 
-// Listen for theme changes and update charts
-window.addEventListener('themeChanged', (e) => {
-    if (e.detail && e.detail.theme) {
-        // Update Chart.js defaults for new theme
-        const isDark = e.detail.theme === 'dark';
-        Chart.defaults.color = isDark ? '#94a3b8' : '#6b7280';
-        Chart.defaults.borderColor = isDark ? '#242c38' : 'rgba(107, 114, 128, 0.1)';
-        
-        // Update all existing charts
-        Object.values(charts).forEach(chart => {
-            if (chart && typeof chart.update === 'function') {
-                chart.update('active');
-            }
-        });
-    }
-});
+function updateChartsTheme() {
+    Object.values(charts).forEach(c => c.destroy());
+    loadCharts(); 
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof Chart === 'undefined') {
-        alert('Chart library failed to load. Please refresh the page.');
-        return;
-    }
-    // Initialize empty charts immediately so they show something
-    initEmptyCharts();
-    // Then load data - run in parallel
-    Promise.all([
-        loadDashboard().catch(e => console.error('Dashboard load failed:', e)),
-        loadTables().catch(e => console.error('Tables load failed:', e)),
-        loadCharts().catch(e => console.error('Charts load failed:', e))
-    ]).then(() => {
-        console.log('All dashboard data loaded');
-    });
+    loadDashboard();
+    loadTables();
+    loadCharts();
 });
 </script>
+
 </body>
 </html>
