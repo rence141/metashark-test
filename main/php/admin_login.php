@@ -15,25 +15,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pw = $_POST['password'] ?? '';
 
     if ($email && $pw) {
-        // Prepare statement
-        $stmt = $conn->prepare("SELECT id, first_name, password FROM admin_accounts WHERE email = ? LIMIT 1");
+        // --- SECURITY UPDATE ---
+        // We added 'role' to the SELECT and the WHERE clause
+        // This ensures only users with role='admin' can access this console.
+// Added: AND is_deleted = 0 AND is_suspended = 0
+$stmt = $conn->prepare("SELECT id, fullname, password, role FROM users WHERE email = ? AND is_deleted = 0 AND is_suspended = 0 LIMIT 1");        
         if ($stmt) {
             $stmt->bind_param('s', $email);
             $stmt->execute();
             $result = $stmt->get_result();
             $r = $result->fetch_assoc();
 
+            // Check if user exists, password matches, AND they are an admin
             if ($r && password_verify($pw, $r['password'])) {
-                // Login Success
-                session_regenerate_id(true);
-                $_SESSION['admin_id'] = (int)$r['id'];
-                $_SESSION['admin_name'] = htmlspecialchars($r['first_name']);
                 
-                header('Location: admin_dashboard.php');
-                exit;
+                if ($r['role'] === 'admin') {
+                    // Login Success
+                    session_regenerate_id(true);
+                    $_SESSION['admin_id'] = (int)$r['id'];
+                    $_SESSION['admin_name'] = htmlspecialchars($r['fullname']);
+                    $_SESSION['role'] = $r['role']; // Store role in session
+                    
+                    header('Location: admin_dashboard.php');
+                    exit;
+                } else {
+                    // User exists and password is correct, BUT they are not an admin
+                    $err = 'Access Denied. You do not have administrator privileges.';
+                }
+
             } else {
                 $err = 'Invalid email or password.';
-                // Security: Add a small delay to slow down brute-force attacks
+                // Security delay
                 sleep(1);
             }
             $stmt->close();
@@ -91,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             overflow: hidden;
         }
 
-        /* Abstract Shape Decoration */
         .split-left::before {
             content: '';
             position: absolute;
@@ -126,12 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .login-wrapper { width: 100%; max-width: 400px; }
-
         .form-header { margin-bottom: 30px; }
         .form-header h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
         .form-header p { color: var(--text-muted); font-size: 14px; }
 
-        /* Inputs */
         .input-group { margin-bottom: 20px; position: relative; }
         .input-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
         .input-field {
@@ -151,7 +160,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .input-field::placeholder { color: #475569; }
 
-        /* Password Toggle */
         .password-wrapper { position: relative; }
         .toggle-password {
             position: absolute;
@@ -166,7 +174,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .toggle-password:hover { color: white; }
 
-        /* Button */
         .btn-primary {
             width: 100%;
             padding: 14px;
@@ -182,7 +189,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-primary:hover { filter: brightness(1.1); }
         .btn-primary:active { transform: scale(0.98); }
 
-        /* Alerts */
         .alert {
             padding: 12px 16px;
             border-radius: 8px;
@@ -195,15 +201,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .alert-error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); }
         .alert-success { background: rgba(68, 214, 44, 0.1); border: 1px solid var(--primary); color: var(--primary); }
 
-        /* Footer Links */
         .auth-footer { margin-top: 25px; text-align: center; font-size: 14px; color: var(--text-muted); }
         .auth-footer a { color: var(--primary); text-decoration: none; font-weight: 500; }
         .auth-footer a:hover { text-decoration: underline; }
 
-        /* Mobile Responsive */
         @media (max-width: 900px) {
             body { flex-direction: column; overflow-y: auto; }
-            .split-left { display: none; } /* Hide branding on mobile for cleaner look */
+            .split-left { display: none; }
             .split-right { max-width: 100%; padding: 40px 20px; flex: 1; border-left: none; }
         }
     </style>

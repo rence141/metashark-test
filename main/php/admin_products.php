@@ -5,20 +5,19 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 session_start();
 require_once __DIR__ . '/includes/db_connect.php';
 
-// Security check
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: admin_login.php'); 
-    exit; 
-}
-
-// Security: Generate CSRF token if it doesn't exist
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+// Ensure admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: admin_login.php');
+    exit;
 }
 
 $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 $theme = $_SESSION['theme'] ?? 'dark';
-$admin_initial = strtoupper(substr($admin_name, 0, 1));
+
+// Generate CSRF Token if missing
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Handle product deletion
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
@@ -108,7 +107,7 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         --text: #1f2937;
         --text-muted: #6b7280;
         --radius: 16px;
-        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         --danger: #f44336; 
         --info: #00d4ff;
         --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -174,24 +173,35 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
     .table-card { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--panel-border); box-shadow: var(--shadow); overflow: hidden; }
     .table-header { padding: 20px 24px; border-bottom: 1px solid var(--panel-border); }
-    .table-header h3 { font-size: 16px; font-weight: 600; margin: 0; color: var(--text); }
+    .table-header h3 { font-size: 16px; font-weight: 600; margin: 0; color: var(--text); background: rgba(68,214,44,0.02); }
     
     .table-responsive { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
-    th { text-align: left; padding: 12px 24px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--panel-border); }
+    th { text-align: left; padding: 12px 24px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--panel-border); white-space: nowrap; }
     td { padding: 16px 24px; border-bottom: 1px solid var(--panel-border); font-size: 14px; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    [data-theme="light"] tr:hover td { background: #f9fafb; }
     
     /* Utilities */
-    .btn-xs { padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid var(--panel-border); background: transparent; color: var(--text); }
+    .btn-xs { padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid var(--panel-border); background: transparent; color: var(--text); text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
     .btn-xs:hover { border-color: var(--primary); color: var(--primary); }
-    .action-btn { padding: 6px; border-radius: 6px; display: inline-flex; color: var(--text-muted); margin-right: 4px; }
-    .action-btn:hover { background: var(--bg); color: var(--text); }
+    .btn-primary { background: var(--primary); color: #000; border-color: var(--primary); }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-outline { border-color: var(--panel-border); }
+
+    .action-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--panel-border); color: var(--text-muted); transition: 0.2s; margin-right: 4px; }
+    .action-btn:hover { border-color: var(--primary); color: var(--primary); background: rgba(68,214,44,0.05); }
+    .action-btn.delete:hover { border-color: #f44336; color: #f44336; background: rgba(244,67,54,0.05); }
     
-    /* Stock Badges from Dashboard */
+    /* Stock Badges */
     .stock-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; min-width: 60px; text-align: center; }
     .stock-low { background: rgba(244, 67, 54, 0.15); color: var(--danger); }
     .stock-ok { background: rgba(68, 214, 44, 0.15); color: var(--primary); }
     
+    /* Cat Badges */
+    .cat-badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; margin-right: 4px; display: inline-block; background: rgba(255,255,255,0.05); border: 1px solid var(--panel-border); color: var(--text-muted); }
+
     .logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; }
     .logo-area img { height: 32px; }
     
@@ -210,30 +220,7 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 </head>
 <body>
 
-<nav class="admin-navbar">
-    <div class="navbar-left">
-        <div class="logo-area">
-            <img src="uploads/logo1.png" alt="Meta Shark">
-            <span>META SHARK</span>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
-            <i class="bi bi-moon-stars"></i>
-        </button>
-        
-        <a href="admin_profile.php" class="navbar-profile-link">
-            <div class="profile-info-display">
-                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
-                <div class="profile-role" style="color:var(--primary);">Administrator</div>
-            </div>
-            <div class="profile-avatar">
-                <?php echo $admin_initial; ?>
-            </div>
-        </a>
-        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</nav>
+<?php include 'admin_navbar.php'; ?>
 
 <?php include 'admin_sidebar.php'; ?>
 
@@ -247,7 +234,7 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 <div class="stat-label">Total Products</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number"><?php echo $stats['total_stock'] ?? 0; ?></div>
+                <div class="stat-number"><?php echo number_format($stats['total_stock'] ?? 0); ?></div>
                 <div class="stat-label">Total Stock</div>
             </div>
             <div class="stat-card">
@@ -258,10 +245,10 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <?php if(isset($_GET['deleted'])): ?>
-        <div class="alert-success fade-in" style="padding:15px; margin-bottom:15px; background:rgba(68,214,44,0.1); color:var(--primary); border-radius:10px;"><i class="bi bi-check-circle"></i> Product deleted successfully.</div>
+        <div class="alert-success fade-in" style="padding:15px; margin-bottom:15px; background:rgba(68,214,44,0.1); color:var(--primary); border-radius:10px; border:1px solid rgba(68,214,44,0.2);"><i class="bi bi-check-circle"></i> Product deleted successfully.</div>
     <?php endif; ?>
     <?php if(isset($_GET['updated'])): ?>
-        <div class="alert-success fade-in" style="padding:15px; margin-bottom:15px; background:rgba(68,214,44,0.1); color:var(--primary); border-radius:10px;"><i class="bi bi-check-circle"></i> Product updated successfully.</div>
+        <div class="alert-success fade-in" style="padding:15px; margin-bottom:15px; background:rgba(68,214,44,0.1); color:var(--primary); border-radius:10px; border:1px solid rgba(68,214,44,0.2);"><i class="bi bi-check-circle"></i> Product updated successfully.</div>
     <?php endif; ?>
 
     <div class="filters fade-in">
@@ -280,8 +267,8 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 <?php endforeach; ?>
             </select>
 
-            <button type="submit" class="btn-xs btn-primary" style="height:42px; border:none;">Filter</button>
-            <a href="admin_products.php" class="btn-xs btn-outline" style="height:42px; display:flex; align-items:center;">Clear</a>
+            <button type="submit" class="btn-xs btn-primary" style="height:42px; border:none; width:auto; padding:0 20px;">Filter</button>
+            <a href="admin_products.php" class="btn-xs btn-outline" style="height:42px; display:flex; align-items:center; width:auto; padding:0 20px;">Clear</a>
         </form>
     </div>
 
@@ -294,7 +281,6 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Product Name</th>
                         <th>Category</th>
                         <th>Price</th>
@@ -305,10 +291,9 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 </thead>
                 <tbody>
                     <?php if(empty($products)): ?>
-                        <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted)">No products found.</td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted)">No products found.</td></tr>
                     <?php else: foreach($products as $p): ?>
                         <tr>
-                            <td><span style="font-family:monospace; opacity:0.7">#<?php echo $p['id']; ?></span></td>
                             <td>
                                 <div style="font-weight:600; color:var(--text)"><?php echo htmlspecialchars($p['name']); ?></div>
                             </td>
@@ -342,8 +327,10 @@ $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             
                             <td style="text-align:right">
                                 <a href="product-details.php?id=<?php echo $p['id']; ?>" class="action-btn view" target="_blank" title="View"><i class="bi bi-eye"></i></a>
+                                
                                 <a href="admin_edit_product.php?id=<?php echo $p['id']; ?>" class="action-btn edit" title="Edit"><i class="bi bi-pencil-square"></i></a>
-                                <a href="admin_products.php?delete=<?php echo $p['id']; ?>&token=<?php echo $_SESSION['csrf_token']; ?>" class="action-btn delete" onclick="return confirm('Are you sure you want to delete this?')" title="Delete"><i class="bi bi-trash"></i></a>
+                                
+                                <a href="admin_products.php?delete=<?php echo $p['id']; ?>&token=<?php echo $_SESSION['csrf_token']; ?>" class="action-btn delete" onclick="return confirm('Are you sure you want to delete this product?')" title="Delete"><i class="bi bi-trash"></i></a>
                             </td>
                         </tr>
                     <?php endforeach; endif; ?>

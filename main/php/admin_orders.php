@@ -4,18 +4,12 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 session_start();
 require_once __DIR__ . '/includes/db_connect.php';
+require_once __DIR__ . '/admin_theme.php';
 
-// Ensure admin is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header('Location: admin_login.php');
-    exit;
-}
+// Get current theme for JavaScript
+$current_theme = $_SESSION['theme'] ?? 'dark';
 
-$admin_name = $_SESSION['admin_name'] ?? 'Admin';
-$theme = $_SESSION['theme'] ?? 'dark';
 
-// Generate Initial for Profile Avatar (Required for the new Navbar)
-$admin_initial = strtoupper(substr($admin_name, 0, 1));
 
 // INCLUDE EMAIL SCRIPT
 $email_file = __DIR__ . '/includes/email.php';
@@ -95,21 +89,23 @@ if (isset($_POST['update_status']) && isset($_POST['order_id']) && isset($_POST[
     $new_status = $_POST['new_status'];
     
     if (in_array($new_status, ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'])) {
-        // 1. Fetch buyer info BEFORE update to send email
+        // 1. Fetch buyer info for email notification
         $stmt_user = $conn->prepare("SELECT u.email, u.fullname FROM orders o JOIN users u ON o.buyer_id = u.id WHERE o.id = ? LIMIT 1");
         $stmt_user->bind_param("i", $order_id);
         $stmt_user->execute();
         $user_data = $stmt_user->get_result()->fetch_assoc();
 
-        // 2. Update Status
-        $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
-        $stmt->bind_param("si", $new_status, $order_id);
+        // 2. Update status on all items in the order
+        $stmt_items = $conn->prepare("UPDATE order_items SET status = ? WHERE order_id = ?");
+        $stmt_items->bind_param("si", $new_status, $order_id);
         
-        if($stmt->execute()) {
+        if($stmt_items->execute()) {
             if($user_data) {
+                // Use the existing email function to notify the buyer
                 triggerOrderStatusEmail($user_data['email'], $user_data['fullname'], $order_id, $new_status);
             }
-            header("Location: admin_orders.php?updated=1");
+            // Redirect to avoid re-posting form
+            header("Location: admin_orders.php");
             exit;
         }
     }
@@ -122,26 +118,42 @@ $where = "1=1";
 $params = [];
 $types = "";
 
-if ($search && is_numeric($search)) {
-    $where .= " AND o.id = ?";
-    $params[] = (int)$search;
-    $types .= "i";
+if ($search) {
+    if (is_numeric($search)) {
+        $where .= " AND o.id = ?";
+        $params[] = (int)$search;
+        $types .= "i";
+    }
 }
 
+$having = "";
 if ($status) {
-    $where .= " AND o.status = ?";
+    $having = "HAVING status = ?";
     $params[] = $status;
     $types .= "s";
 }
 
 // Get orders
-$sql = "SELECT o.id, o.total_price, o.status, o.created_at, o.paid_at,
+$sql = "SELECT o.id, o.total_price, o.created_at, o.paid_at,
         u.fullname as buyer_name, u.email as buyer_email,
-        s.fullname as seller_name
+        s.fullname as seller_name,
+        (
+            SELECT 
+            CASE 
+                WHEN COUNT(CASE WHEN oi.status = 'cancelled' THEN 1 END) > 0 THEN 'cancelled'
+                WHEN COUNT(CASE WHEN oi.status = 'shipped' THEN 1 END) > 0 THEN 'shipped'
+                WHEN COUNT(CASE WHEN oi.status = 'confirmed' THEN 1 END) > 0 THEN 'confirmed'
+                WHEN COUNT(DISTINCT oi.status) = 1 AND MIN(oi.status) = 'delivered' THEN 'delivered'
+                ELSE 'pending'
+            END 
+            FROM order_items oi WHERE oi.order_id = o.id
+        ) as status
         FROM orders o
         LEFT JOIN users u ON o.buyer_id = u.id
         LEFT JOIN users s ON o.seller_id = s.id
         WHERE $where
+        GROUP BY o.id
+        $having
         ORDER BY o.id DESC LIMIT 200";
 
 $stmt = $conn->prepare($sql);
@@ -152,7 +164,7 @@ $stmt->execute();
 $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?php echo htmlspecialchars($theme); ?>">
+<html lang="en" <?php apply_theme_html_tag(); ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -185,6 +197,8 @@ $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         --text-muted: #94a3b8;
         --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     }
+
+    
 
     * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
@@ -268,32 +282,7 @@ $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 </head>
 <body>
 
-<nav class="admin-navbar">
-    <div class="navbar-left">
-        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
-        <div class="logo-area">
-            <img src="uploads/logo1.png" alt="Meta Shark">
-            <span>META SHARK</span>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
-            <i class="bi bi-moon-stars"></i>
-        </button>
-        
-        <a href="admin_profile.php" class="navbar-profile-link">
-            <div class="profile-info-display">
-                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
-                <div class="profile-role" style="color:var(--primary);">Administrator</div>
-            </div>
-            <div class="profile-avatar">
-                <?php echo $admin_initial; ?>
-            </div>
-        </a>
-        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</nav>
-
+<?php include 'admin_navbar.php'; ?>
 <?php include 'admin_sidebar.php'; ?>
 
 <main class="admin-main">
@@ -382,38 +371,31 @@ $orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 <script>
 // --- UI Interactivity (Copied from Dashboard) ---
-const sidebar = document.getElementById('sidebar');
-const toggleBtn = document.getElementById('sidebarToggle');
-toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('show'); });
-document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-        sidebar.classList.remove('show');
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('show'); });
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+                sidebar.classList.remove('show');
+            }
+        });
     }
-});
-
-// Theme Logic
-const themeBtn = document.getElementById('themeBtn');
-let currentTheme = '<?php echo $theme; ?>';
-
-function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-}
-
-function updateThemeIcon(theme) {
-    const icon = themeBtn.querySelector('i');
-    icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
-}
-
-// On load, enforce session theme across all admin pages
-applyTheme(currentTheme);
-updateThemeIcon(currentTheme);
-
-themeBtn.addEventListener('click', () => {
-    const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    applyTheme(newTheme);
-    updateThemeIcon(newTheme);
-    fetch('theme_toggle.php?theme=' + newTheme).catch(console.error);
+    
+    // Ensure theme is applied on page load (navbar handles the toggle, but we ensure initial state)
+    const currentTheme = '<?php echo htmlspecialchars($current_theme); ?>';
+    if (document.documentElement) {
+        document.documentElement.setAttribute('data-theme', currentTheme);
+    }
+    
+    // Listen for theme changes from navbar
+    window.addEventListener('themeChanged', (e) => {
+        if (e.detail && e.detail.theme && document.documentElement) {
+            document.documentElement.setAttribute('data-theme', e.detail.theme);
+        }
+    });
 });
 </script>
 </body>

@@ -137,31 +137,7 @@ if ($stmt) {
 </head>
 <body>
 
-<nav class="admin-navbar">
-    <div class="navbar-left">
-        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
-        <div class="logo-area">
-            <img src="uploads/logo1.png" alt="Meta Shark">
-            <span>META SHARK</span>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
-            <i class="bi bi-moon-stars"></i>
-        </button>
-        
-        <a href="admin_profile.php" class="navbar-profile-link">
-            <div class="profile-info-display">
-                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
-                <div class="profile-role" style="color:var(--primary);">Administrator</div>
-            </div>
-            <div class="profile-avatar">
-                <?php echo $admin_initial; ?>
-            </div>
-        </a>
-        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</nav>
+<?php include 'admin_navbar.php'; ?>
 <?php include 'admin_sidebar.php'; ?>
 
 <main class="admin-main">

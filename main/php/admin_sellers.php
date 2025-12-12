@@ -278,32 +278,7 @@ if ($result) {
 </head>
 <body>
 
-<nav class="admin-navbar">
-    <div class="navbar-left">
-        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
-        <div class="logo-area">
-            <img src="uploads/logo1.png" alt="Meta Shark">
-            <span>META SHARK</span>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
-            <i class="bi bi-moon-stars"></i>
-        </button>
-        
-        <a href="admin_profile.php" class="navbar-profile-link">
-            <div class="profile-info-display">
-                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
-                <div class="profile-role" style="color:var(--primary);">Administrator</div>
-            </div>
-            <div class="profile-avatar">
-                <?php echo $admin_initial; ?>
-            </div>
-        </a>
-        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</nav>
-
+<?php include 'admin_navbar.php'; ?>
 <?php include 'admin_sidebar.php'; ?>
 
 <main class="admin-main">
@@ -325,7 +300,6 @@ if ($result) {
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Seller Details</th>
                         <th>Shop Name</th>
                         <th>Status</th>
@@ -338,10 +312,9 @@ if ($result) {
                 </thead>
                 <tbody>
                     <?php if (empty($sellers)): ?>
-                        <tr><td colspan="9" style="text-align:center;padding:50px;color:var(--text-muted)">No Sellers found.</td></tr>
+                        <tr><td colspan="8" style="text-align:center;padding:50px;color:var(--text-muted)">No Sellers found.</td></tr>
                     <?php else: foreach ($sellers as $s): ?>
                         <tr>
-                            <td><span style="font-family:monospace; font-weight:700">#<?php echo $s['id']; ?></span></td>
                             <td>
                                 <div style="font-weight:600"><?php echo htmlspecialchars($s['fullname']); ?></div>
                                 <div style="font-size:12px; color:var(--text-muted)"><?php echo htmlspecialchars($s['email']); ?></div>

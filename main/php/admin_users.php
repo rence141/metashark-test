@@ -11,7 +11,8 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-$admin_name = $_SESSION['admin_name'] ?? 'Admin';
+$admin_id = $_SESSION['admin_id'];
+$admin_name = $_SESSION['admin_name'] ?? 'Admin'; 
 $theme = $_SESSION['theme'] ?? 'dark';
 
 // Generate Initial for Profile Avatar
@@ -74,7 +75,7 @@ if (!function_exists('triggerUnsuspensionEmail')) {
 
 // --- Utility: fetch user details ---
 function getUserDetails($conn, $id) {
-    $stmt = $conn->prepare("SELECT email, fullname FROM users WHERE id = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT email, fullname, role FROM users WHERE id = ? LIMIT 1");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     return $stmt->get_result()->fetch_assoc();
@@ -86,6 +87,15 @@ if (isset($_POST['update_user_details'])) {
     $email = trim($_POST['email']);
     $password = trim($_POST['password']);
     
+    // 1. Get Target User Details to check role
+    $target_user = getUserDetails($conn, $id);
+
+    // 🛑 SECURITY CHECK: Prevent editing OTHER admins
+    if ($target_user && $target_user['role'] === 'admin' && $id != $admin_id) {
+        header("Location: admin_users.php?error=cannot_edit_other_admin");
+        exit;
+    }
+
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         header("Location: admin_users.php?error=invalid_email");
         exit;
@@ -110,8 +120,28 @@ if (isset($_POST['update_user_details'])) {
 
 // --- Handle Role Change ---
 if (isset($_POST['change_role'], $_POST['user_id'], $_POST['new_role'])) {
+    $target_id = (int)$_POST['user_id'];
+    $new_role = $_POST['new_role'];
+
+    // 🛑 SECURITY CHECK: Do not allow changing self
+    if ($target_id == $admin_id) {
+        header("Location: admin_users.php?error=cannot_edit_self");
+        exit;
+    }
+    
+    // 🛑 SECURITY CHECK: Do not allow changing another Admin's role
+    $check = $conn->prepare("SELECT role FROM users WHERE id = ?");
+    $check->bind_param("i", $target_id);
+    $check->execute();
+    $current_role = $check->get_result()->fetch_assoc()['role'] ?? '';
+
+    if ($current_role === 'admin') {
+        header("Location: admin_users.php?error=cannot_edit_admin_role");
+        exit;
+    }
+
     $stmt = $conn->prepare("UPDATE users SET role=? WHERE id=?");
-    $stmt->bind_param("si", $_POST['new_role'], $_POST['user_id']);
+    $stmt->bind_param("si", $new_role, $target_id);
     $stmt->execute();
     header("Location: admin_users.php?updated=1");
     exit;
@@ -119,11 +149,19 @@ if (isset($_POST['change_role'], $_POST['user_id'], $_POST['new_role'])) {
 
 // --- Handle Delete ---
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    if ($_GET['delete'] != $_SESSION['admin_id']) {
-        $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
-        $stmt->bind_param("i", $_GET['delete']);
-        $stmt->execute();
+    $target_id = (int)$_GET['delete'];
+    
+    // 🛑 SECURITY CHECK: Do not delete self OR other admins
+    $check = getUserDetails($conn, $target_id);
+    if ($target_id == $admin_id || ($check['role'] === 'admin')) {
+         header("Location: admin_users.php?error=cannot_delete_admin");
+         exit;
     }
+
+    $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
+    $stmt->bind_param("i", $target_id);
+    $stmt->execute();
+    
     header("Location: admin_users.php?deleted=1");
     exit;
 }
@@ -131,23 +169,25 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
 // --- Handle Suspend ---
 if (isset($_GET['toggle_suspend'], $_GET['status']) && is_numeric($_GET['toggle_suspend'])) {
     $id = (int)$_GET['toggle_suspend'];
-    $new_status = ((int)$_GET['status'] === 0) ? 1 : 0;
+    $new_status = ((int)$_GET['status'] === 0) ? 1 : 0; 
     
-    if ($id != $_SESSION['admin_id']) {
-        $check = $conn->query("SHOW COLUMNS FROM users LIKE 'is_suspended'");
-        if($check->num_rows > 0) {
-            $stmt = $conn->prepare("UPDATE users SET is_suspended=? WHERE id=?");
-            $stmt->bind_param("ii", $new_status, $id);
-            if($stmt->execute()){
-                $u = getUserDetails($conn, $id);
-                if($u) {
-                    if($new_status === 1) triggerSuspensionEmail($u['email'], $u['fullname']);
-                    else triggerUnsuspensionEmail($u['email'], $u['fullname']);
-                }
-                header("Location: admin_users.php?suspended=1");
-                exit;
-            }
+    // 🛑 SECURITY CHECK: Do not suspend self or other admins
+    $check = getUserDetails($conn, $id);
+    if ($id == $admin_id || ($check['role'] === 'admin')) {
+         header("Location: admin_users.php?error=cannot_suspend_admin");
+         exit;
+    }
+
+    $stmt = $conn->prepare("UPDATE users SET is_suspended=? WHERE id=?");
+    $stmt->bind_param("ii", $new_status, $id);
+    if($stmt->execute()){
+        $u = getUserDetails($conn, $id);
+        if($u) {
+            if($new_status === 1) triggerSuspensionEmail($u['email'], $u['fullname']);
+            else triggerUnsuspensionEmail($u['email'], $u['fullname']);
         }
+        header("Location: admin_users.php?suspended=1");
+        exit;
     }
 }
 
@@ -166,7 +206,7 @@ if($role){
     $params[]=$role; $types.="s";
 }
 
-// 2. SAFETY CHECK
+// 2. FETCH DATA
 $columns = [];
 $res = $conn->query("SHOW COLUMNS FROM users");
 while($row = $res->fetch_assoc()) { $columns[] = $row['Field']; }
@@ -191,7 +231,7 @@ $users = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" href="Uploads/logo1.png">
-<title>Admin Users — Meta Shark</title>
+<title>User Management — Meta Shark</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
 /* --- MASTER CSS (Matches Dashboard) --- */
@@ -312,10 +352,21 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .badge-verified{background:rgba(68,214,44,0.15);color:var(--primary);}
 .badge-unverified{background:rgba(244,67,54,0.15);color:var(--danger);}
 .badge-suspended{background:rgba(255,152,0,0.15);color:#ff9800;}
+.role-admin-badge {
+    color: var(--primary);
+    background: rgba(68,214,44,0.1);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.role-select{padding:6px 10px;border:1px solid var(--panel-border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px; cursor: pointer;}
 
 .alert{padding:15px 25px;border-radius:8px;margin-bottom:25px;font-size:15px; font-weight: 500;}
 .alert-success{background:rgba(68,214,44,0.1);color:var(--primary);border:1px solid var(--primary);}
-.role-select{padding:6px 10px;border:1px solid var(--panel-border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px; cursor: pointer;}
 
 /* --- MODAL STYLES --- */
 .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; }
@@ -340,31 +391,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 </head>
 <body>
 
-<nav class="admin-navbar">
-    <div class="navbar-left">
-        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
-        <div class="logo-area">
-            <img src="uploads/logo1.png" alt="Meta Shark">
-            <span>META SHARK</span>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none;">
-            <i class="bi bi-moon-stars"></i>
-        </button>
-        
-        <a href="admin_profile.php" class="navbar-profile-link">
-            <div class="profile-info-display">
-                <div class="profile-name"><?php echo htmlspecialchars($admin_name); ?></div>
-                <div class="profile-role" style="color:var(--primary);">Administrator</div>
-            </div>
-            <div class="profile-avatar">
-                <?php echo $admin_initial; ?>
-            </div>
-        </a>
-        <a href="admin_logout.php" class="btn-xs btn-outline" style="color:var(--text-muted); border-color:var(--panel-border);"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</nav>
+<?php include 'admin_navbar.php'; ?>
 
 <?php include 'admin_sidebar.php'; ?>
 
@@ -376,7 +403,22 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <?php if(isset($_GET['updated'])): ?><div class="alert alert-success fade-in">User details updated successfully.</div><?php endif; ?>
     <?php if(isset($_GET['deleted'])): ?><div class="alert alert-success fade-in">User deleted successfully.</div><?php endif; ?>
     <?php if(isset($_GET['suspended'])): ?><div class="alert alert-success fade-in">User suspended. Notification sent.</div><?php endif; ?>
-    <?php if(isset($_GET['error'])): ?><div class="alert fade-in" style="background:rgba(244,67,54,0.1);color:#f44336;border:1px solid #f44336;">Action failed. Invalid email or error.</div><?php endif; ?>
+    <?php if(isset($_GET['error'])): ?>
+        <div class="alert fade-in" style="background:rgba(244,67,54,0.1);color:#f44336;border:1px solid #f44336;">
+            Action failed. 
+            <?php 
+                if ($_GET['error'] == 'invalid_email') echo 'Invalid email provided.';
+                else if ($_GET['error'] == 'update_failed') echo 'Database update failed.';
+                else if ($_GET['error'] == 'cannot_edit_admin_role') echo 'The role of an Admin cannot be changed.';
+                else if ($_GET['error'] == 'cannot_edit_self') echo 'You cannot change your own role.';
+                // NEW ERRORS
+                else if ($_GET['error'] == 'cannot_edit_other_admin') echo 'Security Alert: You cannot modify other Administrators.';
+                else if ($_GET['error'] == 'cannot_delete_admin') echo 'Security Alert: Administrators cannot be deleted.';
+                else if ($_GET['error'] == 'cannot_suspend_admin') echo 'Security Alert: Administrators cannot be suspended.';
+                else echo 'An unexpected error occurred.';
+            ?>
+        </div>
+    <?php endif; ?>
 
     <div class="filters fade-in">
         <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;flex:1">
@@ -401,71 +443,92 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th><th>User Details</th><th>Contact</th><th>Role</th><th>Status</th><th>Actions</th>
+                        <th>User Details</th><th>Contact</th><th>Role</th><th>Status</th><th>Actions</th>
                     </tr>
                 </thead>
-                  <tbody>
-                    <?php if(empty($users)): ?>
-                        <tr><td colspan="6" style="text-align:center;padding:50px;color:var(--text-muted)">No users found.</td></tr>
-                    <?php else: foreach($users as $u): ?>
-                        <tr>
-                            <td><span style="font-family:monospace; font-weight:700">#<?php echo $u['id']; ?></span></td>
-                            <td>
-                                <div style="font-weight:600"><?php echo htmlspecialchars($u['fullname']); ?></div>
-                                <div style="font-size:12px; color:var(--text-muted)"><?php echo isset($u['created_at']) ? date('M d, Y', strtotime($u['created_at'])) : ''; ?></div>
-                            </td>
-                            <td><?php echo htmlspecialchars($u['email']); ?></td>
-                            <td>
-                                <form method="POST" style="display:inline-block">
-                                    <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
-                                    <select name="new_role" onchange="this.form.submit()" class="role-select">
-                                        <option value="buyer" <?php echo $u['role']==='buyer'?'selected':'';?>>Buyer</option>
-                                        <option value="seller" <?php echo $u['role']==='seller'?'selected':'';?>>Seller</option>
-                                        <option value="admin" <?php echo $u['role']==='admin'?'selected':'';?>>Admin</option>
-                                    </select>
-                                    <input type="hidden" name="change_role" value="1">
-                                </form>
-                            </td>
-                            <td>
-                                <?php if(isset($u['is_verified'])): ?>
-                                    <?php if($u['is_verified']): ?><span class="badge badge-verified"><i class="bi bi-check2"></i> Verified</span>
-                                    <?php else: ?><span class="badge badge-unverified">Unverified</span><?php endif; ?>
-                                <?php endif; ?>
+                    <tbody>
+                        <?php if(empty($users)): ?>
+                            <tr><td colspan="5" style="text-align:center;padding:50px;color:var(--text-muted)">No users found.</td></tr>
+                        <?php else: foreach($users as $u): ?>
+                            <tr>
+                                <td>
+                                    <div style="font-weight:600"><?php echo htmlspecialchars($u['fullname']); ?></div>
+                                    <div style="font-size:12px; color:var(--text-muted)"><?php echo isset($u['created_at']) ? date('M d, Y', strtotime($u['created_at'])) : ''; ?></div>
+                                </td>
+                                <td><?php echo htmlspecialchars($u['email']); ?></td>
+                                <td>
+                                    <?php if ($u['role'] === 'admin'): ?>
+                                        <span class="role-admin-badge" title="Admin role is protected">
+                                            <i class="bi bi-shield-lock-fill"></i> Admin
+                                        </span>
+                                    <?php else: ?>
+                                        <form method="POST" style="display:inline-block">
+                                            <input type="hidden" name="user_id" value="<?php echo $u['id']; ?>">
+                                            <select name="new_role" onchange="this.form.submit()" class="role-select" title="Change User Role">
+                                                <option value="buyer" <?php echo $u['role']==='buyer'?'selected':'';?>>Buyer</option>
+                                                <option value="seller" <?php echo $u['role']==='seller'?'selected':'';?>>Seller</option>
+                                                <option value="admin" <?php echo $u['role']==='admin'?'selected':'';?>>Admin</option>
+                                            </select>
+                                            <input type="hidden" name="change_role" value="1">
+                                        </form>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if(isset($u['is_verified'])): ?>
+                                        <?php if($u['is_verified']): ?><span class="badge badge-verified"><i class="bi bi-check2"></i> Verified</span>
+                                        <?php else: ?><span class="badge badge-unverified">Unverified</span><?php endif; ?>
+                                    <?php endif; ?>
 
-                                <?php if(isset($u['is_suspended']) && $u['is_suspended']): ?>
-                                    <span class="badge badge-suspended">Suspended</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div style="display:flex; gap:6px;">
-                                    <?php if($u['id'] != $_SESSION['admin_id']): ?>
-                                        
-                                        <button onclick="openEditModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars(addslashes($u['fullname'])); ?>', '<?php echo htmlspecialchars($u['email']); ?>')" class="btn btn-edit btn-xs" title="Edit Email/Pass">
-                                            <i class="bi bi-pencil"></i> Edit
-                                        </button>
+                                    <?php if(isset($u['is_suspended']) && $u['is_suspended']): ?>
+                                        <span class="badge badge-suspended">Suspended</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <div style="display:flex; gap:6px;">
+                                        <?php 
+                                        // CHECK: Is this row another admin?
+                                        $is_other_admin = ($u['role'] === 'admin' && $u['id'] != $admin_id);
+                                        // CHECK: Is this the currently logged-in admin?
+                                        $is_me = ($u['id'] == $admin_id);
+                                        ?>
 
-                                        <?php if(isset($u['is_suspended'])): ?>
-                                            <?php if(!$u['is_suspended']): ?>
-                                                <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=0" class="btn btn-suspend btn-xs" title="Suspend User">
-                                                    <i class="bi bi-pause-circle"></i> Suspend
-                                                </a>
-                                            <?php else: ?>
-                                                <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=1" class="btn btn-activate btn-xs" title="Activate User">
-                                                    <i class="bi bi-play-circle"></i> Activate
-                                                </a>
+                                        <?php if ($is_other_admin): ?>
+                                            <span style="color:var(--text-muted); font-size:12px; font-style:italic; display:flex; align-items:center; gap:4px;">
+                                                <i class="bi bi-shield-lock"></i> Protected
+                                            </span>
+
+                                        <?php elseif ($is_me): ?>
+                                            <span style="color:var(--primary); font-size:12px; font-weight:bold;">
+                                                (You)
+                                            </span>
+
+                                        <?php else: ?>
+                                            <button onclick="openEditModal(<?php echo $u['id']; ?>, '<?php echo htmlspecialchars(addslashes($u['fullname'])); ?>', '<?php echo htmlspecialchars($u['email']); ?>')" class="btn btn-edit btn-xs" title="Edit Email/Pass">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </button>
+
+                                            <?php if(isset($u['is_suspended'])): ?>
+                                                <?php if(!$u['is_suspended']): ?>
+                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=0" class="btn btn-suspend btn-xs" title="Suspend User">
+                                                        <i class="bi bi-pause-circle"></i> Suspend
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="admin_users.php?toggle_suspend=<?php echo $u['id']; ?>&status=1" class="btn btn-activate btn-xs" title="Activate User">
+                                                        <i class="bi bi-play-circle"></i> Activate
+                                                    </a>
+                                                <?php endif; ?>
                                             <?php endif; ?>
-                                        <?php endif; ?>
-                                        
-                                        <a href="admin_users.php?delete=<?php echo $u['id']; ?>" class="btn btn-delete btn-xs" onclick="return confirm('Delete this user?')" title="Delete User">
-                                            <i class="bi bi-trash"></i> Delete
-                                        </a>
+                                            
+                                            <a href="admin_users.php?delete=<?php echo $u['id']; ?>" class="btn btn-delete btn-xs" onclick="return confirm('WARNING: Are you sure you want to permanently delete this user? This action cannot be undone.')" title="Delete User">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>
 
-                                    <?php else: echo '<span style="color:var(--text-muted); font-size:12px;">(You)</span>'; endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; endif; ?>
-                </tbody>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; endif; ?>
+                    </tbody>
             </table>
         </div>
     </div>
@@ -509,7 +572,7 @@ const sidebar = document.getElementById('sidebar');
 const toggleBtn = document.getElementById('sidebarToggle');
 toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('show'); });
 document.addEventListener('click', (e) => {
-    if (window.innerWidth <= 992 && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+    if (window.innerWidth <= 992 && sidebar && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
         sidebar.classList.remove('show');
     }
 });
@@ -529,7 +592,6 @@ themeBtn.addEventListener('click', () => {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     updateThemeIcon(newTheme);
-    // Optional: fetch('theme_toggle.php?theme=' + newTheme);
 });
 
 // Modal Logic

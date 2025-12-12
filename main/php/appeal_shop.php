@@ -26,6 +26,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS user_appeals (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// 1. Fetch the appeal
 $stmt = $conn->prepare("SELECT * FROM user_appeals WHERE id = ? LIMIT 1");
 $stmt->bind_param("i", $id);
 $stmt->execute();
@@ -36,6 +37,34 @@ if (!$appeal || $appeal['appeal_type'] !== 'shop') {
     header('Location: appeals.php');
     exit;
 }
+
+// --- FIX START: Correct Email if Unknown ---
+// If the saved email is 'unknown@localhost' but we have a User ID, fetch the real email
+if (
+    ($appeal['user_email'] === 'unknown@localhost' || $appeal['user_email'] === '') 
+    && !empty($appeal['user_id'])
+) {
+    // We assume your main users table is named 'users' and has columns 'id' and 'email'
+    $userStmt = $conn->prepare("SELECT email FROM users WHERE id = ? LIMIT 1");
+    if ($userStmt) {
+        $userStmt->bind_param("i", $appeal['user_id']);
+        $userStmt->execute();
+        $userResult = $userStmt->get_result();
+        
+        if ($userRow = $userResult->fetch_assoc()) {
+            // Update the variable for display
+            $appeal['user_email'] = $userRow['email'];
+            
+            // OPTIONAL: Self-heal the database record so it's fixed permanently
+            $updateFix = $conn->prepare("UPDATE user_appeals SET user_email = ? WHERE id = ?");
+            $updateFix->bind_param("si", $userRow['email'], $id);
+            $updateFix->execute();
+            $updateFix->close();
+        }
+        $userStmt->close();
+    }
+}
+// --- FIX END ---
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="<?php echo htmlspecialchars($theme); ?>">
@@ -103,4 +132,3 @@ if (!$appeal || $appeal['appeal_type'] !== 'shop') {
     </div>
 </body>
 </html>
-

@@ -5,14 +5,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 // 2. START SESSION
 session_start();
 require_once __DIR__ . '/includes/db_connect.php';
-
-// 3. SECURITY CHECK
-if (!isset($_SESSION['admin_id'])) { 
-    header('Location: admin_login.php'); 
-    exit; 
-}
-
-$theme = $_SESSION['theme'] ?? 'dark';
+require_once __DIR__ . '/admin_theme.php';
 
 // --- YOUR CATEGORY LIST ---
 $categories = [
@@ -96,7 +89,7 @@ if (!$product) {
 $selected_categories = explode(',', $product['category'] ?? '');
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="<?php echo htmlspecialchars($theme); ?>">
+<html lang="en" <?php apply_theme_html_tag(); ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -114,13 +107,7 @@ $selected_categories = explode(',', $product['category'] ?? '');
         --radius: 16px;
         --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    [data-theme="dark"] {
-        --bg: #0f1115;
-        --panel: #161b22;
-        --panel-border: #242c38;
-        --text: #e6eef6;
-        --text-muted: #94a3b8;
-    }
+    
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; outline: none; }
     body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     
@@ -239,5 +226,6 @@ $selected_categories = explode(',', $product['category'] ?? '');
     </form>
 </div>
 
+<?php echo get_theme_script(); ?>
 </body>
 </html>

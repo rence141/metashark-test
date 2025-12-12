@@ -40,7 +40,6 @@ foreach ($columns as $col => $def) {
 }
 
 // CRITICAL FIX: Ensure 'status' column supports 'rejected'
-// This fixes the issue where the tag wouldn't update because the DB rejected the new value
 $checkEnum = $conn->query("SHOW COLUMNS FROM user_appeals LIKE 'status'");
 $enumRow = $checkEnum->fetch_assoc();
 if (strpos($enumRow['Type'], "'rejected'") === false) {
@@ -239,30 +238,12 @@ while($row = $countRes->fetch_assoc()) {
         .profile-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #000; font-weight: 700; display: flex; align-items: center; justify-content: center; }
         .logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; }
         .logo-area img { height: 32px; }
-       
+        
     </style>
 </head>
 <body>
 
-<nav class="admin-navbar">
-    <div style="display:flex; align-items:center; gap:16px;">
-        <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
-        <div class="logo-area">
-            <img src="uploads/logo1.png" alt="Meta Shark">
-            <span>META SHARK</span>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:16px;">
-        <button id="themeBtn" class="btn-xs btn-outline" style="font-size:16px; border:none; background:transparent; color:var(--text); cursor:pointer;">
-            <i class="bi bi-moon-stars"></i>
-        </button>
-        <a href="admin_profile.php" class="navbar-profile-link">
-            <span><?php echo htmlspecialchars($admin_name); ?></span>
-            <div class="profile-avatar"><?php echo $admin_initial; ?></div>
-        </a>
-        <a href="admin_logout.php" class="sidebar-item" style="padding:8px 10px; border:1px solid var(--panel-border); border-radius:8px;"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</nav>
+<?php include 'admin_navbar.php'; ?>
 
 <?php include 'admin_sidebar.php'; ?>
 
@@ -276,7 +257,7 @@ while($row = $countRes->fetch_assoc()) {
         <form class="search-box" method="GET">
             <input type="hidden" name="type" value="<?php echo htmlspecialchars($type); ?>">
             <i class="bi bi-search"></i>
-            <input type="text" name="search" placeholder="Search email or ID..." value="<?php echo htmlspecialchars($search); ?>">
+            <input type="text" name="search" placeholder="Search email..." value="<?php echo htmlspecialchars($search); ?>">
         </form>
     </div>
 
@@ -316,7 +297,6 @@ while($row = $countRes->fetch_assoc()) {
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>User Details</th>
                         <th>Status</th>
                         <th>Date</th>
@@ -326,7 +306,7 @@ while($row = $countRes->fetch_assoc()) {
                 <tbody>
                     <?php if (empty($appeals)): ?>
                         <tr>
-                            <td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">
+                            <td colspan="4" style="text-align:center; padding: 40px; color: var(--text-muted);">
                                 <i class="bi bi-inbox" style="font-size: 32px; display:block; margin-bottom:10px;"></i>
                                 No appeals found in this category.
                             </td>
@@ -338,14 +318,9 @@ while($row = $countRes->fetch_assoc()) {
                     ?>
                         <tr onclick="window.location.href='<?php echo $targetUrl; ?>'">
                             
-                            <td><span style="font-family:monospace; color:var(--primary);">#<?php echo $row['id']; ?></span></td>
-                            
                             <td>
                                 <div style="font-weight:600;"><?php echo htmlspecialchars($row['user_email']); ?></div>
-                                <?php if($row['user_id']): ?>
-                                    <div style="font-size:12px; color:var(--text-muted);">ID: <?php echo $row['user_id']; ?></div>
-                                <?php endif; ?>
-                            </td>
+                                </td>
 
                             <td>
                                 <?php 

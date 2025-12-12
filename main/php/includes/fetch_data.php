@@ -3,13 +3,28 @@ session_start();
 require_once __DIR__ . '/db_connect.php';
 header('Content-Type: application/json; charset=utf-8');
 
+// Error handler to ensure JSON is always returned
+function returnError($message, $code = 500) {
+    http_response_code($code);
+    echo json_encode(['error' => $message]);
+    exit;
+}
+
 // 1. Security Guard
 if (!isset($_SESSION['admin_id'])) { 
-    echo json_encode(['error' => 'Not authenticated']); 
-    exit; 
+    returnError('Not authenticated', 401);
+}
+
+// 2. Check database connection
+if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
+    returnError('Database connection failed', 500);
 }
 
 $action = $_GET['action'] ?? '';
+
+if (empty($action)) {
+    returnError('No action specified', 400);
+}
 
 // Helper function for Country Normalization
 // Defined outside switch to prevent redeclaration errors
@@ -96,98 +111,100 @@ function normalizeCountryName($country) {
 switch ($action) {
     // --- DASHBOARD STATS ---
     case 'dashboard_stats':
-        $totals = [];
-        
-        // 1. Total Products
-        $q = $conn->query("SELECT COUNT(*) as total_products FROM products");
-        $totals['total_products'] = (int)($q ? $q->fetch_assoc()['total_products'] : 0);
-        
-        // 2. Revenue: Try with status filter first, fallback to all orders
-        // Note: Using 'total_price' based on your schema preference
-        $q = $conn->query("SELECT IFNULL(SUM(total_price),0) as total_revenue FROM orders WHERE (status IN ('confirmed','shipped','delivered','received') OR paid_at IS NOT NULL)");
-        $revenue = $q ? (float)$q->fetch_assoc()['total_revenue'] : 0;
-        
-        if ($revenue == 0) {
-            // Fallback: count all orders if status filter yields nothing (for testing/dev)
-            $q = $conn->query("SELECT IFNULL(SUM(total_price),0) as total_revenue FROM orders");
-            $revenue = $q ? (float)$q->fetch_assoc()['total_revenue'] : 0;
+        try {
+            $totals = [];
+            
+            // 1. Total Products
+            $q = $conn->query("SELECT COUNT(*) as total_products FROM products");
+            if ($q) {
+                $row = $q->fetch_assoc();
+                $totals['total_products'] = (int)($row['total_products'] ?? 0);
+            } else {
+                $totals['total_products'] = 0;
+            }
+            
+            // 2. Revenue: Try with status filter first, fallback to all orders
+            $q = $conn->query("SELECT IFNULL(SUM(total_price),0) as total_revenue FROM orders WHERE (status IN ('confirmed','shipped','delivered','received') OR paid_at IS NOT NULL)");
+            $revenue = 0;
+            if ($q) {
+                $row = $q->fetch_assoc();
+                $revenue = (float)($row['total_revenue'] ?? 0);
+            }
+            
+            if ($revenue == 0) {
+                $q = $conn->query("SELECT IFNULL(SUM(total_price),0) as total_revenue FROM orders");
+                if ($q) {
+                    $row = $q->fetch_assoc();
+                    $revenue = (float)($row['total_revenue'] ?? 0);
+                }
+            }
+            $totals['total_revenue'] = $revenue;
+            
+            // 3. Stock
+            $q = $conn->query("SELECT IFNULL(SUM(COALESCE(stock_quantity, stock, 0)),0) as total_stock FROM products");
+            if ($q) {
+                $row = $q->fetch_assoc();
+                $totals['total_stock'] = (int)($row['total_stock'] ?? 0);
+            } else {
+                $totals['total_stock'] = 0;
+            }
+            
+            // 4. Sellers
+            $q = $conn->query("SELECT COUNT(*) as sellers FROM users WHERE role='seller'");
+            if ($q) {
+                $row = $q->fetch_assoc();
+                $totals['total_sellers'] = (int)($row['sellers'] ?? 0);
+            } else {
+                $totals['total_sellers'] = 0;
+            }
+            
+            // 5. Total Orders
+            $q = $conn->query("SELECT COUNT(*) as orders FROM orders");
+            if ($q) {
+                $row = $q->fetch_assoc();
+                $totals['total_orders'] = (int)($row['orders'] ?? 0);
+            } else {
+                $totals['total_orders'] = 0;
+            }
+            
+            echo json_encode($totals);
+        } catch (Exception $e) {
+            returnError('Failed to fetch dashboard stats: ' . $e->getMessage());
         }
-        $totals['total_revenue'] = $revenue;
-        
-        // 3. Stock (prefers stock_quantity, falls back to stock)
-        $q = $conn->query("SELECT IFNULL(SUM(COALESCE(stock_quantity, stock, 0)),0) as total_stock FROM products");
-        $totals['total_stock'] = (int)($q ? $q->fetch_assoc()['total_stock'] : 0);
-        
-        // 4. Sellers
-        $q = $conn->query("SELECT COUNT(*) as sellers FROM users WHERE role='seller'");
-        $totals['total_sellers'] = (int)($q ? $q->fetch_assoc()['sellers'] : 0);
-        
-        // 5. Total Orders
-        $q = $conn->query("SELECT COUNT(*) as orders FROM orders");
-        $totals['total_orders'] = (int)($q ? $q->fetch_assoc()['orders'] : 0);
-        
-        echo json_encode($totals);
         break;
 
     // --- MONTHLY REVENUE (Line Chart) ---
     case 'monthly_revenue':
-        $rows = [];
-        // Try with status filter first
-        $stmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') as ym, SUM(total_price) as amt FROM orders WHERE (status IN ('confirmed','shipped','delivered','received') OR paid_at IS NOT NULL) GROUP BY ym ORDER BY ym ASC LIMIT 12");
-        if ($stmt) {
-            $stmt->execute();
-            $res = $stmt->get_result();
-            while ($r = $res->fetch_assoc()) $rows[] = $r;
-            $stmt->close();
-        }
-        // If no results, try all orders (fallback)
-        if (empty($rows)) {
-            $stmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') as ym, SUM(total_price) as amt FROM orders GROUP BY ym ORDER BY ym ASC LIMIT 12");
+        try {
+            $rows = [];
+            $stmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') as ym, SUM(total_price) as amt FROM orders WHERE (status IN ('confirmed','shipped','delivered','received') OR paid_at IS NOT NULL) GROUP BY ym ORDER BY ym ASC LIMIT 12");
             if ($stmt) {
                 $stmt->execute();
                 $res = $stmt->get_result();
                 while ($r = $res->fetch_assoc()) $rows[] = $r;
                 $stmt->close();
             }
+            // If no results, try all orders (fallback)
+            if (empty($rows)) {
+                $stmt = $conn->prepare("SELECT DATE_FORMAT(created_at,'%Y-%m') as ym, SUM(total_price) as amt FROM orders GROUP BY ym ORDER BY ym ASC LIMIT 12");
+                if ($stmt) {
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+                    while ($r = $res->fetch_assoc()) $rows[] = $r;
+                    $stmt->close();
+                }
+            }
+            echo json_encode($rows);
+        } catch (Exception $e) {
+            echo json_encode([]);
         }
-        echo json_encode($rows);
         break;
 
     // --- TOP PRODUCTS (Bar Chart) ---
     case 'top_products':
-        $rows = [];
-
-        // Helper SQL snippet to avoid repetition
-        $topProductsSql = "
-            SELECT 
-                p.id,
-                p.name,
-                p.price,
-                COALESCE(p.stock_quantity, p.stock, 0) AS stock_quantity,
-                COALESCE(NULLIF(p.category, ''), NULL) AS legacy_category,
-                COALESCE(GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', '), '') AS categories,
-                SUM(oi.quantity) AS total_qty
-            FROM orders o
-            JOIN order_items oi ON o.id = oi.order_id
-            JOIN products p ON oi.product_id = p.id
-            LEFT JOIN product_categories pc ON p.id = pc.product_id
-            LEFT JOIN categories c ON pc.category_id = c.id
-            WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL)
-            GROUP BY p.id
-            ORDER BY total_qty DESC
-            LIMIT 5";
-
-        $stmt = $conn->prepare($topProductsSql);
-        if ($stmt) { 
-            $stmt->execute(); 
-            $res = $stmt->get_result(); 
-            while($r=$res->fetch_assoc()) $rows[]=$r;
-            $stmt->close();
-        }
-
-        // Fallback: if there are no orders yet, show top products by stock instead
-        if (empty($rows)) {
-            $fallbackSql = "
+        try {
+            $rows = [];
+            $topProductsSql = "
                 SELECT 
                     p.id,
                     p.name,
@@ -195,23 +212,54 @@ switch ($action) {
                     COALESCE(p.stock_quantity, p.stock, 0) AS stock_quantity,
                     COALESCE(NULLIF(p.category, ''), NULL) AS legacy_category,
                     COALESCE(GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', '), '') AS categories,
-                    COALESCE(p.stock_quantity, p.stock, 0) AS total_qty
-                FROM products p
+                    SUM(oi.quantity) AS total_qty
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN products p ON oi.product_id = p.id
                 LEFT JOIN product_categories pc ON p.id = pc.product_id
                 LEFT JOIN categories c ON pc.category_id = c.id
+                WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL)
                 GROUP BY p.id
                 ORDER BY total_qty DESC
                 LIMIT 5";
-            $stmt = $conn->prepare($fallbackSql);
-            if($stmt) { 
+
+            $stmt = $conn->prepare($topProductsSql);
+            if ($stmt) { 
                 $stmt->execute(); 
                 $res = $stmt->get_result(); 
                 while($r=$res->fetch_assoc()) $rows[]=$r;
                 $stmt->close();
             }
-        }
 
-        echo json_encode($rows);
+            // Fallback: if there are no orders yet, show top products by stock instead
+            if (empty($rows)) {
+                $fallbackSql = "
+                    SELECT 
+                        p.id,
+                        p.name,
+                        p.price,
+                        COALESCE(p.stock_quantity, p.stock, 0) AS stock_quantity,
+                        COALESCE(NULLIF(p.category, ''), NULL) AS legacy_category,
+                        COALESCE(GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', '), '') AS categories,
+                        COALESCE(p.stock_quantity, p.stock, 0) AS total_qty
+                    FROM products p
+                    LEFT JOIN product_categories pc ON p.id = pc.product_id
+                    LEFT JOIN categories c ON pc.category_id = c.id
+                    GROUP BY p.id
+                    ORDER BY total_qty DESC
+                    LIMIT 5";
+                $stmt = $conn->prepare($fallbackSql);
+                if($stmt) { 
+                    $stmt->execute(); 
+                    $res = $stmt->get_result(); 
+                    while($r=$res->fetch_assoc()) $rows[]=$r;
+                    $stmt->close();
+                }
+            }
+            echo json_encode($rows);
+        } catch (Exception $e) {
+            echo json_encode([]);
+        }
         break;
 
     // --- TOP SELLERS ---
@@ -252,15 +300,19 @@ switch ($action) {
 
     // --- ORDER STATUS (Pie Chart) ---
     case 'orders_summary':
-        $rows=[];
-        $stmt=$conn->prepare("SELECT status, COUNT(*) as cnt FROM orders GROUP BY status");
-        if($stmt) {
-            $stmt->execute(); 
-            $res=$stmt->get_result(); 
-            while($r=$res->fetch_assoc()) $rows[]=$r;
-            $stmt->close();
+        try {
+            $rows=[];
+            $stmt=$conn->prepare("SELECT status, COUNT(*) as cnt FROM orders GROUP BY status");
+            if($stmt) {
+                $stmt->execute(); 
+                $res=$stmt->get_result(); 
+                while($r=$res->fetch_assoc()) $rows[]=$r;
+                $stmt->close();
+            }
+            echo json_encode($rows);
+        } catch (Exception $e) {
+            echo json_encode([]);
         }
-        echo json_encode($rows);
         break;
 
     // --- DAILY REVENUE (Sparkline/Trend) ---
@@ -288,32 +340,36 @@ switch ($action) {
 
     // --- CATEGORY DISTRIBUTION (Bar Chart) ---
     case 'category_distribution':
-        $rows = [];
-        // Sales based
-        $sql = "SELECT COALESCE(p.category, 'Uncategorized') as category, COALESCE(SUM(oi.quantity), 0) as count FROM products p LEFT JOIN order_items oi ON p.id = oi.product_id LEFT JOIN orders o ON oi.order_id = o.id AND (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) GROUP BY COALESCE(p.category, 'Uncategorized') ORDER BY count DESC, category ASC LIMIT 10";
-        $result = $conn->query($sql);
-        if ($result) {
-            while ($r = $result->fetch_assoc()) {
-                if ((int)$r['count'] > 0 || empty($rows)) {
-                    $rows[] = ['category' => $r['category'] ?: 'Uncategorized', 'count' => (int)$r['count']];
-                }
-            }
-        }
-        // Fallback to simple product count if no sales
-        $hasSales = false;
-        foreach ($rows as $row) { if ($row['count'] > 0) { $hasSales = true; break; } }
-        
-        if (!$hasSales) {
+        try {
             $rows = [];
-            $sql = "SELECT COALESCE(category, 'Uncategorized') as category, COUNT(*) as count FROM products GROUP BY COALESCE(category, 'Uncategorized') ORDER BY count DESC LIMIT 10";
+            // Sales based
+            $sql = "SELECT COALESCE(p.category, 'Uncategorized') as category, COALESCE(SUM(oi.quantity), 0) as count FROM products p LEFT JOIN order_items oi ON p.id = oi.product_id LEFT JOIN orders o ON oi.order_id = o.id AND (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) GROUP BY COALESCE(p.category, 'Uncategorized') ORDER BY count DESC, category ASC LIMIT 10";
             $result = $conn->query($sql);
             if ($result) {
                 while ($r = $result->fetch_assoc()) {
-                    $rows[] = ['category' => $r['category'] ?: 'Uncategorized', 'count' => (int)$r['count']];
+                    if ((int)$r['count'] > 0 || empty($rows)) {
+                        $rows[] = ['category' => $r['category'] ?: 'Uncategorized', 'count' => (int)$r['count']];
+                    }
                 }
             }
+            // Fallback to simple product count if no sales
+            $hasSales = false;
+            foreach ($rows as $row) { if ($row['count'] > 0) { $hasSales = true; break; } }
+            
+            if (!$hasSales) {
+                $rows = [];
+                $sql = "SELECT COALESCE(category, 'Uncategorized') as category, COUNT(*) as count FROM products GROUP BY COALESCE(category, 'Uncategorized') ORDER BY count DESC LIMIT 10";
+                $result = $conn->query($sql);
+                if ($result) {
+                    while ($r = $result->fetch_assoc()) {
+                        $rows[] = ['category' => $r['category'] ?: 'Uncategorized', 'count' => (int)$r['count']];
+                    }
+                }
+            }
+            echo json_encode($rows);
+        } catch (Exception $e) {
+            echo json_encode([]);
         }
-        echo json_encode($rows);
         break;
 
     // --- FULFILLMENT RATE ---
@@ -344,51 +400,55 @@ switch ($action) {
 
     // --- SALES BY COUNTRY (Geo Chart) ---
     case 'sales_by_country':
-        // Try buyer_id first, fallback to user_id
-        $hasBuyerId = false;
-        $hasShippingCountry = false;
-        $colCheck = $conn->query("SHOW COLUMNS FROM orders LIKE 'buyer_id'");
-        if ($colCheck && $colCheck->num_rows > 0) $hasBuyerId = true;
-        
-        $colCheck = $conn->query("SHOW COLUMNS FROM orders LIKE 'shipping_country'");
-        if ($colCheck && $colCheck->num_rows > 0) $hasShippingCountry = true;
-        
-        if ($hasShippingCountry && $hasBuyerId) {
-            $sql = "SELECT COALESCE(NULLIF(o.shipping_country,''), NULLIF(u.country_name,''), NULLIF(u.country,'')) AS country, SUM(o.total_price) AS value FROM orders o LEFT JOIN users u ON o.buyer_id = u.id WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) AND COALESCE(NULLIF(o.shipping_country,''), NULLIF(u.country_name,''), NULLIF(u.country,'')) IS NOT NULL GROUP BY country ORDER BY value DESC LIMIT 200";
-        } elseif ($hasBuyerId) {
-            $sql = "SELECT COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) AS country, SUM(o.total_price) AS value FROM orders o LEFT JOIN users u ON o.buyer_id = u.id WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) AND COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) IS NOT NULL GROUP BY country ORDER BY value DESC LIMIT 200";
-        } else {
-            // Fallback: user_id
-            $sql = "SELECT COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) AS country, SUM(o.total_price) AS value FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) AND COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) IS NOT NULL GROUP BY country ORDER BY value DESC LIMIT 200";
-        }
-        
-        $rows = [];
-        $countryTotals = [];
-        
-        if ($res = $conn->query($sql)) {
-            while ($r = $res->fetch_assoc()) {
-                $normalized = normalizeCountryName($r['country']);
-                if ($normalized) {
-                    $value = (float)$r['value'];
-                    if (!isset($countryTotals[$normalized])) {
-                        $countryTotals[$normalized] = 0;
+        try {
+            // Try buyer_id first, fallback to user_id
+            $hasBuyerId = false;
+            $hasShippingCountry = false;
+            $colCheck = $conn->query("SHOW COLUMNS FROM orders LIKE 'buyer_id'");
+            if ($colCheck && $colCheck->num_rows > 0) $hasBuyerId = true;
+            
+            $colCheck = $conn->query("SHOW COLUMNS FROM orders LIKE 'shipping_country'");
+            if ($colCheck && $colCheck->num_rows > 0) $hasShippingCountry = true;
+            
+            if ($hasShippingCountry && $hasBuyerId) {
+                $sql = "SELECT COALESCE(NULLIF(o.shipping_country,''), NULLIF(u.country_name,''), NULLIF(u.country,'')) AS country, SUM(o.total_price) AS value FROM orders o LEFT JOIN users u ON o.buyer_id = u.id WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) AND COALESCE(NULLIF(o.shipping_country,''), NULLIF(u.country_name,''), NULLIF(u.country,'')) IS NOT NULL GROUP BY country ORDER BY value DESC LIMIT 200";
+            } elseif ($hasBuyerId) {
+                $sql = "SELECT COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) AS country, SUM(o.total_price) AS value FROM orders o LEFT JOIN users u ON o.buyer_id = u.id WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) AND COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) IS NOT NULL GROUP BY country ORDER BY value DESC LIMIT 200";
+            } else {
+                // Fallback: user_id
+                $sql = "SELECT COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) AS country, SUM(o.total_price) AS value FROM orders o LEFT JOIN users u ON o.user_id = u.id WHERE (o.status IN ('confirmed','shipped','delivered','received') OR o.paid_at IS NOT NULL) AND COALESCE(NULLIF(u.country_name,''), NULLIF(u.country,'')) IS NOT NULL GROUP BY country ORDER BY value DESC LIMIT 200";
+            }
+            
+            $rows = [];
+            $countryTotals = [];
+            
+            if ($res = $conn->query($sql)) {
+                while ($r = $res->fetch_assoc()) {
+                    $normalized = normalizeCountryName($r['country']);
+                    if ($normalized) {
+                        $value = (float)$r['value'];
+                        if (!isset($countryTotals[$normalized])) {
+                            $countryTotals[$normalized] = 0;
+                        }
+                        $countryTotals[$normalized] += $value;
                     }
-                    $countryTotals[$normalized] += $value;
                 }
             }
+            
+            // Convert to array format
+            foreach ($countryTotals as $country => $value) {
+                $rows[] = ['country' => $country, 'value' => $value];
+            }
+            
+            // Sort descending
+            usort($rows, function($a, $b) {
+                return $b['value'] <=> $a['value'];
+            });
+            
+            echo json_encode($rows);
+        } catch (Exception $e) {
+            echo json_encode([]);
         }
-        
-        // Convert to array format for Google Charts
-        foreach ($countryTotals as $country => $value) {
-            $rows[] = ['country' => $country, 'value' => $value];
-        }
-        
-        // Sort descending
-        usort($rows, function($a, $b) {
-            return $b['value'] <=> $a['value'];
-        });
-        
-        echo json_encode($rows);
         break;
 
     default:

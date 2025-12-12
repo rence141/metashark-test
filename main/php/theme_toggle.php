@@ -1,28 +1,51 @@
 <?php
-// Theme toggle component
-// This file can be included in other PHP files to add theme functionality
+// Theme toggle component - Unified for all admin pages
+// This file handles theme switching via AJAX requests and can be included
+
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Check if theme preference is set in session, default to dark
 $theme = $_SESSION['theme'] ?? 'dark';
 
-// Handle theme toggle
-if (isset($_GET['theme'])) {
-    $new_theme = $_GET['theme'];
-    if ($new_theme === 'light' || $new_theme === 'dark' || $new_theme === 'device') {
-        $_SESSION['theme'] = $new_theme;
-        $theme = $new_theme;
-    } else {
-        $new_theme = 'dark';
-        $_SESSION['theme'] = $new_theme;
-        $theme = $new_theme;
-    }
+// Handle theme toggle via GET request (for AJAX calls)
+if (isset($_GET['theme']) && !isset($_GET['redirect'])) {
+    // This is an AJAX request
+    header('Content-Type: application/json');
     
-    // Handle redirect back to original page
-    if (isset($_GET['redirect'])) {
-        header("Location: " . $_GET['redirect']);
+    $new_theme = $_GET['theme'];
+    
+    // Validate theme value
+    if ($new_theme === 'light' || $new_theme === 'dark') {
+        $_SESSION['theme'] = $new_theme;
+        $theme = $new_theme;
+        
+        // Return JSON response for AJAX
+        echo json_encode(['success' => true, 'theme' => $new_theme]);
+        exit;
+    } else {
+        // Invalid theme, default to dark
+        $_SESSION['theme'] = 'dark';
+        $theme = 'dark';
+        echo json_encode(['success' => false, 'error' => 'Invalid theme', 'theme' => 'dark']);
         exit;
     }
 }
+
+// Handle theme toggle with redirect (for non-AJAX requests)
+if (isset($_GET['theme']) && isset($_GET['redirect'])) {
+    $new_theme = $_GET['theme'];
+    if ($new_theme === 'light' || $new_theme === 'dark') {
+        $_SESSION['theme'] = $new_theme;
+        $theme = $new_theme;
+    }
+    header("Location: " . $_GET['redirect']);
+    exit;
+}
+
+// If included in other files, $theme variable is available for use
 ?>
 
 <style>
